@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://spawner.gd" id="3_spawner"]
 [ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://obstacle.tscn" id="4_obstacle"]
 [ext_resource type="Script" path="res://main.gd" id="5_main"]
+[ext_resource type="Texture2D" path="res://assets/fire_button.svg" id="6_firebtn"]
 
 [node name="Main" type="Node2D" unique_id=1950812381]
 script = ExtResource("5_main")
@@ -37,7 +38,7 @@ offset_bottom = 110.0
 theme_override_font_sizes/font_size = 32
 text = "Ammo: 3"
 
-[node name="FireButton" type="Button" parent="UI"]
+[node name="FireButton" type="TextureButton" parent="UI"]
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
@@ -49,5 +50,6 @@ offset_right = -40.0
 offset_bottom = -40.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_font_sizes/font_size = 32
-text = "FIRE"
+texture_normal = ExtResource("6_firebtn")
+ignore_texture_size = true
+stretch_mode = 5
