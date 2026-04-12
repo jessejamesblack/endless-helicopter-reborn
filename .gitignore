@@ -1,0 +1,20 @@
+# Godot 4+ specific ignores
+.godot/
+!res://.godot/
+*.translation
+
+# Imported translations (automatically generated from CSV files)
+*.csv.import
+
+# Exported games
+export/
+export-*
+*.apk
+*.aab
+*.exe
+*.pck
+*.ipa
+
+# OS hidden files
+.DS_Store
+Thumbs.db
