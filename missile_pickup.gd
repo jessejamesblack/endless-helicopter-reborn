@@ -6,7 +6,11 @@ func _ready() -> void:
     body_entered.connect(_on_body_entered)
 
 func _process(delta: float) -> void:
-    position.x -= move_speed * delta
+    var current_speed = move_speed
+    if "speed_multiplier" in get_tree().current_scene:
+        current_speed *= get_tree().current_scene.speed_multiplier
+        
+    position.x -= current_speed * delta
     
     if global_position.x < -200:
         queue_free()

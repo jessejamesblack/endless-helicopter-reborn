@@ -3,6 +3,7 @@ extends Node2D
 var score: float = 0.0
 var is_crashed: bool = false
 var explosion_scene: PackedScene = preload("res://explosion.tscn")
+var speed_multiplier: float = 1.0
 
 func _ready() -> void:
     if has_node("Player") and has_node("UI/AmmoLabel"):
@@ -20,6 +21,9 @@ func _process(delta: float) -> void:
     # Increase score continuously based on time survived
     score += delta * 10.0
     $UI/ScoreLabel.text = "Score: %d" % int(score)
+    
+    # Gradually increase game speed to make it harder over time!
+    speed_multiplier += delta * 0.015
 
 func update_ammo_ui(ammo: int) -> void:
     if has_node("UI/AmmoLabel"):

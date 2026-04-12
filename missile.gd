@@ -6,7 +6,11 @@ func _ready() -> void:
     area_entered.connect(_on_area_entered)
 
 func _process(delta: float) -> void:
-    position.x += speed * delta
+    var current_speed = speed
+    if "speed_multiplier" in get_tree().current_scene:
+        current_speed *= get_tree().current_scene.speed_multiplier
+        
+    position.x += current_speed * delta
     
     # Despawn if it flies off the right side of the screen
     if global_position.x > get_viewport_rect().size.x + 100:
