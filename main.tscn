@@ -8,10 +8,9 @@
 [node name="Main" type="Node2D" unique_id=1950812381]
 
 [node name="Background" parent="." unique_id=1347431818 instance=ExtResource("1_ig7tw")]
-scroll_offset = Vector2(-940, 2)
 
 [node name="Player" parent="." unique_id=648755744 instance=ExtResource("2_0xm2m")]
-position = Vector2(25, 294)
+position = Vector2(200, 324)
 
 [node name="Spawner" type="Node2D" parent="." unique_id=1522259327]
 position = Vector2(1100, 0)

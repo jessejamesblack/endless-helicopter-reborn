@@ -9,8 +9,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
     position.x -= move_speed * delta
     
-    # Delete the obstacle once it is safely off the left side of the screen
-    if position.x < -200:
+    # Check global_position so it accounts for the Spawner's starting location
+    if global_position.x < -200:
         queue_free()
 
 func _on_body_entered(body: Node2D) -> void:
