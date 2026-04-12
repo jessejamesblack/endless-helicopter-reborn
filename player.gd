@@ -4,6 +4,8 @@ extends CharacterBody2D
 @export var tilt_speed: float = 5.0
 @export var max_tilt: float = 0.5
 
+@onready var sprite: Sprite2D = $Sprite2D
+
 var missile_scene: PackedScene = preload("res://missile.tscn")
 var ammo: int = 3
 
@@ -16,7 +18,7 @@ func _physics_process(delta: float) -> void:
     
     # Tilt the helicopter based on vertical velocity
     var target_tilt = clamp(velocity.y / 800.0, -max_tilt, max_tilt)
-    rotation = lerp_angle(rotation, target_tilt, tilt_speed * delta)
+    sprite.rotation = lerp_angle(sprite.rotation, target_tilt, tilt_speed * delta)
 
     move_and_slide()
     
@@ -38,8 +40,10 @@ func fire_missile() -> void:
             main.update_ammo_ui(ammo)
 
         var missile = missile_scene.instantiate()
-        # Spawn slightly in front of the helicopter
-        missile.global_position = global_position + Vector2(40, 0)
+        # Spawn slightly in front of the helicopter, matching its tilt
+        var spawn_offset = Vector2(40, 0).rotated(sprite.rotation)
+        missile.global_position = global_position + spawn_offset
+        missile.rotation = sprite.rotation
         get_tree().current_scene.add_child(missile)
         
         if has_node("MissileFireSound"):
