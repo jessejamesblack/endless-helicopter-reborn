@@ -15,9 +15,10 @@ script = ExtResource("1_script")
 [node name="TextureRect" type="TextureRect" parent="." unique_id=1463253061]
 layout_mode = 0
 offset_top = 1.0
-offset_right = 1408.0
-offset_bottom = 769.0
+offset_right = 1152.0
+offset_bottom = 646.0
 texture = ExtResource("2_pevhg")
+expand_mode = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=128318552]
 layout_mode = 1
@@ -32,12 +33,22 @@ theme_override_constants/separation = 20
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=1311222868]
 layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 64
 text = "Endless Helicopter"
 horizontal_alignment = 1
 
 [node name="HighScoreLabel" type="Label" parent="VBoxContainer" unique_id=1316329998]
 layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 32
 text = "High Score: 0"
 horizontal_alignment = 1
