@@ -47,6 +47,9 @@ func add_ammo(amount: int) -> void:
     ammo += amount
     if get_tree().current_scene.has_method("update_ammo_ui"):
         get_tree().current_scene.update_ammo_ui(ammo)
+        
+    if has_node("ReloadSound"):
+        $ReloadSound.play()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Fire missile on 'X' key

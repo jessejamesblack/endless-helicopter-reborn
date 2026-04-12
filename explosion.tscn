@@ -1,13 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bm0tnwavilp17"]
 
-[ext_resource type="Texture2D" path="res://assets/explosion.svg" id="1_tex"]
-[ext_resource type="Script" path="res://explosion.gd" id="2_script"]
-[ext_resource type="AudioStream" path="res://assets/death.wav" id="3_audio"]
+[ext_resource type="Texture2D" uid="uid://cqfjd20dieuls" path="res://assets/explosion.svg" id="1_tex"]
+[ext_resource type="Script" uid="uid://dqa6ds0py3y2w" path="res://explosion.gd" id="2_script"]
+[ext_resource type="AudioStream" uid="uid://4sbbu6gmbp2r" path="res://death.wav" id="3_j4sxf"]
 
-[node name="Explosion" type="Sprite2D"]
+[node name="Explosion" type="Sprite2D" unique_id=1554996589]
 texture = ExtResource("1_tex")
 script = ExtResource("2_script")
 
-[node name="DeathSound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("3_audio")
+[node name="DeathSound" type="AudioStreamPlayer" parent="." unique_id=1835431304]
+stream = ExtResource("3_j4sxf")
 autoplay = true
