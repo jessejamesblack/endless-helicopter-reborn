@@ -4,8 +4,10 @@
 [ext_resource type="PackedScene" uid="uid://bcvr4g5g56dsm" path="res://player.tscn" id="2_0xm2m"]
 [ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://spawner.gd" id="3_spawner"]
 [ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://obstacle.tscn" id="4_obstacle"]
+[ext_resource type="Script" path="res://main.gd" id="5_main"]
 
 [node name="Main" type="Node2D" unique_id=1950812381]
+script = ExtResource("5_main")
 
 [node name="Background" parent="." unique_id=1347431818 instance=ExtResource("1_ig7tw")]
 
@@ -16,3 +18,13 @@ position = Vector2(200, 324)
 position = Vector2(1100, 0)
 script = ExtResource("3_spawner")
 obstacle_scene = ExtResource("4_obstacle")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 160.0
+offset_bottom = 65.0
+theme_override_font_sizes/font_size = 32
+text = "Score: 0"

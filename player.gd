@@ -19,8 +19,12 @@ func _physics_process(delta: float) -> void:
     
     # End game if the player flies off the top or bottom of the screen
     if global_position.y < 0 or global_position.y > get_viewport_rect().size.y:
-        print("Crash! Game Over.")
-        get_tree().reload_current_scene()
+        die()
+
+func die() -> void:
+    if get_tree().current_scene.has_method("trigger_crash"):
+        get_tree().current_scene.trigger_crash(global_position)
+    queue_free()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Jump on 'ui_accept' (Spacebar), left mouse click, or screen touch

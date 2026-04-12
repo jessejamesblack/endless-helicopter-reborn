@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/explosion.svg" id="1_tex"]
+[ext_resource type="Script" path="res://explosion.gd" id="2_script"]
+
+[node name="Explosion" type="Sprite2D"]
+texture = ExtResource("1_tex")
+script = ExtResource("2_script")
