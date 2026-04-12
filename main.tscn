@@ -14,8 +14,6 @@ scroll_offset = Vector2(-940, 2)
 position = Vector2(25, 294)
 
 [node name="Spawner" type="Node2D" parent="." unique_id=1522259327]
-position = Vector2(380, 126)
+position = Vector2(1100, 0)
 script = ExtResource("3_spawner")
 obstacle_scene = ExtResource("4_obstacle")
-
-[node name="Obstacle" parent="Spawner" unique_id=1376548892 instance=ExtResource("4_obstacle")]

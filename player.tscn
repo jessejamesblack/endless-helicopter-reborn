@@ -17,5 +17,3 @@ texture = ExtResource("2_onrkg")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226378589]
 position = Vector2(24, -3)
 shape = SubResource("CircleShape2D_onrkg")
-
-[node name="Parallax2D" type="Parallax2D" parent="." unique_id=187670410]

@@ -20,5 +20,5 @@ func spawn_obstacle() -> void:
         
     var obstacle = obstacle_scene.instantiate()
     # Randomize the Y position between our min and max values
-    obstacle.position = Vector2(global_position.x, randf_range(spawn_y_min, spawn_y_max))
+    obstacle.position = Vector2(0, randf_range(spawn_y_min, spawn_y_max))
     add_child(obstacle)
