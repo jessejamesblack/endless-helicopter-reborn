@@ -17,7 +17,7 @@ func _on_area_entered(area: Area2D) -> void:
         area.destroy()
         
         # Bonus: Give the player a quick score boost for destroying it!
-        if get_tree().current_scene.get("score") != null:
+        if "score" in get_tree().current_scene:
             get_tree().current_scene.score += 50
             
         queue_free()

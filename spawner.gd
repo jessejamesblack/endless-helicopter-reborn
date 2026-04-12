@@ -11,7 +11,7 @@ var _timer: float = 0.0
 func _process(delta: float) -> void:
     _timer += delta
     if _timer >= spawn_interval:
-        _timer = 0.0
+        _timer -= spawn_interval
 
         # 20% chance to spawn a missile pickup
         if randf() < 0.2:

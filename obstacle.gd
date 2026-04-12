@@ -1,6 +1,7 @@
 extends Area2D
 
 @export var move_speed: float = 200.0
+var explosion_scene: PackedScene = preload("res://explosion.tscn")
 
 func _ready() -> void:
     # Listen for collisions with physics bodies (like your Player)
@@ -20,7 +21,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 func destroy() -> void:
     # Spawn an explosion exactly where the obstacle was
-    var explosion = preload("res://explosion.tscn").instantiate()
+    var explosion = explosion_scene.instantiate()
     explosion.global_position = global_position
     get_tree().current_scene.add_child(explosion)
     
