@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bcvr4g5g56dsm"]
+
+[ext_resource type="Script" uid="uid://c60joo0sx1tt6" path="res://player.gd" id="1_4flbx"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_onrkg"]
+radius = 40.012497
+
+[node name="Player" type="CharacterBody2D" unique_id=648755744]
+script = ExtResource("1_4flbx")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226378589]
+shape = SubResource("CircleShape2D_onrkg")
