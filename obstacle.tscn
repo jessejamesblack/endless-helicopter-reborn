@@ -1,18 +1,22 @@
 [gd_scene format=3 uid="uid://dnsp6dsvcwb5w"]
 
 [ext_resource type="Script" uid="uid://1c1detgd7chy" path="res://obstacle.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://c2xqw3sh4jm1t" path="res://assets/obstacle.svg" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/pixel_art_sheet.svg" id="2_aubd6"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_col"]
-size = Vector2(89, 89)
+size = Vector2(133, 159)
 
 [node name="Obstacle" type="Area2D" unique_id=1376548892]
 script = ExtResource("1_script")
 metadata/_edit_group_ = true
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=401470567]
-texture = ExtResource("2_tex")
+position = Vector2(-0.9999981, -17.499998)
+scale = Vector2(0.52140075, 0.53846157)
+texture = ExtResource("2_aubd6")
+region_enabled = true
+region_rect = Rect2(1984.2002, 1129.5, 257.3999, 299.20007)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1487238260]
-position = Vector2(-0.5, -0.5)
+position = Vector2(-0.5, -16.5)
 shape = SubResource("RectangleShape2D_col")

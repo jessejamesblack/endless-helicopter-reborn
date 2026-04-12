@@ -6,6 +6,7 @@
 
 [node name="Explosion" type="Sprite2D" unique_id=1554996589]
 texture = ExtResource("1_tex")
+region_enabled = true
 script = ExtResource("2_script")
 
 [node name="DeathSound" type="AudioStreamPlayer" parent="." unique_id=1835431304]
