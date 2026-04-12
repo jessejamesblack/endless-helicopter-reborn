@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://ujcjgieuwlc6" path="res://background.tscn" id="1_ig7tw"]
 [ext_resource type="PackedScene" uid="uid://bcvr4g5g56dsm" path="res://player.tscn" id="2_0xm2m"]
 [ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://spawner.gd" id="3_spawner"]
-[ext_resource type="PackedScene" path="res://obstacle.tscn" id="4_obstacle"]
+[ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://obstacle.tscn" id="4_obstacle"]
 
 [node name="Main" type="Node2D" unique_id=1950812381]
 
@@ -14,6 +14,8 @@ scroll_offset = Vector2(-940, 2)
 position = Vector2(25, 294)
 
 [node name="Spawner" type="Node2D" parent="." unique_id=1522259327]
-position = Vector2(1200, 0)
+position = Vector2(380, 126)
 script = ExtResource("3_spawner")
 obstacle_scene = ExtResource("4_obstacle")
+
+[node name="Obstacle" parent="Spawner" unique_id=1376548892 instance=ExtResource("4_obstacle")]
