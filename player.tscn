@@ -1,12 +1,21 @@
 [gd_scene format=3 uid="uid://bcvr4g5g56dsm"]
 
 [ext_resource type="Script" uid="uid://c60joo0sx1tt6" path="res://player.gd" id="1_4flbx"]
+[ext_resource type="Texture2D" uid="uid://cdlex8wuymrad" path="res://assets/helicopter.svg" id="2_onrkg"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_onrkg"]
-radius = 40.012497
+radius = 22.0
 
 [node name="Player" type="CharacterBody2D" unique_id=648755744]
 script = ExtResource("1_4flbx")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1226378589]
+position = Vector2(24, -3)
 shape = SubResource("CircleShape2D_onrkg")
+
+[node name="Parallax2D" type="Parallax2D" parent="." unique_id=187670410]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=743187771]
+position = Vector2(30.999998, 0)
+scale = Vector2(0.86718744, 0.7734375)
+texture = ExtResource("2_onrkg")

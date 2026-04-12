@@ -17,19 +17,6 @@ func _physics_process(delta: float) -> void:
 
     move_and_slide()
 
-func _draw() -> void:
-    # Main body
-    draw_circle(Vector2.ZERO, 20.0, Color.CORNFLOWER_BLUE)
-    # Cockpit window
-    draw_circle(Vector2(8, -5), 10.0, Color.ALICE_BLUE)
-    # Tail boom
-    draw_rect(Rect2(-45, -5, 30, 10), Color.DARK_GRAY)
-    # Tail rotor
-    draw_rect(Rect2(-50, -15, 10, 30), Color.INDIAN_RED)
-    # Main rotor mast and blades
-    draw_rect(Rect2(-3, -30, 6, 15), Color.DARK_GRAY)
-    draw_rect(Rect2(-35, -35, 70, 5), Color.LIGHT_GRAY)
-
 func _unhandled_input(event: InputEvent) -> void:
     # Jump on 'ui_accept' (Spacebar), left mouse click, or screen touch
     if event.is_action_pressed("ui_accept") or \
