@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cxxd6gdfoi5ys"]
+
+[ext_resource type="PackedScene" uid="uid://ujcjgieuwlc6" path="res://background.tscn" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://bcvr4g5g56dsm" path="res://player.tscn" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://spawner.gd" id="3_spawner"]
+[ext_resource type="PackedScene" path="res://obstacle.tscn" id="4_obstacle"]
+
+[node name="Main" type="Node2D" unique_id=1950812381]
+
+[node name="Background" parent="." unique_id=1347431818 instance=ExtResource("1_ig7tw")]
+scroll_offset = Vector2(-940, 2)
+
+[node name="Player" parent="." unique_id=648755744 instance=ExtResource("2_0xm2m")]
+position = Vector2(25, 294)
+
+[node name="Spawner" type="Node2D" parent="." unique_id=1522259327]
+position = Vector2(1200, 0)
+script = ExtResource("3_spawner")
+obstacle_scene = ExtResource("4_obstacle")
