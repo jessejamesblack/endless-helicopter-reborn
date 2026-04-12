@@ -7,8 +7,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
     var current_speed = speed
-    if "speed_multiplier" in get_tree().current_scene:
-        current_speed *= get_tree().current_scene.speed_multiplier
+    var main = get_tree().current_scene as Main
+    if main:
+        if main.is_crashed: return
+        current_speed *= main.speed_multiplier
         
     position.x += current_speed * delta
     
@@ -21,7 +23,8 @@ func _on_area_entered(area: Area2D) -> void:
         area.destroy()
         
         # Bonus: Give the player a quick score boost for destroying it!
-        if "score" in get_tree().current_scene:
-            get_tree().current_scene.score += 50
+        var main = get_tree().current_scene as Main
+        if main:
+            main.score += 50
             
         queue_free()

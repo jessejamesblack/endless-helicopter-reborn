@@ -1,3 +1,4 @@
+class_name Main
 extends Node2D
 
 var score: float = 0.0

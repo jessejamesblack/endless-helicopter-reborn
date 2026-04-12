@@ -11,6 +11,10 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
     var multiplier = 1.0
-    if "speed_multiplier" in get_tree().current_scene:
-        multiplier = get_tree().current_scene.speed_multiplier
+    var main = get_tree().current_scene as Main
+    if main:
+        if main.is_crashed:
+            autoscroll = Vector2.ZERO
+            return
+        multiplier = main.speed_multiplier
     autoscroll = Vector2(-scroll_speed * multiplier, 0)

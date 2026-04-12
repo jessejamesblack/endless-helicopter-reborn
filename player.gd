@@ -25,15 +25,17 @@ func _physics_process(delta: float) -> void:
         die()
 
 func die() -> void:
-    if get_tree().current_scene.has_method("trigger_crash"):
-        get_tree().current_scene.trigger_crash(global_position)
+    var main = get_tree().current_scene as Main
+    if main:
+        main.trigger_crash(global_position)
     queue_free()
 
 func fire_missile() -> void:
     if missile_scene and ammo > 0:
         ammo -= 1
-        if get_tree().current_scene.has_method("update_ammo_ui"):
-            get_tree().current_scene.update_ammo_ui(ammo)
+        var main = get_tree().current_scene as Main
+        if main:
+            main.update_ammo_ui(ammo)
 
         var missile = missile_scene.instantiate()
         # Spawn slightly in front of the helicopter
@@ -45,8 +47,9 @@ func fire_missile() -> void:
 
 func add_ammo(amount: int) -> void:
     ammo += amount
-    if get_tree().current_scene.has_method("update_ammo_ui"):
-        get_tree().current_scene.update_ammo_ui(ammo)
+    var main = get_tree().current_scene as Main
+    if main:
+        main.update_ammo_ui(ammo)
         
     if has_node("ReloadSound"):
         $ReloadSound.play()

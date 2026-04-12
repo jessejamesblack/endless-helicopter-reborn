@@ -10,8 +10,10 @@ var _timer: float = 0.0
 
 func _process(delta: float) -> void:
     var current_interval = spawn_interval
-    if "speed_multiplier" in get_tree().current_scene:
-        current_interval /= get_tree().current_scene.speed_multiplier
+    var main = get_tree().current_scene as Main
+    if main:
+        if main.is_crashed: return
+        current_interval /= main.speed_multiplier
 
     _timer += delta
     if _timer >= current_interval:

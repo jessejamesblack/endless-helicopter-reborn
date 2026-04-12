@@ -7,8 +7,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
     var current_speed = move_speed
-    if "speed_multiplier" in get_tree().current_scene:
-        current_speed *= get_tree().current_scene.speed_multiplier
+    var main = get_tree().current_scene as Main
+    if main:
+        if main.is_crashed: return
+        current_speed *= main.speed_multiplier
         
     position.x -= current_speed * delta
     
