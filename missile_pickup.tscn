@@ -10,6 +10,7 @@ size = Vector2(32, 32)
 script = ExtResource("1_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1308504468]
+scale = Vector2(0.15094338, 0.17582417)
 texture = ExtResource("2_lky4q")
 region_enabled = true
 region_rect = Rect2(110.90004, 1220.5, 212.30003, 182.6001)

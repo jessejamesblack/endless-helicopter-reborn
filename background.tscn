@@ -1,13 +1,15 @@
 [gd_scene format=3 uid="uid://ujcjgieuwlc6"]
 
 [ext_resource type="Script" uid="uid://bktbp4em6lxsy" path="res://scrolling_background.gd" id="1_i7s6n"]
-[ext_resource type="Texture2D" uid="uid://cfufir3jvfj0c" path="res://assets/background.svg" id="2_xehqc"]
+[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/pixel_art_sheet.svg" id="2_i7s6n"]
 
 [node name="Background" type="Parallax2D" unique_id=1347431818]
-repeat_size = Vector2(1152, 0)
+repeat_size = Vector2(1151, 0)
 script = ExtResource("1_i7s6n")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1829613913]
-position = Vector2(576, 324)
-scale = Vector2(1.125, 1.08)
-texture = ExtResource("2_xehqc")
+position = Vector2(577.5, 327)
+scale = Vector2(1.350939, 2.167224)
+texture = ExtResource("2_i7s6n")
+region_enabled = true
+region_rect = Rect2(981.24915, 638.3884, 852.74243, 299.02332)
