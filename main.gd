@@ -9,6 +9,10 @@ func _ready() -> void:
         update_ammo_ui($Player.ammo)
     if has_node("Player") and has_node("UI/FireButton"):
         $UI/FireButton.pressed.connect($Player.fire_missile)
+        
+    # Dynamically place the spawner just off the right edge of the screen
+    if has_node("Spawner"):
+        $Spawner.position.x = get_viewport_rect().size.x + 100
 
 func _process(delta: float) -> void:
     if is_crashed: return
