@@ -39,6 +39,9 @@ func fire_missile() -> void:
         # Spawn slightly in front of the helicopter
         missile.global_position = global_position + Vector2(40, 0)
         get_tree().current_scene.add_child(missile)
+        
+        if has_node("MissileFireSound"):
+            $MissileFireSound.play()
 
 func add_ammo(amount: int) -> void:
     ammo += amount
