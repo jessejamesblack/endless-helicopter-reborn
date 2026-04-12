@@ -1,8 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://d4go65j16rwqg"]
 
-[ext_resource type="Script" path="res://start_screen.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://vjs5g55lfxdb" path="res://start_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://du0fvfvybfwc5" path="res://assets/menu_background.svg" id="2_pevhg"]
 
-[node name="StartScreen" type="Control"]
+[node name="StartScreen" type="Control" unique_id=398106654]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +12,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1463253061]
+layout_mode = 0
+offset_top = 1.0
+offset_right = 1408.0
+offset_bottom = 769.0
+texture = ExtResource("2_pevhg")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=128318552]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -22,19 +30,19 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 20
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=1311222868]
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
 text = "Endless Helicopter"
 horizontal_alignment = 1
 
-[node name="HighScoreLabel" type="Label" parent="VBoxContainer"]
+[node name="HighScoreLabel" type="Label" parent="VBoxContainer" unique_id=1316329998]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "High Score: 0"
 horizontal_alignment = 1
 
-[node name="StartButton" type="Button" parent="VBoxContainer"]
+[node name="StartButton" type="Button" parent="VBoxContainer" unique_id=16473461]
 custom_minimum_size = Vector2(250, 60)
 layout_mode = 2
 size_flags_horizontal = 4
