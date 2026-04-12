@@ -17,3 +17,11 @@ func _on_body_entered(body: Node2D) -> void:
     if body.name == "Player":
         if body.has_method("die"):
             body.die()
+
+func destroy() -> void:
+    # Spawn an explosion exactly where the obstacle was
+    var explosion = preload("res://explosion.tscn").instantiate()
+    explosion.global_position = global_position
+    get_tree().current_scene.add_child(explosion)
+    
+    queue_free()
