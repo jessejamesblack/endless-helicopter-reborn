@@ -5,6 +5,7 @@ extends CharacterBody2D
 @export var max_tilt: float = 0.5
 
 var missile_scene: PackedScene = preload("res://missile.tscn")
+var ammo: int = 3
 
 # Get gravity from project settings so it syncs with standard physics behavior
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -29,11 +30,20 @@ func die() -> void:
     queue_free()
 
 func fire_missile() -> void:
-    if missile_scene:
+    if missile_scene and ammo > 0:
+        ammo -= 1
+        if get_tree().current_scene.has_method("update_ammo_ui"):
+            get_tree().current_scene.update_ammo_ui(ammo)
+
         var missile = missile_scene.instantiate()
         # Spawn slightly in front of the helicopter
         missile.global_position = global_position + Vector2(40, 0)
         get_tree().current_scene.add_child(missile)
+
+func add_ammo(amount: int) -> void:
+    ammo += amount
+    if get_tree().current_scene.has_method("update_ammo_ui"):
+        get_tree().current_scene.update_ammo_ui(ammo)
 
 func _unhandled_input(event: InputEvent) -> void:
     # Fire missile on 'X' key

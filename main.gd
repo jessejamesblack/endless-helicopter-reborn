@@ -4,12 +4,20 @@ var score: float = 0.0
 var is_crashed: bool = false
 var explosion_scene: PackedScene = preload("res://explosion.tscn")
 
+func _ready() -> void:
+    if has_node("Player") and has_node("UI/AmmoLabel"):
+        update_ammo_ui($Player.ammo)
+
 func _process(delta: float) -> void:
     if is_crashed: return
     
     # Increase score continuously based on time survived
     score += delta * 10.0
     $UI/ScoreLabel.text = "Score: %d" % int(score)
+
+func update_ammo_ui(ammo: int) -> void:
+    if has_node("UI/AmmoLabel"):
+        $UI/AmmoLabel.text = "Ammo: %d" % ammo
 
 func trigger_crash(crash_pos: Vector2) -> void:
     if is_crashed: return
