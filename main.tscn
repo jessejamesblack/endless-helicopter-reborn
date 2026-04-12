@@ -36,3 +36,18 @@ offset_right = 160.0
 offset_bottom = 110.0
 theme_override_font_sizes/font_size = 32
 text = "Ammo: 3"
+
+[node name="FireButton" type="Button" parent="UI"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -110.0
+offset_right = -40.0
+offset_bottom = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 32
+text = "FIRE"

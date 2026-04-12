@@ -7,6 +7,8 @@ var explosion_scene: PackedScene = preload("res://explosion.tscn")
 func _ready() -> void:
     if has_node("Player") and has_node("UI/AmmoLabel"):
         update_ammo_ui($Player.ammo)
+    if has_node("Player") and has_node("UI/FireButton"):
+        $UI/FireButton.pressed.connect($Player.fire_missile)
 
 func _process(delta: float) -> void:
     if is_crashed: return
