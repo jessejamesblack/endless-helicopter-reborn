@@ -3,9 +3,6 @@
 [ext_resource type="Script" uid="uid://1c1detgd7chy" path="res://obstacle.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/pixel_art_sheet.svg" id="2_aubd6"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_col"]
-size = Vector2(133, 159)
-
 [node name="Obstacle" type="Area2D" unique_id=1376548892]
 script = ExtResource("1_script")
 metadata/_edit_group_ = true
@@ -17,6 +14,6 @@ texture = ExtResource("2_aubd6")
 region_enabled = true
 region_rect = Rect2(1984.2002, 1129.5, 257.3999, 299.20007)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1487238260]
-position = Vector2(-0.5, -16.5)
-shape = SubResource("RectangleShape2D_col")
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1487238260]
+position = Vector2(-0.9999981, -17.499998)
+polygon = PackedVector2Array(2, -78, 16, -62, 31, -72, 46, -53, 58, -31, 66, -7, 64, 17, 60, 38, 44, 46, 27, 51, 13, 67, 5, 80, -5, 66, -14, 48, -27, 40, -44, 34, -58, 12, -66, -12, -60, -28, -50, -37, -44, -53, -27, -45, -15, -63, -3, -52)
