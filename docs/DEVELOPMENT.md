@@ -25,9 +25,19 @@ powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C
 ## CI
 
 - Workflow: `.github/workflows/android-apk.yml`
+- Pull requests to `main` run validation and produce an APK artifact.
+- Pushes to `main` run validation, build the APK, and update the rolling release.
 - Outputs include a workflow artifact containing the generated APK.
 - Outputs also include a rolling GitHub prerelease: `Endless-Helicopter-Reborn Latest APK`.
 - APK names are `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.
+
+## Branching
+
+- Do not push feature work directly to `main`.
+- Create a branch, push it, and open a pull request into `main`.
+- Keep changes small enough that CI and review stay readable.
+- See [CONTRIBUTING.md](../CONTRIBUTING.md) for the repo workflow.
+- This repo includes `.githooks/pre-push`; set `git config core.hooksPath .githooks` in new clones if needed.
 
 ## Android Export Notes
 
