@@ -10,6 +10,7 @@
 export/
 export-*
 *.apk
+*.idsig
 *.aab
 *.exe
 *.pck
