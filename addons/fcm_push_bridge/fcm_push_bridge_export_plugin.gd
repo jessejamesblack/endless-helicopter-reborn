@@ -1,8 +1,8 @@
 @tool
 extends EditorExportPlugin
 
-const AAR_DEBUG_PATH := "addons/fcm_push_bridge/libs/FcmPushBridge-debug.aar"
-const AAR_RELEASE_PATH := "addons/fcm_push_bridge/libs/FcmPushBridge-release.aar"
+const AAR_DEBUG_PATH := "res://addons/fcm_push_bridge/libs/FcmPushBridge-debug.aar"
+const AAR_RELEASE_PATH := "res://addons/fcm_push_bridge/libs/FcmPushBridge-release.aar"
 const MAVEN_REPOS = [
 	"https://dl.google.com/dl/android/maven2/",
 	"https://repo.maven.apache.org/maven2/",
@@ -22,9 +22,8 @@ func _supports_platform(platform: EditorExportPlatform) -> bool:
 
 func _get_android_libraries(_platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
 	var library_path := AAR_DEBUG_PATH if debug else AAR_RELEASE_PATH
-	var resource_path := "res://%s" % library_path
-	if not FileAccess.file_exists(resource_path):
-		push_warning("FCM Push Bridge AAR not found at %s. Build the Android plugin before exporting." % resource_path)
+	if not FileAccess.file_exists(library_path):
+		push_warning("FCM Push Bridge AAR not found at %s. Build the Android plugin before exporting." % library_path)
 		return PackedStringArray()
 	return PackedStringArray([library_path])
 
