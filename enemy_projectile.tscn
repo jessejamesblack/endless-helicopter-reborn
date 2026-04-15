@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://enemy_projectile.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/pixel_art_sheet.svg" id="2_sheet"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_col"]
+size = Vector2(24, 6)
+
+[node name="EnemyProjectile" type="Area2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_sheet")
+region_enabled = true
+region_rect = Rect2(435, 998, 289, 102)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_col")
