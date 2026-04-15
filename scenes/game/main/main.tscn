@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://cxxd6gdfoi5ys"]
 
-[ext_resource type="PackedScene" uid="uid://ujcjgieuwlc6" path="res://background.tscn" id="1_ig7tw"]
-[ext_resource type="PackedScene" uid="uid://bcvr4g5g56dsm" path="res://player.tscn" id="2_0xm2m"]
-[ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://spawner.gd" id="3_spawner"]
-[ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://obstacle.tscn" id="4_obstacle"]
-[ext_resource type="Script" uid="uid://b4q8jmijy0vgj" path="res://main.gd" id="5_main"]
-[ext_resource type="Texture2D" uid="uid://d4ft2deaao7iv" path="res://assets/fire_button.svg" id="6_firebtn"]
+[ext_resource type="PackedScene" uid="uid://ujcjgieuwlc6" path="res://scenes/game/background/background.tscn" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://bcvr4g5g56dsm" path="res://scenes/player/player.tscn" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://scenes/game/main/spawner.gd" id="3_spawner"]
+[ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://scenes/enemies/obstacle.tscn" id="4_obstacle"]
+[ext_resource type="Script" uid="uid://b4q8jmijy0vgj" path="res://scenes/game/main/main.gd" id="5_main"]
+[ext_resource type="Texture2D" uid="uid://d4ft2deaao7iv" path="res://assets/art/ui/fire_button.svg" id="6_firebtn"]
 
 [node name="Main" type="Node2D" unique_id=1950812381]
 script = ExtResource("5_main")

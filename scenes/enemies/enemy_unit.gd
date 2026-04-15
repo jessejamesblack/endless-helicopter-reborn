@@ -86,8 +86,8 @@ var ENEMY_DATA := {
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 
-var enemy_projectile_scene: PackedScene = preload("res://enemy_projectile.tscn")
-var explosion_scene: PackedScene = preload("res://explosion.tscn")
+var enemy_projectile_scene: PackedScene = preload("res://scenes/projectiles/enemy_projectile.tscn")
+var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 
 var _base_y: float = 0.0
 var _fire_timer: float = 0.0

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ujcjgieuwlc6"]
 
-[ext_resource type="Script" uid="uid://bktbp4em6lxsy" path="res://scrolling_background.gd" id="1_i7s6n"]
-[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/pixel_art_sheet.svg" id="2_i7s6n"]
+[ext_resource type="Script" uid="uid://bktbp4em6lxsy" path="res://scenes/game/background/scrolling_background.gd" id="1_i7s6n"]
+[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="2_i7s6n"]
 
 [node name="Background" type="Parallax2D" unique_id=1347431818]
 repeat_size = Vector2(1151, 0)

@@ -6,7 +6,7 @@ extends CharacterBody2D
 
 @onready var sprite: Sprite2D = $Sprite2D
 
-var missile_scene: PackedScene = preload("res://missile.tscn")
+var missile_scene: PackedScene = preload("res://scenes/projectiles/missile.tscn")
 var ammo: int = 3
 
 # Get gravity from project settings so it syncs with standard physics behavior

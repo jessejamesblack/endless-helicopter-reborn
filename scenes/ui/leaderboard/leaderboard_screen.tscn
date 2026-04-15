@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://leaderboard_screen.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/menu_background.svg" id="2_bg"]
+[ext_resource type="Script" path="res://scenes/ui/leaderboard/leaderboard_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/art/backgrounds/menu_background.svg" id="2_bg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.0352941, 0.054902, 0.117647, 0.9)

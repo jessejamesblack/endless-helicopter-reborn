@@ -1,7 +1,7 @@
 extends Area2D
 
 @export var move_speed: float = 200.0
-var explosion_scene: PackedScene = preload("res://explosion.tscn")
+var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 
 func _ready() -> void:
     # Listen for collisions with physics bodies (like your Player)

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdlex8wuymrad"
-path="res://.godot/imported/helicopter.svg-5a9b165bb1027c5b0bd9d0db839858f2.ctex"
+path="res://.godot/imported/helicopter.svg-422012910d5669416e3a5abf1c62fd16.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/helicopter.svg"
-dest_files=["res://.godot/imported/helicopter.svg-5a9b165bb1027c5b0bd9d0db839858f2.ctex"]
+source_file="res://assets/art/sprites/helicopter.svg"
+dest_files=["res://.godot/imported/helicopter.svg-422012910d5669416e3a5abf1c62fd16.ctex"]
 
 [params]
 

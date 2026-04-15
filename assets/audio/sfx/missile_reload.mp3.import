@@ -3,12 +3,12 @@
 importer="mp3"
 type="AudioStreamMP3"
 uid="uid://bbtfj2mjmxd3o"
-path="res://.godot/imported/missile_reload.mp3-bfbfb426bc07400cf42e77d70989e2e9.mp3str"
+path="res://.godot/imported/missile_reload.mp3-9155aa5f3919dbb8ebc08ed63e47f753.mp3str"
 
 [deps]
 
-source_file="res://missile_reload.mp3"
-dest_files=["res://.godot/imported/missile_reload.mp3-bfbfb426bc07400cf42e77d70989e2e9.mp3str"]
+source_file="res://assets/audio/sfx/missile_reload.mp3"
+dest_files=["res://.godot/imported/missile_reload.mp3-9155aa5f3919dbb8ebc08ed63e47f753.mp3str"]
 
 [params]
 

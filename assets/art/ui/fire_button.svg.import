@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d4ft2deaao7iv"
-path="res://.godot/imported/fire_button.svg-f23903df20a0b27e505b74afbf564399.ctex"
+path="res://.godot/imported/fire_button.svg-eca9184cef70d69dfb476374d7a85c5f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/fire_button.svg"
-dest_files=["res://.godot/imported/fire_button.svg-f23903df20a0b27e505b74afbf564399.ctex"]
+source_file="res://assets/art/ui/fire_button.svg"
+dest_files=["res://.godot/imported/fire_button.svg-eca9184cef70d69dfb476374d7a85c5f.ctex"]
 
 [params]
 

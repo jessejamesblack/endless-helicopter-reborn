@@ -3,12 +3,12 @@
 importer="mp3"
 type="AudioStreamMP3"
 uid="uid://dpdn0xajnvbao"
-path="res://.godot/imported/missle_fire.mp3-aa8ad875f59bc152d2462964640dbc85.mp3str"
+path="res://.godot/imported/missle_fire.mp3-139cecbe28ed6b8e76280beb2f64e022.mp3str"
 
 [deps]
 
-source_file="res://missle_fire.mp3"
-dest_files=["res://.godot/imported/missle_fire.mp3-aa8ad875f59bc152d2462964640dbc85.mp3str"]
+source_file="res://assets/audio/sfx/missle_fire.mp3"
+dest_files=["res://.godot/imported/missle_fire.mp3-139cecbe28ed6b8e76280beb2f64e022.mp3str"]
 
 [params]
 

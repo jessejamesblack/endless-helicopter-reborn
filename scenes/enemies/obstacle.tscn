@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dnsp6dsvcwb5w"]
 
-[ext_resource type="Script" uid="uid://1c1detgd7chy" path="res://obstacle.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/pixel_art_sheet.svg" id="2_aubd6"]
+[ext_resource type="Script" uid="uid://1c1detgd7chy" path="res://scenes/enemies/obstacle.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="2_aubd6"]
 
 [node name="Obstacle" type="Area2D" unique_id=1376548892]
 script = ExtResource("1_script")

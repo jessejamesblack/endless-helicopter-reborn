@@ -3,12 +3,12 @@
 importer="mp3"
 type="AudioStreamMP3"
 uid="uid://crs85103elic2"
-path="res://.godot/imported/helicopter.mp3-1fce63452bd98e13c7bdf77bb967c10f.mp3str"
+path="res://.godot/imported/helicopter.mp3-e263eb3e3794b0427fa6da4892a77786.mp3str"
 
 [deps]
 
-source_file="res://helicopter.mp3"
-dest_files=["res://.godot/imported/helicopter.mp3-1fce63452bd98e13c7bdf77bb967c10f.mp3str"]
+source_file="res://assets/audio/sfx/helicopter.mp3"
+dest_files=["res://.godot/imported/helicopter.mp3-e263eb3e3794b0427fa6da4892a77786.mp3str"]
 
 [params]
 

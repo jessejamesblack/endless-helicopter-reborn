@@ -123,7 +123,7 @@ func _on_refresh_pressed() -> void:
 	fetch_notifications()
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://start_screen.tscn")
+	get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
 
 func _on_fetch_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:

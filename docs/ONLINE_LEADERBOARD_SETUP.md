@@ -6,7 +6,7 @@ This game now supports a shared family leaderboard using Supabase's REST API.
 
 Create a project in Supabase, then open the SQL editor and run:
 
-`supabase_leaderboard_setup.sql`
+`backend/supabase_leaderboard_setup.sql`
 
 ## 2. Copy your project URL and anon key
 
@@ -19,7 +19,7 @@ From the Supabase dashboard, copy:
 
 Edit:
 
-`online_leaderboard.gd`
+`systems/online_leaderboard.gd`
 
 Set:
 

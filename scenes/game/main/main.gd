@@ -3,7 +3,7 @@ extends Node2D
 
 var score: float = 0.0
 var is_crashed: bool = false
-var explosion_scene: PackedScene = preload("res://explosion.tscn")
+var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 var speed_multiplier: float = 1.0
 
 func _ready() -> void:
@@ -45,4 +45,4 @@ func trigger_crash(crash_pos: Vector2) -> void:
 
 func game_over() -> void:
     get_tree().set_meta("last_run_score", int(score))
-    get_tree().change_scene_to_file("res://leaderboard_screen.tscn")
+    get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")

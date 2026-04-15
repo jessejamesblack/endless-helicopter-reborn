@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://b227qelkeaiwv"]
 
-[ext_resource type="Script" uid="uid://b828rkdvhfgtt" path="res://missile_pickup.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/pixel_art_sheet.svg" id="2_lky4q"]
+[ext_resource type="Script" uid="uid://b828rkdvhfgtt" path="res://scenes/pickups/missile_pickup.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="2_lky4q"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_col"]
 size = Vector2(32, 32)

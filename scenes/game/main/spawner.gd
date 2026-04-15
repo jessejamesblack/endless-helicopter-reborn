@@ -1,8 +1,8 @@
 extends Node2D
 
 @export var obstacle_scene: PackedScene
-@export var pickup_scene: PackedScene = preload("res://missile_pickup.tscn")
-@export var enemy_scene: PackedScene = preload("res://enemy_unit.tscn")
+@export var pickup_scene: PackedScene = preload("res://scenes/pickups/missile_pickup.tscn")
+@export var enemy_scene: PackedScene = preload("res://scenes/enemies/enemy_unit.tscn")
 @export var spawn_interval: float = 2.0
 @export var spawn_y_min: float = 100.0
 @export var spawn_y_max: float = 500.0

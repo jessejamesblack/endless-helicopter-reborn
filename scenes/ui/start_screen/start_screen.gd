@@ -5,7 +5,7 @@ func _ready() -> void:
     $ScoresButton.pressed.connect(_on_scores_pressed)
 
 func _on_start_pressed() -> void:
-    get_tree().change_scene_to_file("res://main.tscn")
+    get_tree().change_scene_to_file("res://scenes/game/main/main.tscn")
 
 func _on_scores_pressed() -> void:
-    get_tree().change_scene_to_file("res://leaderboard_screen.tscn")
+    get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")

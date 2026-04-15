@@ -46,7 +46,7 @@ var PROJECTILE_DATA := {
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 
-var explosion_scene: PackedScene = preload("res://explosion.tscn")
+var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
