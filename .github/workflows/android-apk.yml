@@ -1,0 +1,127 @@
+name: Android APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    env:
+      GODOT_VERSION: 4.6.2
+      GODOT_RELEASE_TAG: 4.6.2-stable
+      GODOT_TEMPLATE_VERSION: 4.6.2.stable
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+      APK_OUTPUT: build/android/EndlessHelicopter-debug.apk
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK command-line tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          curl -fsSL -o "$RUNNER_TEMP/commandlinetools.zip" "https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip"
+          unzip -q "$RUNNER_TEMP/commandlinetools.zip" -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" \
+            "build-tools;35.0.1" \
+            "platforms;android-35" \
+            "cmdline-tools;latest" \
+            "cmake;3.10.2.4988404" \
+            "ndk;28.1.13356709"
+
+      - name: Download Godot editor and export templates
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" "https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE_TAG}/Godot_v${GODOT_RELEASE_TAG}_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE_TAG}_linux.x86_64"
+
+          curl -fsSL -o "$RUNNER_TEMP/templates.tpz" "https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE_TAG}/Godot_v${GODOT_RELEASE_TAG}_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATE_VERSION}"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/templates"
+          cp -R "$RUNNER_TEMP/templates/templates/"* "$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATE_VERSION}/"
+
+      - name: Prepare Android signing inputs
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HOME/.config/godot" build/android
+
+          if [[ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" && -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" && -n "${{ secrets.ANDROID_KEY_ALIAS }}" ]]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/android-release.keystore"
+            {
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$RUNNER_TEMP/android-release.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ secrets.ANDROID_KEY_ALIAS }}"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+              echo "BUILD_KIND=release"
+            } >> "$GITHUB_ENV"
+            KEYSTORE_PATH="$RUNNER_TEMP/android-release.keystore"
+            KEYSTORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+          else
+            keytool -genkeypair -v \
+              -keystore "$RUNNER_TEMP/android-debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            {
+              echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$RUNNER_TEMP/android-debug.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey"
+              echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android"
+              echo "BUILD_KIND=debug"
+            } >> "$GITHUB_ENV"
+            KEYSTORE_PATH="$RUNNER_TEMP/android-debug.keystore"
+            KEYSTORE_PASS="android"
+          fi
+
+          cat > "$HOME/.config/godot/editor_settings-4.6.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/debug_keystore = "$KEYSTORE_PATH"
+          export/android/debug_keystore_pass = "$KEYSTORE_PASS"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          EOF
+
+      - name: Validate project scripts
+        shell: pwsh
+        run: |
+          ./tools/validate_godot.ps1 -GodotBin "$env:RUNNER_TEMP/godot/Godot_v$env:GODOT_RELEASE_TAG`_linux.x86_64"
+
+      - name: Export Android APK
+        shell: pwsh
+        run: |
+          $godot = "$env:RUNNER_TEMP/godot/Godot_v$env:GODOT_RELEASE_TAG`_linux.x86_64"
+          if ($env:BUILD_KIND -eq "release") {
+            ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT -Release
+          }
+          else {
+            ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT
+          }
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ github.sha }}
+          path: build/android/*.apk
+          retention-days: 14

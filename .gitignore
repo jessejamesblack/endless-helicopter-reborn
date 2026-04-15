@@ -15,6 +15,7 @@ export-*
 *.exe
 *.pck
 *.ipa
+build/
 
 # OS hidden files
 .DS_Store
