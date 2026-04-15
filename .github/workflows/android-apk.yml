@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-android:
@@ -15,7 +15,7 @@ jobs:
       GODOT_RELEASE_TAG: 4.6.2-stable
       GODOT_TEMPLATE_VERSION: 4.6.2.stable
       ANDROID_SDK_ROOT: ${{ github.workspace }}/build/android-sdk
-      APK_OUTPUT: build/android/EndlessHelicopter-debug.apk
+      APP_NAME: Endless-Helicopter-Reborn
 
     steps:
       - name: Check out repository
@@ -114,16 +114,40 @@ jobs:
         shell: pwsh
         run: |
           $godot = "$env:RUNNER_TEMP/godot/Godot_v$env:GODOT_RELEASE_TAG`_linux.x86_64"
+          $buildKind = if ($env:BUILD_KIND -eq "release") { "release" } else { "debug" }
+          $output = "build/android/$env:APP_NAME-$buildKind.apk"
+          "APK_OUTPUT=$output" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
           if ($env:BUILD_KIND -eq "release") {
-            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT -Release
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -Release
           }
           else {
-            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output
           }
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-${{ github.sha }}
+          name: ${{ env.APP_NAME }}-${{ github.sha }}
           path: build/android/*.apk
           retention-days: 14
+
+      - name: Publish rolling GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release edit android-latest \
+              --title "Endless-Helicopter-Reborn Latest APK" \
+              --notes "Latest automated Android build from commit $GITHUB_SHA"
+          else
+            gh release create android-latest \
+              --title "Endless-Helicopter-Reborn Latest APK" \
+              --notes "Latest automated Android build from commit $GITHUB_SHA" \
+              --prerelease
+          fi
+
+          gh release upload android-latest "$APK_OUTPUT" --clobber
