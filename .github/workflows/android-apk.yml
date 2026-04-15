@@ -15,7 +15,7 @@ jobs:
       GODOT_VERSION: 4.6.2
       GODOT_RELEASE_TAG: 4.6.2-stable
       GODOT_TEMPLATE_VERSION: 4.6.2.stable
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/build/android-sdk
       APK_OUTPUT: build/android/EndlessHelicopter-debug.apk
 
     steps:
