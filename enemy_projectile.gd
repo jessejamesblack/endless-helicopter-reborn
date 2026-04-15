@@ -1,16 +1,41 @@
 extends Area2D
 
-const PROJECTILE_DATA := {
+var PROJECTILE_DATA := {
 	"player_missile": {
 		"region": Rect2(435, 998, 289, 102),
 		"scale": Vector2(0.08191126, 0.055045888),
-		"collision_size": Vector2(24, 6),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-12, -1),
+			Vector2(-9, -3),
+			Vector2(-1, -3),
+			Vector2(7, -3),
+			Vector2(11, -2),
+			Vector2(12, 0),
+			Vector2(11, 2),
+			Vector2(7, 3),
+			Vector2(-1, 3),
+			Vector2(-9, 3),
+			Vector2(-12, 1),
+		]),
 		"score": 20,
 	},
 	"turret_round": {
 		"region": Rect2(782, 1017, 242, 55),
 		"scale": Vector2(0.132, 0.132),
-		"collision_size": Vector2(30, 8),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-16, -2),
+			Vector2(-18, -5),
+			Vector2(-8, -4),
+			Vector2(-2, -6),
+			Vector2(12, -4),
+			Vector2(16, -2),
+			Vector2(16, 2),
+			Vector2(12, 4),
+			Vector2(-2, 6),
+			Vector2(-8, 4),
+			Vector2(-18, 5),
+			Vector2(-16, 2),
+		]),
 		"score": 25,
 	},
 }
@@ -19,7 +44,7 @@ const PROJECTILE_DATA := {
 @export var move_speed: float = 480.0
 
 @onready var sprite: Sprite2D = $Sprite2D
-@onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 
 var explosion_scene: PackedScene = preload("res://explosion.tscn")
 
@@ -36,10 +61,7 @@ func apply_projectile_config() -> void:
 	var data: Dictionary = PROJECTILE_DATA.get(projectile_kind, PROJECTILE_DATA["player_missile"])
 	sprite.region_rect = data["region"]
 	sprite.scale = data["scale"]
-
-	var shape := RectangleShape2D.new()
-	shape.size = data["collision_size"]
-	collision_shape.shape = shape
+	collision_polygon.polygon = data["collision_polygon"]
 
 func _process(delta: float) -> void:
 	var current_speed := move_speed

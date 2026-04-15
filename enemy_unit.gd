@@ -1,12 +1,27 @@
 extends Area2D
 
-const ENEMY_DATA := {
+var ENEMY_DATA := {
 	"stationary_turret": {
 		"region": Rect2(1149, 1134, 242, 266),
 		"scale": Vector2(0.48, 0.48),
 		"speed": 165.0,
-		"collision_radius": 44.0,
-		"collision_offset": Vector2(0, 20),
+		"collision_offset": Vector2(0, 8),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-44, -50),
+			Vector2(38, -50),
+			Vector2(46, -28),
+			Vector2(36, -10),
+			Vector2(20, -2),
+			Vector2(20, 18),
+			Vector2(34, 50),
+			Vector2(18, 64),
+			Vector2(-18, 64),
+			Vector2(-34, 48),
+			Vector2(-22, 18),
+			Vector2(-22, -2),
+			Vector2(-36, -12),
+			Vector2(-44, -28),
+		]),
 		"fire_interval": 2.35,
 		"projectile_kind": "turret_round",
 		"projectile_speed": 420.0,
@@ -17,8 +32,21 @@ const ENEMY_DATA := {
 		"region": Rect2(1623, 1192, 206, 180),
 		"scale": Vector2(0.58, 0.58),
 		"speed": 235.0,
-		"collision_radius": 34.0,
 		"collision_offset": Vector2(0, 2),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-48, -6),
+			Vector2(-38, -26),
+			Vector2(-12, -36),
+			Vector2(18, -34),
+			Vector2(42, -20),
+			Vector2(52, -4),
+			Vector2(48, 14),
+			Vector2(34, 30),
+			Vector2(10, 40),
+			Vector2(-12, 38),
+			Vector2(-34, 28),
+			Vector2(-48, 10),
+		]),
 		"fire_interval": 1.9,
 		"projectile_kind": "player_missile",
 		"projectile_speed": 520.0,
@@ -31,8 +59,23 @@ const ENEMY_DATA := {
 		"region": Rect2(2393, 1123, 351, 277),
 		"scale": Vector2(0.42, 0.42),
 		"speed": 180.0,
-		"collision_radius": 58.0,
 		"collision_offset": Vector2(0, 0),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-6, -56),
+			Vector2(18, -54),
+			Vector2(42, -44),
+			Vector2(62, -20),
+			Vector2(72, 4),
+			Vector2(58, 28),
+			Vector2(40, 48),
+			Vector2(14, 58),
+			Vector2(-10, 56),
+			Vector2(-36, 46),
+			Vector2(-58, 22),
+			Vector2(-70, -2),
+			Vector2(-58, -28),
+			Vector2(-34, -46),
+		]),
 		"rotation_speed": 0.6,
 		"score": 100,
 	},
@@ -41,7 +84,7 @@ const ENEMY_DATA := {
 @export_enum("stationary_turret", "alien_drone", "rock_core") var enemy_kind: String = "stationary_turret"
 
 @onready var sprite: Sprite2D = $Sprite2D
-@onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 
 var enemy_projectile_scene: PackedScene = preload("res://enemy_projectile.tscn")
 var explosion_scene: PackedScene = preload("res://explosion.tscn")
@@ -65,11 +108,11 @@ func apply_enemy_config() -> void:
 	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
 	sprite.region_rect = data["region"]
 	sprite.scale = data["scale"]
+	sprite.rotation = 0.0
 
-	var shape := CircleShape2D.new()
-	shape.radius = float(data.get("collision_radius", 40.0))
-	collision_shape.shape = shape
-	collision_shape.position = data.get("collision_offset", Vector2.ZERO)
+	collision_polygon.polygon = data["collision_polygon"]
+	collision_polygon.position = data.get("collision_offset", Vector2.ZERO)
+	collision_polygon.rotation = 0.0
 
 	var fire_interval := float(data.get("fire_interval", 999.0))
 	_fire_timer = randf_range(0.35, fire_interval)
@@ -93,6 +136,7 @@ func _process(delta: float) -> void:
 
 	if data.has("rotation_speed"):
 		sprite.rotation += float(data["rotation_speed"]) * delta
+		collision_polygon.rotation = sprite.rotation
 
 	if data.has("fire_interval") and data.has("projectile_kind"):
 		_fire_timer -= delta
@@ -103,6 +147,9 @@ func _process(delta: float) -> void:
 
 	if global_position.x < -250:
 		queue_free()
+
+	if not data.has("rotation_speed"):
+		collision_polygon.rotation = 0.0
 
 func fire_projectile(data: Dictionary) -> void:
 	var projectile = enemy_projectile_scene.instantiate()
