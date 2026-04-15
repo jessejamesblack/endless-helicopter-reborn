@@ -3,6 +3,7 @@ extends Node
 signal push_token_received(token: String)
 signal push_notification_opened(payload: Dictionary)
 
+const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
 const PLUGIN_SINGLETON := "FCMPushBridge"
 const DEVICE_ID_CACHE_PATH := "user://push_device_id.save"
 const LEADERBOARD_SCENE_PATH := "res://scenes/ui/leaderboard/leaderboard_screen.tscn"
