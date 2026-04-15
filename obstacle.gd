@@ -32,3 +32,6 @@ func destroy() -> void:
     get_tree().current_scene.add_child(explosion)
     
     queue_free()
+
+func get_destroy_score() -> int:
+    return 50

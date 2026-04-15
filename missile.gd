@@ -20,11 +20,14 @@ func _process(delta: float) -> void:
 
 func _on_area_entered(area: Area2D) -> void:
     if area.has_method("destroy"):
+        var score_boost := 50
+        if area.has_method("get_destroy_score"):
+            score_boost = area.get_destroy_score()
         area.destroy()
         
-        # Bonus: Give the player a quick score boost for destroying it!
+        # Reward the player based on what they destroyed.
         var main = get_tree().current_scene as Main
         if main:
-            main.score += 50
+            main.score += score_boost
             
         queue_free()
