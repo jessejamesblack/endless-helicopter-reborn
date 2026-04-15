@@ -39,6 +39,19 @@ res://
 2. Open the repository root in Godot.
 3. The main scene is [scenes/ui/start_screen/start_screen.tscn](scenes/ui/start_screen/start_screen.tscn).
 
+## Collaboration Flow
+
+This repository now uses branches and pull requests for changes to `main`.
+
+1. Create a branch from `main`.
+2. Push your branch.
+3. Open a pull request back into `main`.
+4. Let CI validate the branch before merging.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the working agreement.
+
+This repo also includes a local `.githooks/pre-push` guard to help block accidental direct pushes to `main`.
+
 ## Local Validation
 
 On Windows PowerShell:
@@ -89,7 +102,8 @@ If you want the raw workflow output directly, every push also uploads an artifac
 
 This repository includes `.github/workflows/android-apk.yml`.
 
-- On every push, it validates the project and exports an Android APK.
+- On pull requests to `main`, it validates the project and exports an Android APK artifact.
+- On pushes to `main`, it validates the project, exports an Android APK, and updates the rolling GitHub release.
 - The APK is uploaded as a workflow artifact.
 - The workflow also updates a rolling GitHub prerelease named `Endless-Helicopter-Reborn Latest APK`.
 - APK filenames use the format `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.

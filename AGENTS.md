@@ -34,11 +34,12 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - Update path references when moving Godot resources.
 - Keep build outputs out of git.
 - Use the scripts in `tools/` before inventing new ad-hoc commands.
+- Do work on branches and land changes through pull requests into `main`.
 
 ## Validation
 
 - Use [tools/validate_godot.ps1](tools/validate_godot.ps1) for script-level validation.
-- CI builds an Android APK on every push via `.github/workflows/android-apk.yml`.
+- CI validates pull requests into `main` and publishes Android releases from pushes to `main`.
 - Successful builds publish both a workflow artifact and a rolling GitHub prerelease.
 
 ## When Making Larger Changes

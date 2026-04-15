@@ -1,0 +1,15 @@
+#!/bin/sh
+
+protected_branch="main"
+
+while read local_ref local_sha remote_ref remote_sha
+do
+  if [ "$remote_ref" = "refs/heads/$protected_branch" ] && [ "$ALLOW_MAIN_PUSH" != "1" ]; then
+    echo "Direct pushes to '$protected_branch' are blocked in this repo."
+    echo "Create a branch, push that branch, and open a pull request into '$protected_branch'."
+    echo "If you truly need to bypass this once, set ALLOW_MAIN_PUSH=1 for the push command."
+    exit 1
+  fi
+done
+
+exit 0
