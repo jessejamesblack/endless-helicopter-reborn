@@ -9,6 +9,7 @@
 - Missiles, ammo pickups, explosions, and enemy variety
 - Shared online leaderboard with player names
 - In-app beat-your-score notifications
+- Android push notifications for score-beaten events
 - Automated Android APK builds with GitHub Actions
 
 ## Project Layout
@@ -65,8 +66,20 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C
 The game can use Supabase for a shared leaderboard.
 
 - Setup guide: [docs/ONLINE_LEADERBOARD_SETUP.md](docs/ONLINE_LEADERBOARD_SETUP.md)
+- Push setup: [docs/PUSH_NOTIFICATIONS_SETUP.md](docs/PUSH_NOTIFICATIONS_SETUP.md)
 - SQL bootstrap: [backend/supabase_leaderboard_setup.sql](backend/supabase_leaderboard_setup.sql)
 - Runtime service: [systems/online_leaderboard.gd](systems/online_leaderboard.gd)
+- Push runtime: [systems/push_notifications.gd](systems/push_notifications.gd)
+
+## Android Push Notifications
+
+Android push notifications use:
+
+- Firebase Cloud Messaging for delivery
+- a custom Godot Android plugin under [android/plugins/fcm_push_bridge](android/plugins/fcm_push_bridge)
+- a Supabase Edge Function under [backend/supabase/functions/send-score-beaten-push](backend/supabase/functions/send-score-beaten-push)
+
+This works with sideloaded APKs. You do not need Play Store publishing to receive FCM notifications on supported Android devices.
 
 ## Android APK Installation
 
@@ -104,6 +117,7 @@ This repository includes `.github/workflows/android-apk.yml`.
 
 - On pull requests to `main`, it validates the project and exports an Android APK artifact.
 - On pushes to `main`, it validates the project, exports an Android APK, and updates the rolling GitHub release.
+- The workflow also builds the Android FCM plugin AAR before the APK export.
 - The APK is uploaded as a workflow artifact.
 - The workflow also updates a rolling GitHub prerelease named `Endless-Helicopter-Reborn Latest APK`.
 - APK filenames use the format `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.

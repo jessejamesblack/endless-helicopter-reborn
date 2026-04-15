@@ -1,21 +1,31 @@
 # Online Leaderboard Setup
 
-This game now supports a shared leaderboard using Supabase's REST API.
+This game uses Supabase for the shared leaderboard and in-app score-beaten alerts.
 
-## 1. Create a Supabase project
+For Android push notifications on top of the leaderboard, also follow [docs/PUSH_NOTIFICATIONS_SETUP.md](PUSH_NOTIFICATIONS_SETUP.md).
 
-Create a project in Supabase, then open the SQL editor and run:
+## 1. Create A Supabase Project
+
+Create a project in Supabase, open the SQL editor, and run:
 
 `backend/supabase_leaderboard_setup.sql`
 
-## 2. Copy your project URL and anon key
+That script creates:
+
+- `family_leaderboard`
+- `family_notifications`
+- `family_push_devices`
+- `family_push_delivery_log`
+- `family_push_runtime_config`
+
+## 2. Copy Your Project URL And Anon Key
 
 From the Supabase dashboard, copy:
 
-- Project URL
+- project URL
 - anon public API key
 
-## 3. Fill in the game config
+## 3. Fill In The Game Config
 
 Edit:
 
@@ -27,37 +37,28 @@ Set:
 - `SUPABASE_ANON_KEY`
 - `FAMILY_ID`
 
-Use the same `FAMILY_ID` on every device that should share a leaderboard. If you use `global`, everyone on that build shares the same board.
+Use the same `FAMILY_ID` on every device that should share a leaderboard.
 
-## 4. Re-export Android with internet enabled
+If you want one world-wide board for everyone who installs the app, set:
 
-`export_presets.cfg` has been updated to request internet access.
+`FAMILY_ID := "global"`
 
-## What the game now does
+## 4. Export Android With Internet Enabled
 
-- Each device keeps a saved player name.
-- Player names use a simple built-in profanity filter.
-- The database now enforces globally unique player names within each leaderboard.
-- The leaderboard keeps scores tied to a per-device player id, so the board shows each person's best run cleanly.
-- When someone posts a new personal best that beats your best score, the game creates a cross-device alert for you.
+`export_presets.cfg` already enables internet permission for Android.
 
-## Beat alerts
+## What The Leaderboard Does
 
-Beat alerts are shown in-game on the menu and leaderboard screens the next time that player opens the app.
-
-This is true cross-device notification data, but it is not yet an operating-system push notification.
-
-## True phone push notifications
-
-Real Android push notifications need one extra layer beyond GDScript:
-
-- a push provider such as Firebase Cloud Messaging or OneSignal
-- a Godot Android plugin or native Android integration to register device tokens and receive pushes
-
-The game-side leaderboard data is now structured so that step can be added next without redoing the scoreboard flow.
+- Each device gets a persistent player id.
+- Each device saves a public player name locally after the first submitted run.
+- Player names use a simple profanity filter.
+- The database enforces unique public names within a leaderboard.
+- Scores are grouped by player id so each player shows up cleanly on the board.
+- In-app score-beaten alerts are stored in `family_notifications`.
 
 ## Notes
 
-- This is intentionally lightweight.
-- Anyone with the app and your `FAMILY_ID` could post scores, so this is best for casual competition unless you later add auth.
-- If you want tighter control later, this can be upgraded to authenticated accounts or invite codes.
+- This is intentionally lightweight and uses a public client key.
+- Anyone with the app and your `FAMILY_ID` can submit scores to that board.
+- For a casual shared board, this is fine.
+- For cheat-resistant competition, you would eventually want accounts or signed server-side score validation.

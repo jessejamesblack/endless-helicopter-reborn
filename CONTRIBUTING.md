@@ -49,18 +49,3 @@ $env:ALLOW_MAIN_PUSH="1"
 git push origin main
 Remove-Item Env:ALLOW_MAIN_PUSH
 ```
-
-## Recommended GitHub Rule For `main`
-
-Configure a branch protection rule or ruleset for `main` with:
-
-- Require a pull request before merging
-- Require status checks to pass before merging
-- Required status check: `build-android`
-- Block force pushes
-- Optionally require conversation resolution before merging
-
-GitHub docs:
-
-- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
-- https://docs.github.com/github/administering-a-repository/enabling-force-pushes-to-a-protected-branch
