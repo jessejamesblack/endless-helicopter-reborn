@@ -18,6 +18,12 @@ That script creates:
 - `family_push_delivery_log`
 - `family_push_runtime_config`
 
+If your project was already set up before the notification insert-policy fix, run this too:
+
+`backend/supabase_fix_family_notifications_insert_policy.sql`
+
+That fixes the `new row violates row-level security policy for the table "family_notifications"` error and allows score submissions to complete normally again.
+
 ## 2. Copy Your Project URL And Anon Key
 
 From the Supabase dashboard, copy:

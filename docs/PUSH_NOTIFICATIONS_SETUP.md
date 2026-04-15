@@ -36,6 +36,14 @@ The script now creates:
 
 It is safe to rerun this script on the same project.
 
+If your project was already live before the notification insert-policy fix, also run:
+
+`backend/supabase_fix_family_notifications_insert_policy.sql`
+
+Without that policy, new score submissions can fail with:
+
+`new row violates row-level security policy for the table "family_notifications"`
+
 ## 2. Create A Firebase Project
 
 1. Open the Firebase console.
