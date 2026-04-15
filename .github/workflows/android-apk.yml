@@ -108,17 +108,17 @@ jobs:
       - name: Validate project scripts
         shell: pwsh
         run: |
-          ./tools/validate_godot.ps1 -GodotBin "$env:RUNNER_TEMP/godot/Godot_v$env:GODOT_RELEASE_TAG`_linux.x86_64"
+          & ./tools/validate_godot.ps1 -GodotBin "$env:RUNNER_TEMP/godot/Godot_v$env:GODOT_RELEASE_TAG`_linux.x86_64"
 
       - name: Export Android APK
         shell: pwsh
         run: |
           $godot = "$env:RUNNER_TEMP/godot/Godot_v$env:GODOT_RELEASE_TAG`_linux.x86_64"
           if ($env:BUILD_KIND -eq "release") {
-            ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT -Release
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT -Release
           }
           else {
-            ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $env:APK_OUTPUT
           }
 
       - name: Upload APK artifact
