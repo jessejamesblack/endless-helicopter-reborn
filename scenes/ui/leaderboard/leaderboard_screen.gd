@@ -7,6 +7,7 @@ var has_submitted: bool = false
 var has_pending_score: bool = false
 var needs_profile_setup: bool = false
 var pending_player_name: String = ""
+var is_submitting: bool = false
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
@@ -103,6 +104,7 @@ func submit_score() -> void:
 	var player_name := str(validation.get("name", "Player"))
 	name_entry.text = player_name
 	pending_player_name = player_name
+	is_submitting = true
 	set_status("Saving your score...")
 	save_button.disabled = true
 	$SubmitRequest.request(
@@ -133,16 +135,19 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 
 	var entries := OnlineLeaderboard.parse_entries(body)
 	leaderboard_label.text = OnlineLeaderboard.format_entries(entries, 10)
-	if has_pending_score and needs_profile_setup:
+	if needs_profile_setup:
 		set_status("You crashed. Enter a name to save this run.")
-	elif has_pending_score and not has_submitted:
+	elif is_submitting:
 		set_status("Saving your score...")
-	elif has_pending_score:
+	elif has_submitted:
 		set_status("Score submitted!")
+	elif has_pending_score:
+		set_status("Tap Submit Score to save this run.")
 	else:
 		set_status("Latest scores loaded.")
 
 func _on_submit_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	is_submitting = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		save_button.disabled = false
 		var error_text := OnlineLeaderboard.parse_api_error(body, "Could not submit score.")
@@ -157,6 +162,7 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 		name_entry.text = saved_name
 		OnlineLeaderboard.save_cached_name(saved_name)
 	pending_player_name = ""
+	has_pending_score = false
 	needs_profile_setup = false
 	_apply_screen_mode()
 	save_button.disabled = true
