@@ -44,16 +44,5 @@ func trigger_crash(crash_pos: Vector2) -> void:
     game_over()
 
 func game_over() -> void:
-    var high_score: int = 0
-    # Load the previous high score if it exists
-    if FileAccess.file_exists("user://highscore.save"):
-        var file = FileAccess.open("user://highscore.save", FileAccess.READ)
-        high_score = file.get_64()
-        
-    # Save the new high score if we beat it
-    if int(score) > high_score:
-        var file = FileAccess.open("user://highscore.save", FileAccess.WRITE)
-        file.store_64(int(score))
-        
-    # Transition to the Start Screen
-    get_tree().change_scene_to_file("res://start_screen.tscn")
+    get_tree().set_meta("last_run_score", int(score))
+    get_tree().change_scene_to_file("res://leaderboard_screen.tscn")
