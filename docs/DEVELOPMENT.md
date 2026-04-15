@@ -25,10 +25,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C
 ## CI
 
 - Workflow: `.github/workflows/android-apk.yml`
-- Output: workflow artifact containing the generated APK
+- Outputs include a workflow artifact containing the generated APK.
+- Outputs also include a rolling GitHub prerelease: `Endless-Helicopter-Reborn Latest APK`.
+- APK names are `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.
 
 ## Android Export Notes
 
 - CI can build unsigned-temporary-style debug artifacts without a permanent keystore.
 - For upgradeable installs between CI builds, use repository secrets for a stable keystore.
 - The workflow writes artifacts to `build/android/`.
+- The GitHub release is updated automatically on each successful build.

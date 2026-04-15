@@ -38,7 +38,8 @@ This repository is set up for AI-assisted development. Keep this file short and 
 ## Validation
 
 - Use [tools/validate_godot.ps1](tools/validate_godot.ps1) for script-level validation.
-- CI builds an Android APK artifact on every push via `.github/workflows/android-apk.yml`.
+- CI builds an Android APK on every push via `.github/workflows/android-apk.yml`.
+- Successful builds publish both a workflow artifact and a rolling GitHub prerelease.
 
 ## When Making Larger Changes
 

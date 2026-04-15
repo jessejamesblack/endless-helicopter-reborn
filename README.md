@@ -1,6 +1,6 @@
-# Endless Helicopter
+# Endless Helicopter Reborn
 
-`Endless Helicopter` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, collect ammo, fire missiles, and now compete on a shared online leaderboard.
+`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, collect ammo, fire missiles, and compete on a shared online leaderboard.
 
 ## Features
 
@@ -65,14 +65,24 @@ The game can use Supabase for a shared leaderboard.
 4. If prompted, allow installs from unknown apps for the app you used to open the file.
 5. Finish installation.
 
-### From GitHub Actions
+### From GitHub Releases
 
-Every push can generate an APK artifact.
+Each successful CI build updates a rolling prerelease on GitHub.
+
+1. Open the repository on GitHub.
+2. Go to `Releases`.
+3. Open `Endless-Helicopter-Reborn Latest APK`.
+4. Download `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.
+5. Copy the APK to your Android device and install it.
+
+### From GitHub Actions artifacts
+
+If you want the raw workflow output directly, every push also uploads an artifact.
 
 1. Open the repository on GitHub.
 2. Go to `Actions`.
 3. Open the latest `Android APK` workflow run.
-4. Download the `android-apk-*` artifact.
+4. Download the `Endless-Helicopter-Reborn-*` artifact.
 5. Copy the APK to your Android device and install it.
 
 ## GitHub Actions APK Builds
@@ -81,6 +91,8 @@ This repository includes `.github/workflows/android-apk.yml`.
 
 - On every push, it validates the project and exports an Android APK.
 - The APK is uploaded as a workflow artifact.
+- The workflow also updates a rolling GitHub prerelease named `Endless-Helicopter-Reborn Latest APK`.
+- APK filenames use the format `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.
 - This is better than committing generated APKs into the repository on every change.
 
 ### Stable signed builds
