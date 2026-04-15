@@ -18,8 +18,8 @@ const ENEMY_VARIANTS := [
 
 func _process(delta: float) -> void:
     var current_interval = spawn_interval
-    var main = get_tree().current_scene as Main
-    if main:
+    var main := get_tree().current_scene
+    if main != null:
         if main.is_crashed: return
         current_interval /= main.speed_multiplier
 

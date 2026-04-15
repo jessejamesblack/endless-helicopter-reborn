@@ -11,8 +11,8 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
     var multiplier = 1.0
-    var main = get_tree().current_scene as Main
-    if main:
+    var main := get_tree().current_scene
+    if main != null:
         if main.is_crashed:
             autoscroll = Vector2.ZERO
             return

@@ -27,16 +27,16 @@ func _physics_process(delta: float) -> void:
         die()
 
 func die() -> void:
-    var main = get_tree().current_scene as Main
-    if main:
+    var main := get_tree().current_scene
+    if main != null and main.has_method("trigger_crash"):
         main.trigger_crash(global_position)
     queue_free()
 
 func fire_missile() -> void:
     if missile_scene and ammo > 0:
         ammo -= 1
-        var main = get_tree().current_scene as Main
-        if main:
+        var main := get_tree().current_scene
+        if main != null and main.has_method("update_ammo_ui"):
             main.update_ammo_ui(ammo)
 
         var missile = missile_scene.instantiate()
@@ -51,8 +51,8 @@ func fire_missile() -> void:
 
 func add_ammo(amount: int) -> void:
     ammo += amount
-    var main = get_tree().current_scene as Main
-    if main:
+    var main := get_tree().current_scene
+    if main != null and main.has_method("update_ammo_ui"):
         main.update_ammo_ui(ammo)
         
     if has_node("ReloadSound"):

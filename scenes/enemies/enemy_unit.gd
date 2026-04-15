@@ -120,8 +120,8 @@ func apply_enemy_config() -> void:
 func _process(delta: float) -> void:
 	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
 	var current_speed := float(data.get("speed", 200.0))
-	var main := get_tree().current_scene as Main
-	if main:
+	var main := get_tree().current_scene
+	if main != null:
 		if main.is_crashed:
 			return
 		current_speed *= main.speed_multiplier
