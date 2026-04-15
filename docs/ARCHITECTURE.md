@@ -18,11 +18,24 @@
 
 1. The app starts in `start_screen.tscn`.
 2. Pressing `Play Game` opens `main.tscn`.
-3. The player survives, scores over time, and interacts with enemies/pickups.
+3. The player survives, scores over time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
 4. On crash, `main.gd` stores the run score in tree metadata.
 5. The app transitions to `leaderboard_screen.tscn`.
 6. The leaderboard screen submits the run if configured and shows shared scores.
 7. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen.
+
+## Enemy Roles
+
+- `large_spiky_rock`: baseline obstacle and most common hostile
+- `alien_drone`: mid-frequency flying enemy that fires straight projectiles
+- `stationary_turret`: rarer bottom-lane enemy that fires gently homing missiles
+- `glowing_rock`: rarest enemy; when destroyed by the player it triggers a screen-clear blast that removes hostiles and pickups currently on screen
+
+## Spawn Tuning
+
+- Spawn rarity order is: normal rock, alien drone, missile turret, glowing rock.
+- Turrets spawn on a dedicated bottom lane instead of using the general random Y range.
+- Alien drones continue to use randomized vertical placement.
 
 ## Boundaries
 

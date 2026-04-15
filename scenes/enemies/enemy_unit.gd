@@ -3,85 +3,81 @@ extends Area2D
 var ENEMY_DATA := {
 	"stationary_turret": {
 		"region": Rect2(1149, 1134, 242, 266),
-		"scale": Vector2(0.48, 0.48),
-		"speed": 165.0,
-		"collision_offset": Vector2(0, 8),
+		"scale": Vector2(0.34, 0.34),
+		"speed": 150.0,
+		"collision_offset": Vector2(0, 10),
 		"collision_polygon": PackedVector2Array([
-			Vector2(-44, -50),
-			Vector2(38, -50),
-			Vector2(46, -28),
-			Vector2(36, -10),
-			Vector2(20, -2),
-			Vector2(20, 18),
-			Vector2(34, 50),
-			Vector2(18, 64),
-			Vector2(-18, 64),
-			Vector2(-34, 48),
-			Vector2(-22, 18),
-			Vector2(-22, -2),
-			Vector2(-36, -12),
-			Vector2(-44, -28),
+			Vector2(-24, -30),
+			Vector2(18, -30),
+			Vector2(24, -14),
+			Vector2(20, 2),
+			Vector2(24, 24),
+			Vector2(12, 34),
+			Vector2(-12, 34),
+			Vector2(-24, 22),
+			Vector2(-20, 0),
+			Vector2(-18, -14),
 		]),
-		"fire_interval": 2.35,
+		"fire_interval": 2.75,
 		"projectile_kind": "turret_round",
-		"projectile_speed": 420.0,
-		"fire_offset": Vector2(-58, -44),
-		"score": 80,
+		"projectile_speed": 285.0,
+		"fire_offset": Vector2(-30, -18),
+		"score": 85,
 	},
 	"alien_drone": {
 		"region": Rect2(1623, 1192, 206, 180),
-		"scale": Vector2(0.58, 0.58),
-		"speed": 235.0,
+		"scale": Vector2(0.54, 0.54),
+		"speed": 228.0,
 		"collision_offset": Vector2(0, 2),
 		"collision_polygon": PackedVector2Array([
-			Vector2(-48, -6),
-			Vector2(-38, -26),
-			Vector2(-12, -36),
-			Vector2(18, -34),
-			Vector2(42, -20),
-			Vector2(52, -4),
-			Vector2(48, 14),
-			Vector2(34, 30),
-			Vector2(10, 40),
-			Vector2(-12, 38),
-			Vector2(-34, 28),
-			Vector2(-48, 10),
+			Vector2(-42, -6),
+			Vector2(-34, -22),
+			Vector2(-10, -32),
+			Vector2(16, -30),
+			Vector2(38, -18),
+			Vector2(46, -2),
+			Vector2(42, 14),
+			Vector2(28, 26),
+			Vector2(8, 34),
+			Vector2(-12, 32),
+			Vector2(-30, 24),
+			Vector2(-42, 8),
 		]),
-		"fire_interval": 1.9,
+		"fire_interval": 2.05,
 		"projectile_kind": "player_missile",
-		"projectile_speed": 520.0,
-		"fire_offset": Vector2(-38, 0),
-		"bob_amplitude": 24.0,
-		"bob_speed": 4.1,
+		"projectile_speed": 500.0,
+		"fire_offset": Vector2(-36, 0),
+		"bob_amplitude": 18.0,
+		"bob_speed": 3.9,
 		"score": 90,
 	},
-	"rock_core": {
+	"glowing_rock": {
 		"region": Rect2(2393, 1123, 351, 277),
-		"scale": Vector2(0.42, 0.42),
-		"speed": 180.0,
+		"scale": Vector2(0.39, 0.39),
+		"speed": 172.0,
 		"collision_offset": Vector2(0, 0),
 		"collision_polygon": PackedVector2Array([
-			Vector2(-6, -56),
-			Vector2(18, -54),
-			Vector2(42, -44),
-			Vector2(62, -20),
-			Vector2(72, 4),
-			Vector2(58, 28),
-			Vector2(40, 48),
-			Vector2(14, 58),
-			Vector2(-10, 56),
-			Vector2(-36, 46),
-			Vector2(-58, 22),
-			Vector2(-70, -2),
-			Vector2(-58, -28),
-			Vector2(-34, -46),
+			Vector2(-8, -48),
+			Vector2(16, -46),
+			Vector2(36, -38),
+			Vector2(52, -18),
+			Vector2(60, 2),
+			Vector2(48, 24),
+			Vector2(34, 40),
+			Vector2(12, 48),
+			Vector2(-10, 46),
+			Vector2(-30, 38),
+			Vector2(-48, 18),
+			Vector2(-58, -2),
+			Vector2(-48, -24),
+			Vector2(-26, -40),
 		]),
 		"rotation_speed": 0.6,
-		"score": 100,
+		"score": 110,
 	},
 }
 
-@export_enum("stationary_turret", "alien_drone", "rock_core") var enemy_kind: String = "stationary_turret"
+@export_enum("stationary_turret", "alien_drone", "glowing_rock", "rock_core") var enemy_kind: String = "stationary_turret"
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
@@ -95,17 +91,19 @@ var _fire_timer: float = 0.0
 var _time_alive: float = 0.0
 
 func _ready() -> void:
+	add_to_group("hostile_units")
 	body_entered.connect(_on_body_entered)
 	_base_y = position.y
 	apply_enemy_config()
 
 func configure(kind: String) -> void:
-	enemy_kind = kind
+	enemy_kind = _resolve_enemy_kind(kind)
 	if is_inside_tree():
 		_base_y = position.y
 		apply_enemy_config()
 
 func apply_enemy_config() -> void:
+	enemy_kind = _resolve_enemy_kind(enemy_kind)
 	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
 	sprite.region_rect = data["region"]
 	sprite.scale = data["scale"]
@@ -119,7 +117,7 @@ func apply_enemy_config() -> void:
 	_fire_timer = randf_range(0.35, fire_interval)
 
 func _process(delta: float) -> void:
-	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
+	var data: Dictionary = ENEMY_DATA.get(_resolve_enemy_kind(enemy_kind), ENEMY_DATA["stationary_turret"])
 	var current_speed := float(data.get("speed", 200.0))
 	var main := get_tree().current_scene
 	if main != null:
@@ -165,14 +163,18 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player" and body.has_method("die"):
 		body.die()
 
-func destroy() -> void:
-	var explosion = explosion_scene.instantiate()
-	explosion.global_position = global_position
-	get_tree().current_scene.add_child(explosion)
+func destroy(skip_special: bool = false) -> void:
+	if _resolve_enemy_kind(enemy_kind) == "glowing_rock" and not skip_special:
+		var main := get_tree().current_scene
+		if main != null and main.has_method("trigger_glowing_rock_blast"):
+			main.trigger_glowing_rock_blast(global_position, self)
+			return
+
+	_spawn_explosion()
 	queue_free()
 
 func get_destroy_score() -> int:
-	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
+	var data: Dictionary = ENEMY_DATA.get(_resolve_enemy_kind(enemy_kind), ENEMY_DATA["stationary_turret"])
 	return int(data.get("score", 80))
 
 func _play_fire_sound() -> void:
@@ -184,3 +186,17 @@ func _play_fire_sound() -> void:
 
 	fire_sound.pitch_scale = 0.88 if enemy_kind == "stationary_turret" else 1.06
 	fire_sound.play()
+
+func _resolve_enemy_kind(kind: String) -> String:
+	if kind == "rock_core":
+		return "glowing_rock"
+	if ENEMY_DATA.has(kind):
+		return kind
+	return "stationary_turret"
+
+func _spawn_explosion(is_large: bool = false) -> void:
+	var explosion = explosion_scene.instantiate()
+	explosion.global_position = global_position
+	if explosion.has_method("configure"):
+		explosion.configure(is_large)
+	get_tree().current_scene.add_child(explosion)

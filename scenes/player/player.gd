@@ -3,7 +3,12 @@ extends CharacterBody2D
 @export var jump_velocity: float = -400.0
 @export var tilt_speed: float = 5.0
 @export var max_tilt: float = 0.5
-const ENGINE_TARGET_VOLUME_DB := -8.0
+@export var boundary_bounce_down_speed: float = 300.0
+@export var boundary_bounce_up_speed: float = 360.0
+@export var boundary_recovery_seconds: float = 0.18
+@export var boundary_inset: float = 44.0
+
+const ENGINE_TARGET_VOLUME_DB := -14.0
 const ENGINE_SILENT_VOLUME_DB := -40.0
 const ENGINE_CROSSFADE_SECONDS := 0.22
 
@@ -16,6 +21,7 @@ var _engine_overlap_sound: AudioStreamPlayer
 var _engine_loop_timer: Timer
 var _engine_loop_length: float = 0.0
 var _engine_primary_is_active: bool = true
+var _boundary_recovery_timer: float = 0.0
 
 # Get gravity from project settings so it syncs with standard physics behavior
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -24,6 +30,9 @@ func _ready() -> void:
     _setup_engine_audio()
 
 func _physics_process(delta: float) -> void:
+    if _boundary_recovery_timer > 0.0:
+        _boundary_recovery_timer = max(0.0, _boundary_recovery_timer - delta)
+
     # Apply constant downward gravity
     velocity.y += gravity * delta
     
@@ -32,10 +41,7 @@ func _physics_process(delta: float) -> void:
     sprite.rotation = lerp_angle(sprite.rotation, target_tilt, tilt_speed * delta)
 
     move_and_slide()
-    
-    # End game if the player flies off the top or bottom of the screen
-    if global_position.y < 0 or global_position.y > get_viewport_rect().size.y:
-        die()
+    _apply_boundary_bounce()
 
 func die() -> void:
     var main := get_tree().current_scene
@@ -52,7 +58,7 @@ func fire_missile() -> void:
 
         var missile = missile_scene.instantiate()
         # Spawn slightly in front of the helicopter, matching its tilt
-        var spawn_offset = Vector2(40, 0).rotated(sprite.rotation)
+        var spawn_offset = Vector2(48, 0).rotated(sprite.rotation)
         missile.global_position = global_position + spawn_offset
         missile.rotation = sprite.rotation
         get_tree().current_scene.add_child(missile)
@@ -68,6 +74,27 @@ func add_ammo(amount: int) -> void:
         
     if has_node("ReloadSound"):
         $ReloadSound.play()
+
+func _apply_boundary_bounce() -> void:
+    var viewport_height := get_viewport_rect().size.y
+    var top_limit := boundary_inset
+    var bottom_limit := viewport_height - boundary_inset
+
+    if global_position.y < top_limit:
+        global_position.y = top_limit
+        if _boundary_recovery_timer <= 0.0:
+            velocity.y = boundary_bounce_down_speed
+            _boundary_recovery_timer = boundary_recovery_seconds
+        elif velocity.y < 0.0:
+            velocity.y = 0.0
+
+    elif global_position.y > bottom_limit:
+        global_position.y = bottom_limit
+        if _boundary_recovery_timer <= 0.0:
+            velocity.y = -boundary_bounce_up_speed
+            _boundary_recovery_timer = boundary_recovery_seconds
+        elif velocity.y > 0.0:
+            velocity.y = 0.0
 
 func _setup_engine_audio() -> void:
     if engine_sound == null or engine_sound.stream == null:

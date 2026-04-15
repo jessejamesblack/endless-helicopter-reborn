@@ -3,6 +3,7 @@ extends Area2D
 @export var move_speed: float = 200.0
 
 func _ready() -> void:
+    add_to_group("screen_pickups")
     body_entered.connect(_on_body_entered)
 
 func _process(delta: float) -> void:
