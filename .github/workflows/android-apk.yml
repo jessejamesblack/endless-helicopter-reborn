@@ -2,6 +2,11 @@ name: Android APK
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -133,6 +138,7 @@ jobs:
           retention-days: 14
 
       - name: Publish rolling GitHub release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
