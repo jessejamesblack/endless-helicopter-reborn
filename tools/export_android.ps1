@@ -20,7 +20,7 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $exportFlag = if ($Release.IsPresent) { '--export-release' } else { '--export-debug' }
 
 Write-Host "Exporting Android preset '$Preset' to '$outputPath'"
-& $GodotBin --headless --path $projectRoot $exportFlag $Preset $outputPath
+& $GodotBin --headless --path $projectRoot $exportFlag $Preset $outputPath --install-android-build-template
 
 if ($LASTEXITCODE -ne 0) {
     throw 'Android export failed.'

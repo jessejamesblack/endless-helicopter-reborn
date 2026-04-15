@@ -10,6 +10,7 @@ $scripts = @(
     'res://systems/online_leaderboard.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
     'res://scenes/ui/leaderboard/leaderboard_screen.gd',
+    'res://systems/push_notifications.gd',
     'res://scenes/game/main/main.gd',
     'res://scenes/player/player.gd',
     'res://scenes/enemies/enemy_unit.gd',

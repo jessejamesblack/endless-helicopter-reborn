@@ -10,10 +10,18 @@ config_version=5
 
 [application]
 
-config/name="EndlessHelicopter"
+config/name="Endless Helicopter Reborn"
 run/main_scene="res://scenes/ui/start_screen/start_screen.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://assets/icons/icon.svg"
+
+[autoload]
+
+PushNotifications="*res://systems/push_notifications.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/fcm_push_bridge/plugin.cfg")
 
 [display]
 

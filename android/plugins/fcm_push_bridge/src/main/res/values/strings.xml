@@ -1,0 +1,4 @@
+<resources>
+    <string name="fcm_push_channel_id">score_beaten</string>
+    <string name="fcm_push_channel_name">Score Beaten Alerts</string>
+</resources>

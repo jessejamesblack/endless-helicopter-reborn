@@ -8,6 +8,7 @@ var has_pending_score: bool = false
 var needs_profile_setup: bool = false
 var pending_player_name: String = ""
 var is_submitting: bool = false
+var push_notifications: Node = null
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
@@ -48,6 +49,11 @@ func _ready() -> void:
 	$SubmitRequest.request_completed.connect(_on_submit_request_completed)
 	$NotificationRequest.request_completed.connect(_on_notification_request_completed)
 	$MarkNotificationsReadRequest.request_completed.connect(_on_mark_notifications_read_completed)
+	push_notifications = get_node_or_null("/root/PushNotifications")
+	if push_notifications != null and push_notifications.has_signal("push_notification_opened"):
+		var push_callback := Callable(self, "_on_push_notification_opened")
+		if not push_notifications.is_connected("push_notification_opened", push_callback):
+			push_notifications.connect("push_notification_opened", push_callback)
 
 	if OnlineLeaderboard.is_configured():
 		set_status("Loading leaderboard...")
@@ -192,3 +198,10 @@ func _on_notification_request_completed(result: int, response_code: int, _header
 
 func _on_mark_notifications_read_completed(_result: int, _response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
 	pass
+
+func _on_push_notification_opened(payload: Dictionary) -> void:
+	if str(payload.get("type", "")) != "score_beaten":
+		return
+	set_status("Refreshing leaderboard...")
+	fetch_leaderboard()
+	fetch_notifications()

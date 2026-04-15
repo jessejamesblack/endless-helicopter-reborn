@@ -16,6 +16,14 @@ export-*
 *.pck
 *.ipa
 build/
+android/build/
+android/.build_version
+android/plugins/**/build/
+android/plugins/**/.gradle/
+android/plugins/**/google-services.json
+addons/fcm_push_bridge/libs/*.aar
+!addons/fcm_push_bridge/libs/.gitkeep
+backend/supabase/.temp/
 
 # OS hidden files
 .DS_Store

@@ -32,6 +32,17 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare Firebase Android config
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [[ -n "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" ]]; then
+            echo "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/plugins/fcm_push_bridge/google-services.json
+          fi
+
       - name: Install Android SDK command-line tools
         shell: bash
         run: |
@@ -50,6 +61,11 @@ jobs:
             "platforms;android-35" \
             "cmake;3.10.2.4988404" \
             "ndk;28.1.13356709"
+
+      - name: Build Android push bridge AARs
+        shell: pwsh
+        run: |
+          & ./tools/build_android_plugin.ps1 -Variant Both
 
       - name: Download Godot editor and export templates
         shell: bash
