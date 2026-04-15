@@ -36,7 +36,9 @@ jobs:
           unzip -q "$RUNNER_TEMP/commandlinetools.zip" -d "$RUNNER_TEMP/android-cli"
           cp -R "$RUNNER_TEMP/android-cli/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
 
+          set +o pipefail
           yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          set -o pipefail
           "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
             "platform-tools" \
             "build-tools;35.0.1" \
