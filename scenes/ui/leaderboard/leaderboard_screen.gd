@@ -6,6 +6,7 @@ var current_score: int = 0
 var has_submitted: bool = false
 var has_pending_score: bool = false
 var needs_profile_setup: bool = false
+var pending_player_name: String = ""
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
@@ -101,9 +102,7 @@ func submit_score() -> void:
 
 	var player_name := str(validation.get("name", "Player"))
 	name_entry.text = player_name
-	OnlineLeaderboard.save_cached_name(player_name)
-	needs_profile_setup = false
-	_apply_screen_mode()
+	pending_player_name = player_name
 	set_status("Saving your score...")
 	save_button.disabled = true
 	$SubmitRequest.request(
@@ -146,13 +145,20 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 func _on_submit_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		save_button.disabled = false
-		var error_text := body.get_string_from_utf8().strip_edges()
-		if error_text.is_empty():
-			error_text = "Could not submit score."
+		var error_text := OnlineLeaderboard.parse_api_error(body, "Could not submit score.")
 		set_status(error_text)
 		return
 
 	has_submitted = true
+	var saved_name := OnlineLeaderboard.parse_submit_name(body)
+	if saved_name.is_empty():
+		saved_name = pending_player_name
+	if not saved_name.is_empty():
+		name_entry.text = saved_name
+		OnlineLeaderboard.save_cached_name(saved_name)
+	pending_player_name = ""
+	needs_profile_setup = false
+	_apply_screen_mode()
 	save_button.disabled = true
 	fetch_leaderboard()
 	fetch_notifications()

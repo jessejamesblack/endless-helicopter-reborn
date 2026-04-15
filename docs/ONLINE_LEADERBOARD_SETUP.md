@@ -1,6 +1,6 @@
 # Online Leaderboard Setup
 
-This game now supports a shared family leaderboard using Supabase's REST API.
+This game now supports a shared leaderboard using Supabase's REST API.
 
 ## 1. Create a Supabase project
 
@@ -27,7 +27,7 @@ Set:
 - `SUPABASE_ANON_KEY`
 - `FAMILY_ID`
 
-Use the same `FAMILY_ID` on every device in your family so you all share one leaderboard.
+Use the same `FAMILY_ID` on every device that should share a leaderboard. If you use `global`, everyone on that build shares the same board.
 
 ## 4. Re-export Android with internet enabled
 
@@ -37,7 +37,8 @@ Use the same `FAMILY_ID` on every device in your family so you all share one lea
 
 - Each device keeps a saved player name.
 - Player names use a simple built-in profanity filter.
-- The leaderboard keeps scores tied to a per-device player id, so your family board shows each person's best run cleanly.
+- The database now enforces globally unique player names within each leaderboard.
+- The leaderboard keeps scores tied to a per-device player id, so the board shows each person's best run cleanly.
 - When someone posts a new personal best that beats your best score, the game creates a cross-device alert for you.
 
 ## Beat alerts
@@ -57,6 +58,6 @@ The game-side leaderboard data is now structured so that step can be added next 
 
 ## Notes
 
-- This is intentionally lightweight and family-focused.
-- Anyone with the app and your `FAMILY_ID` could post scores, so this is best for private family use.
+- This is intentionally lightweight.
+- Anyone with the app and your `FAMILY_ID` could post scores, so this is best for casual competition unless you later add auth.
 - If you want tighter control later, this can be upgraded to authenticated accounts or invite codes.

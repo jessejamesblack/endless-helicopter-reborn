@@ -179,6 +179,39 @@ static func make_mark_notifications_read_body() -> String:
 		"read_at": Time.get_datetime_string_from_system(true),
 	})
 
+static func parse_submit_name(body: PackedByteArray) -> String:
+	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	if parsed is Array and not parsed.is_empty():
+		var first_entry = parsed[0]
+		if first_entry is Dictionary:
+			return sanitize_name(str(first_entry.get("name", "")))
+	return ""
+
+static func parse_api_error(body: PackedByteArray, fallback: String = "Request failed.") -> String:
+	var text := body.get_string_from_utf8().strip_edges()
+	if text.is_empty():
+		return fallback
+
+	var parsed = JSON.parse_string(text)
+	if parsed is Dictionary:
+		var message := str(parsed.get("message", "")).strip_edges()
+		if not message.is_empty():
+			return message
+
+		var details := str(parsed.get("details", "")).strip_edges()
+		if not details.is_empty():
+			return details
+
+		var error_description := str(parsed.get("error_description", "")).strip_edges()
+		if not error_description.is_empty():
+			return error_description
+
+		var error_text := str(parsed.get("error", "")).strip_edges()
+		if not error_text.is_empty():
+			return error_text
+
+	return text
+
 static func format_notifications(notifications: Array[Dictionary], limit: int = 2) -> String:
 	if notifications.is_empty():
 		return ""
