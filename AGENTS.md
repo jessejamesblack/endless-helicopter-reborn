@@ -16,6 +16,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): day-to-day commands and validation workflow.
 - [docs/AI_COLLABORATION.md](docs/AI_COLLABORATION.md): how this repo applies harness-engineering ideas.
 - [docs/ONLINE_LEADERBOARD_SETUP.md](docs/ONLINE_LEADERBOARD_SETUP.md): Supabase leaderboard setup.
+- [docs/PUSH_NOTIFICATIONS_SETUP.md](docs/PUSH_NOTIFICATIONS_SETUP.md): Firebase + Supabase push setup.
 
 ## Repository Layout
 
@@ -39,6 +40,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 ## Validation
 
 - Use [tools/validate_godot.ps1](tools/validate_godot.ps1) for script-level validation.
+- Build the Android push plugin with [tools/build_android_plugin.ps1](tools/build_android_plugin.ps1) before local Android exports.
 - CI validates pull requests into `main` and publishes Android releases from pushes to `main`.
 - Successful builds publish both a workflow artifact and a rolling GitHub prerelease.
 

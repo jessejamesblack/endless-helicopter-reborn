@@ -12,6 +12,7 @@
 - `scenes/ui/start_screen/`: start menu
 - `scenes/ui/leaderboard/`: death screen and leaderboard UI
 - `systems/online_leaderboard.gd`: shared leaderboard service
+- `systems/push_notifications.gd`: Android push registration and deep-link routing
 
 ## Gameplay Flow
 
@@ -21,6 +22,7 @@
 4. On crash, `main.gd` stores the run score in tree metadata.
 5. The app transitions to `leaderboard_screen.tscn`.
 6. The leaderboard screen submits the run if configured and shows shared scores.
+7. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen.
 
 ## Boundaries
 
@@ -32,6 +34,7 @@
 ## Important External Integration
 
 - Supabase powers the shared leaderboard.
+- Supabase Edge Functions and Firebase Cloud Messaging power Android push notifications.
 - GitHub Actions builds Android APK artifacts.
 
 ## Architectural Preferences

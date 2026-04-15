@@ -6,6 +6,7 @@ const SUPABASE_URL := "https://lxvniafwjlwatbiblwyi.supabase.co"
 const SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4dm5pYWZ3amx3YXRiaWJsd3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTQ1MjMsImV4cCI6MjA5MTc5MDUyM30.FzM4zxKx3yVyxvM1hbRFdAcNxrW3x9t6zerDEsDK42w"
 const TABLE_NAME := "family_leaderboard"
 const NOTIFICATION_TABLE_NAME := "family_notifications"
+const PUSH_DEVICE_TABLE_NAME := "family_push_devices"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
 const PLAYER_ID_CACHE_PATH := "user://player_id.save"
@@ -67,6 +68,16 @@ static func get_mark_notifications_read_url(ids: Array[int]) -> String:
 	for id in ids:
 		id_parts.append(str(id))
 	return "%s/rest/v1/%s?id=in.(%s)" % [SUPABASE_URL, NOTIFICATION_TABLE_NAME, ",".join(id_parts)]
+
+static func get_push_device_upsert_url() -> String:
+	return "%s/rest/v1/%s?on_conflict=family_id,player_id,device_id" % [SUPABASE_URL, PUSH_DEVICE_TABLE_NAME]
+
+static func get_push_device_update_by_token_url(fcm_token: String) -> String:
+	return "%s/rest/v1/%s?fcm_token=eq.%s" % [
+		SUPABASE_URL,
+		PUSH_DEVICE_TABLE_NAME,
+		fcm_token.uri_encode(),
+	]
 
 static func parse_entries(body: PackedByteArray) -> Array[Dictionary]:
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
@@ -177,6 +188,19 @@ static func load_or_create_player_id() -> String:
 static func make_mark_notifications_read_body() -> String:
 	return JSON.stringify({
 		"read_at": Time.get_datetime_string_from_system(true),
+	})
+
+static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "") -> String:
+	var timestamp := Time.get_datetime_string_from_system(true)
+	return JSON.stringify({
+		"family_id": FAMILY_ID,
+		"player_id": load_or_create_player_id(),
+		"device_id": device_id,
+		"fcm_token": fcm_token,
+		"platform": "android",
+		"device_label": device_label,
+		"notifications_enabled": notifications_enabled,
+		"last_seen_at": timestamp,
 	})
 
 static func parse_submit_name(body: PackedByteArray) -> String:

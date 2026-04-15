@@ -1,0 +1,75 @@
+plugins {
+    id "com.android.library" version "8.6.1"
+    id "org.jetbrains.kotlin.android" version "2.1.0"
+}
+
+import groovy.json.JsonSlurper
+
+def firebaseConfig = null
+if (file("google-services.json").exists()) {
+    firebaseConfig = new JsonSlurper().parse(file("google-services.json"))
+}
+
+android {
+    namespace "com.endlesshelicopter.push"
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 24
+        consumerProguardFiles "consumer-rules.pro"
+
+        if (firebaseConfig != null) {
+            def projectInfo = firebaseConfig.project_info ?: [:]
+            def client = (firebaseConfig.client ?: [])[0] ?: [:]
+            def apiKey = (client.api_key ?: [])[0]?.current_key ?: ""
+            def appId = client.client_info?.mobilesdk_app_id ?: ""
+            def projectId = projectInfo.project_id ?: ""
+            def senderId = projectInfo.project_number ?: ""
+            def storageBucket = projectInfo.storage_bucket ?: ""
+
+            if (!appId.isEmpty()) {
+                resValue "string", "google_app_id", appId
+            }
+            if (!senderId.isEmpty()) {
+                resValue "string", "gcm_defaultSenderId", senderId
+            }
+            if (!projectId.isEmpty()) {
+                resValue "string", "project_id", projectId
+            }
+            if (!apiKey.isEmpty()) {
+                resValue "string", "google_api_key", apiKey
+                resValue "string", "google_crash_reporting_api_key", apiKey
+            }
+            if (!storageBucket.isEmpty()) {
+                resValue "string", "google_storage_bucket", storageBucket
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    compileOnly "org.godotengine:godot:4.6.2.stable"
+    implementation "androidx.core:core-ktx:1.13.1"
+    implementation "androidx.lifecycle:lifecycle-process:2.8.7"
+    implementation "com.google.firebase:firebase-messaging:24.1.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+}
