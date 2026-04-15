@@ -14,10 +14,20 @@ var ammo: int = 3
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 func _ready() -> void:
-    if engine_sound != null:
-        engine_sound.finished.connect(_on_engine_sound_finished)
-        if not engine_sound.playing:
-            engine_sound.play()
+    if engine_sound == null:
+        return
+
+    var engine_stream := engine_sound.stream as AudioStreamWAV
+    if engine_stream != null:
+        engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+        engine_stream.loop_begin = 0
+        engine_stream.loop_end = 0
+
+    var restart_callback := Callable(self, "_on_engine_sound_finished")
+    if not engine_sound.is_connected("finished", restart_callback):
+        engine_sound.finished.connect(restart_callback)
+
+    engine_sound.play()
 
 func _physics_process(delta: float) -> void:
     # Apply constant downward gravity
