@@ -1,5 +1,7 @@
 extends Control
 
+const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
+
 var current_score: int = 0
 var has_submitted: bool = false
 var has_pending_score: bool = false
