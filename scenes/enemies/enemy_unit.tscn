@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/enemies/enemy_unit.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/art/sprites/pixel_art_sheet.svg" id="2_sheet"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/enemy_missile_fire.wav" id="3_fire"]
 
 [node name="EnemyUnit" type="Area2D"]
 script = ExtResource("1_script")
@@ -14,3 +15,7 @@ region_rect = Rect2(1149, 1134, 242, 266)
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
 polygon = PackedVector2Array(-44, -50, 38, -50, 46, -28, 36, -10, 20, -2, 20, 18, 34, 50, 18, 64, -18, 64, -34, 48, -22, 18, -22, -2, -36, -12, -44, -28)
 position = Vector2(0, 8)
+
+[node name="FireSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_fire")
+volume_db = -8.0
