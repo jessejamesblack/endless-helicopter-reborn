@@ -115,6 +115,12 @@ on public.family_notifications
 for select
 using (true);
 
+drop policy if exists "family_notifications_insert" on public.family_notifications;
+create policy "family_notifications_insert"
+on public.family_notifications
+for insert
+with check (true);
+
 drop policy if exists "family_notifications_update" on public.family_notifications;
 create policy "family_notifications_update"
 on public.family_notifications
