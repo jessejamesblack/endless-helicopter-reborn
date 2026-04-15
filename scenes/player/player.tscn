@@ -25,7 +25,7 @@ shape = SubResource("CircleShape2D_onrkg")
 
 [node name="EngineSound" type="AudioStreamPlayer" parent="." unique_id=1712233997]
 stream = ExtResource("3_i3pqv")
-volume_db = -8.0
+volume_db = -14.0
 
 [node name="MissileFireSound" type="AudioStreamPlayer" parent="." unique_id=739341832]
 stream = ExtResource("4_hqtel")

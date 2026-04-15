@@ -95,17 +95,18 @@ function Add-NoiseBurst([double[]]$buffer, [double]$volume, [double]$filterMix =
 }
 
 function Build-EngineLoop {
-    $duration = 1.0
+    $duration = 0.95
     $samples = New-SampleBuffer $duration
 
     for ($i = 0; $i -lt $samples.Length; $i++) {
         $t = $i / $sampleRate
         $rotor = 0.30 * [Math]::Sin(2.0 * $pi * 54.0 * $t)
         $body = 0.22 * [Math]::Sin(2.0 * $pi * 108.0 * $t + 0.5)
-        $buzz = 0.10 * [Math]::Sign([Math]::Sin(2.0 * $pi * 216.0 * $t))
+        $buzz = 0.14 * [Math]::Sign([Math]::Sin(2.0 * $pi * 216.0 * $t))
         $whirr = 0.10 * [Math]::Sin(2.0 * $pi * 324.0 * $t)
-        $bladeChop = 0.68 + (0.24 * [Math]::Sin(2.0 * $pi * 8.0 * $t))
+        $bladeChop = 0.58 + (0.42 * (0.5 + 0.5 * [Math]::Sin(2.0 * $pi * 8.0 * $t)))
         $sample = ($rotor + $body + $buzz + $whirr) * $bladeChop
+        $sample *= Envelope $t $duration 0.01 0.02
         $samples[$i] = Quantize-Sample $sample 56
     }
 
