@@ -30,6 +30,10 @@ try {
             & $gradleCommand assembleDebug assembleRelease
         }
     }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Android push bridge build failed."
+    }
 }
 finally {
     Pop-Location

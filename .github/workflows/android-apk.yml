@@ -20,6 +20,7 @@ jobs:
       GODOT_RELEASE_TAG: 4.6.2-stable
       GODOT_TEMPLATE_VERSION: 4.6.2.stable
       ANDROID_SDK_ROOT: ${{ github.workspace }}/build/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/build/android-sdk
       APP_NAME: Endless-Helicopter-Reborn
 
     steps:
