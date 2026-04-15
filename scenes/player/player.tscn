@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" uid="uid://c60joo0sx1tt6" path="res://scenes/player/player.gd" id="1_4flbx"]
 [ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="2_sweqy"]
-[ext_resource type="AudioStream" uid="uid://crs85103elic2" path="res://assets/audio/sfx/helicopter.mp3" id="3_i3pqv"]
-[ext_resource type="AudioStream" uid="uid://dpdn0xajnvbao" path="res://assets/audio/sfx/missle_fire.mp3" id="4_hqtel"]
-[ext_resource type="AudioStream" uid="uid://bbtfj2mjmxd3o" path="res://assets/audio/sfx/missile_reload.mp3" id="5_sweqy"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/helicopter_loop.wav" id="3_i3pqv"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/player_missile_fire.wav" id="4_hqtel"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/missile_reload_retro.wav" id="5_sweqy"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_onrkg"]
 radius = 33.06055
@@ -26,9 +26,12 @@ shape = SubResource("CircleShape2D_onrkg")
 [node name="EngineSound" type="AudioStreamPlayer" parent="." unique_id=1712233997]
 stream = ExtResource("3_i3pqv")
 autoplay = true
+volume_db = -8.0
 
 [node name="MissileFireSound" type="AudioStreamPlayer" parent="." unique_id=739341832]
 stream = ExtResource("4_hqtel")
+volume_db = -4.0
 
 [node name="ReloadSound" type="AudioStreamPlayer" parent="." unique_id=1859566356]
 stream = ExtResource("5_sweqy")
+volume_db = -7.0

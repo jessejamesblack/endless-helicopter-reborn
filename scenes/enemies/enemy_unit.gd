@@ -85,6 +85,7 @@ var ENEMY_DATA := {
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
+@onready var fire_sound: AudioStreamPlayer = $FireSound
 
 var enemy_projectile_scene: PackedScene = preload("res://scenes/projectiles/enemy_projectile.tscn")
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
@@ -158,6 +159,7 @@ func fire_projectile(data: Dictionary) -> void:
 	projectile.move_speed = float(data.get("projectile_speed", 480.0))
 	projectile.configure(data.get("projectile_kind", "player_missile"))
 	get_tree().current_scene.add_child(projectile)
+	_play_fire_sound()
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player" and body.has_method("die"):
@@ -172,3 +174,13 @@ func destroy() -> void:
 func get_destroy_score() -> int:
 	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
 	return int(data.get("score", 80))
+
+func _play_fire_sound() -> void:
+	if fire_sound == null:
+		return
+
+	if fire_sound.playing:
+		fire_sound.stop()
+
+	fire_sound.pitch_scale = 0.88 if enemy_kind == "stationary_turret" else 1.06
+	fire_sound.play()

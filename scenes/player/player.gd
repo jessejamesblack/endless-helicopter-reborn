@@ -5,12 +5,19 @@ extends CharacterBody2D
 @export var max_tilt: float = 0.5
 
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var engine_sound: AudioStreamPlayer = $EngineSound
 
 var missile_scene: PackedScene = preload("res://scenes/projectiles/missile.tscn")
 var ammo: int = 3
 
 # Get gravity from project settings so it syncs with standard physics behavior
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
+
+func _ready() -> void:
+    if engine_sound != null:
+        engine_sound.finished.connect(_on_engine_sound_finished)
+        if not engine_sound.playing:
+            engine_sound.play()
 
 func _physics_process(delta: float) -> void:
     # Apply constant downward gravity
@@ -57,6 +64,10 @@ func add_ammo(amount: int) -> void:
         
     if has_node("ReloadSound"):
         $ReloadSound.play()
+
+func _on_engine_sound_finished() -> void:
+    if engine_sound != null:
+        engine_sound.play()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Fire missile on 'X' key
