@@ -10,19 +10,24 @@
 - `scenes/pickups/`: ammo pickup scene
 - `scenes/effects/`: explosion effect
 - `scenes/ui/start_screen/`: start menu
+- `scenes/ui/settings/`: reusable settings dialog
+- `scenes/ui/pause/`: in-game pause menu
 - `scenes/ui/leaderboard/`: death screen and leaderboard UI
+- `systems/game_settings.gd`: persistent audio, layout, and haptics settings
 - `systems/online_leaderboard.gd`: shared leaderboard service
 - `systems/push_notifications.gd`: Android push registration and deep-link routing
 
 ## Gameplay Flow
 
 1. The app starts in `start_screen.tscn`.
-2. Pressing `Play Game` opens `main.tscn`.
-3. The player survives, scores over time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
-4. On crash, `main.gd` stores the run score in tree metadata.
-5. The app transitions to `leaderboard_screen.tscn`.
-6. The leaderboard screen submits the run if configured and shows shared scores.
-7. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen.
+2. Players can open `Settings` from the start screen to adjust audio, controls, and haptics.
+3. Pressing `Play Game` opens `main.tscn`.
+4. The player survives, scores over time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
+5. During gameplay, `Pause` can resume, open settings, or quit cleanly back to the menu.
+6. On crash, `main.gd` stores the run score in tree metadata.
+7. The app transitions to `leaderboard_screen.tscn`.
+8. The leaderboard screen submits the run if configured and shows shared scores.
+9. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen.
 
 ## Enemy Roles
 
@@ -43,6 +48,14 @@
 - `systems/` owns non-scene shared runtime services.
 - `backend/` owns external service bootstrap files.
 - `docs/` owns human/agent-readable project knowledge.
+
+## Settings Runtime
+
+- `game_settings.gd` persists settings to `user://game_settings.cfg`.
+- The settings service applies `Master` and `SFX` audio levels at runtime through the `SFX` bus.
+- Fire-button side is configurable as `left` or `right`.
+- Score and ammo panels stay tied together and mirror to the opposite side of the fire button.
+- Haptics is controlled from the same shared settings service and used as the source of truth for vibration hooks.
 
 ## Important External Integration
 
