@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://scenes/enemies/obstacle.tscn" id="4_obstacle"]
 [ext_resource type="Script" uid="uid://b4q8jmijy0vgj" path="res://scenes/game/main/main.gd" id="5_main"]
 [ext_resource type="Texture2D" uid="uid://d4ft2deaao7iv" path="res://assets/art/ui/fire_button.svg" id="6_firebtn"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause/pause_menu.tscn" id="7_pause"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_panel"]
 bg_color = Color(0.0313726, 0.0784314, 0.145098, 0.86)
@@ -20,6 +21,42 @@ corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 shadow_color = Color(0, 0, 0, 0.45)
 shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.0705882, 0.105882, 0.196078, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.360784, 0.611765, 0.858824, 0.95)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 5
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.105882, 0.156863, 0.27451, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.560784, 0.807843, 0.988235, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 6
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
 
 [node name="Main" type="Node2D" unique_id=1950812381]
 script = ExtResource("5_main")
@@ -84,6 +121,27 @@ theme_override_font_sizes/font_size = 24
 text = "MISSILES 03"
 vertical_alignment = 1
 
+[node name="PauseButton" type="Button" parent="UI" unique_id=988001251]
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -64.0
+offset_top = 20.0
+offset_right = 64.0
+offset_bottom = 62.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Pause"
+
 [node name="FireButton" type="TextureButton" parent="UI" unique_id=237402757]
 anchors_preset = 3
 anchor_left = 1.0
@@ -99,3 +157,5 @@ grow_vertical = 0
 texture_normal = ExtResource("6_firebtn")
 ignore_texture_size = true
 stretch_mode = 5
+
+[node name="PauseMenu" parent="UI" instance=ExtResource("7_pause")]
