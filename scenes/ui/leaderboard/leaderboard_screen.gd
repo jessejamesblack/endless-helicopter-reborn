@@ -1,6 +1,8 @@
 extends Control
 
 const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
+const LEADERBOARD_PAGE_SIZE := 25
+const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 
 var current_score: int = 0
 var has_submitted: bool = false
@@ -9,6 +11,10 @@ var needs_profile_setup: bool = false
 var pending_player_name: String = ""
 var is_submitting: bool = false
 var push_notifications: Node = null
+var leaderboard_entries: Array[Dictionary] = []
+var leaderboard_offset: int = 0
+var leaderboard_has_more: bool = true
+var leaderboard_fetch_in_flight: bool = false
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
@@ -21,7 +27,8 @@ var push_notifications: Node = null
 @onready var back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/BackButton
 @onready var alert_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/AlertCard
 @onready var alert_label: Label = $Panel/MarginContainer/VBoxContainer/AlertCard/AlertLabel
-@onready var leaderboard_label: Label = $Panel/MarginContainer/VBoxContainer/LeaderboardCard/LeaderboardLabel
+@onready var leaderboard_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/LeaderboardCard/LeaderboardScroll
+@onready var leaderboard_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/LeaderboardCard/LeaderboardScroll/LeaderboardList
 
 func _ready() -> void:
 	has_pending_score = get_tree().has_meta("last_run_score")
@@ -40,6 +47,7 @@ func _ready() -> void:
 	name_help_label.text = "Choose a public name once. This device will remember it."
 	alert_label.text = ""
 	_apply_screen_mode()
+	_connect_leaderboard_scroll()
 
 	save_button.pressed.connect(_on_save_pressed)
 	back_button.pressed.connect(_on_back_pressed)
@@ -49,6 +57,7 @@ func _ready() -> void:
 	$SubmitRequest.request_completed.connect(_on_submit_request_completed)
 	$NotificationRequest.request_completed.connect(_on_notification_request_completed)
 	$MarkNotificationsReadRequest.request_completed.connect(_on_mark_notifications_read_completed)
+
 	push_notifications = get_node_or_null("/root/PushNotifications")
 	if push_notifications != null and push_notifications.has_signal("push_notification_opened"):
 		var push_callback := Callable(self, "_on_push_notification_opened")
@@ -57,13 +66,13 @@ func _ready() -> void:
 
 	if OnlineLeaderboard.is_configured():
 		set_status("Loading leaderboard...")
-		fetch_leaderboard()
+		fetch_leaderboard(true)
 		fetch_notifications()
 		if has_pending_score and not needs_profile_setup:
 			submit_score()
 	else:
 		set_status("Leaderboard is not configured yet.")
-		leaderboard_label.text = "Waiting for online setup"
+		_render_leaderboard_rows([], "Waiting for online setup")
 		save_button.disabled = true
 		refresh_button.disabled = true
 
@@ -79,9 +88,27 @@ func _get_board_title() -> String:
 		return "Global Leaderboard"
 	return "Family Leaderboard"
 
-func fetch_leaderboard() -> void:
+func fetch_leaderboard(reset: bool = false) -> void:
+	if leaderboard_fetch_in_flight:
+		return
+
+	if reset:
+		leaderboard_entries.clear()
+		leaderboard_offset = 0
+		leaderboard_has_more = true
+		leaderboard_scroll.scroll_vertical = 0
+
+	if not leaderboard_has_more:
+		return
+
+	leaderboard_fetch_in_flight = true
+	var footer_message := "Loading leaderboard..."
+	if not leaderboard_entries.is_empty():
+		footer_message = "Loading more scores..."
+	_render_leaderboard_rows(OnlineLeaderboard.get_best_entries(leaderboard_entries), footer_message)
+
 	$FetchRequest.request(
-		OnlineLeaderboard.get_fetch_url(10),
+		OnlineLeaderboard.get_fetch_url(LEADERBOARD_PAGE_SIZE, leaderboard_offset),
 		OnlineLeaderboard.get_headers(),
 		HTTPClient.METHOD_GET
 	)
@@ -128,29 +155,28 @@ func _on_name_submitted(_text: String) -> void:
 
 func _on_refresh_pressed() -> void:
 	set_status("Refreshing leaderboard...")
-	fetch_leaderboard()
+	fetch_leaderboard(true)
 	fetch_notifications()
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
 
 func _on_fetch_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	leaderboard_fetch_in_flight = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		if leaderboard_entries.is_empty():
+			_render_leaderboard_rows([], "Could not load the leaderboard.")
 		set_status("Could not load the leaderboard.")
 		return
 
-	var entries := OnlineLeaderboard.parse_entries(body)
-	leaderboard_label.text = OnlineLeaderboard.format_entries(entries, 10)
-	if needs_profile_setup:
-		set_status("You crashed. Enter a name to save this run.")
-	elif is_submitting:
-		set_status("Saving your score...")
-	elif has_submitted:
-		set_status("Score submitted!")
-	elif has_pending_score:
-		set_status("Tap Submit Score to save this run.")
-	else:
-		set_status("Latest scores loaded.")
+	var fetched_entries := OnlineLeaderboard.parse_entries(body)
+	leaderboard_entries.append_array(fetched_entries)
+	leaderboard_offset += fetched_entries.size()
+	leaderboard_has_more = fetched_entries.size() >= LEADERBOARD_PAGE_SIZE
+
+	_render_leaderboard_rows(OnlineLeaderboard.get_best_entries(leaderboard_entries))
+	_update_status_after_fetch()
+	call_deferred("_maybe_prefetch_if_needed")
 
 func _on_submit_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	is_submitting = false
@@ -167,12 +193,13 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 	if not saved_name.is_empty():
 		name_entry.text = saved_name
 		OnlineLeaderboard.save_cached_name(saved_name)
+
 	pending_player_name = ""
 	has_pending_score = false
 	needs_profile_setup = false
 	_apply_screen_mode()
 	save_button.disabled = true
-	fetch_leaderboard()
+	fetch_leaderboard(true)
 	fetch_notifications()
 
 func _on_notification_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -203,5 +230,119 @@ func _on_push_notification_opened(payload: Dictionary) -> void:
 	if str(payload.get("type", "")) != "score_beaten":
 		return
 	set_status("Refreshing leaderboard...")
-	fetch_leaderboard()
+	fetch_leaderboard(true)
 	fetch_notifications()
+
+func _update_status_after_fetch() -> void:
+	if needs_profile_setup:
+		set_status("You crashed. Enter a name to save this run.")
+	elif is_submitting:
+		set_status("Saving your score...")
+	elif has_submitted:
+		set_status("Score submitted!")
+	elif has_pending_score:
+		set_status("Tap Submit Score to save this run.")
+	else:
+		set_status("Latest scores loaded.")
+
+func _connect_leaderboard_scroll() -> void:
+	var scroll_bar := leaderboard_scroll.get_v_scroll_bar()
+	if scroll_bar == null:
+		return
+
+	var scroll_callback := Callable(self, "_on_leaderboard_scroll_changed")
+	if not scroll_bar.is_connected("value_changed", scroll_callback):
+		scroll_bar.value_changed.connect(scroll_callback)
+
+func _on_leaderboard_scroll_changed(_value: float) -> void:
+	_maybe_fetch_next_page()
+
+func _maybe_fetch_next_page() -> void:
+	if leaderboard_fetch_in_flight or not leaderboard_has_more:
+		return
+
+	var scroll_bar := leaderboard_scroll.get_v_scroll_bar()
+	if scroll_bar == null or scroll_bar.max_value <= 0.0:
+		return
+
+	if scroll_bar.max_value - scroll_bar.value <= LEADERBOARD_SCROLL_TRIGGER_PX:
+		fetch_leaderboard(false)
+
+func _maybe_prefetch_if_needed() -> void:
+	if leaderboard_fetch_in_flight or not leaderboard_has_more:
+		return
+
+	var scroll_bar := leaderboard_scroll.get_v_scroll_bar()
+	if scroll_bar == null or scroll_bar.max_value <= 0.0:
+		fetch_leaderboard(false)
+
+func _render_leaderboard_rows(entries: Array[Dictionary], footer_message: String = "") -> void:
+	for child in leaderboard_list.get_children():
+		child.queue_free()
+
+	if entries.is_empty():
+		leaderboard_list.add_child(_create_message_label(footer_message if not footer_message.is_empty() else _get_empty_board_text()))
+		return
+
+	for i in range(entries.size()):
+		leaderboard_list.add_child(_create_entry_row(i + 1, entries[i]))
+
+	if not footer_message.is_empty():
+		leaderboard_list.add_child(_create_message_label(footer_message))
+	elif leaderboard_has_more:
+		leaderboard_list.add_child(_create_message_label("Scroll down to load more pilots..."))
+
+func _create_entry_row(rank: int, entry: Dictionary) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 34)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 12)
+
+	var rank_label := Label.new()
+	rank_label.custom_minimum_size = Vector2(44, 0)
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rank_label.theme_override_colors.font_color = Color(0.588235, 0.784314, 0.964706, 1)
+	rank_label.theme_override_constants.outline_size = 2
+	rank_label.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+	rank_label.theme_override_font_sizes.font_size = 20
+	rank_label.text = "%d." % rank
+	row.add_child(rank_label)
+
+	var name_label := Label.new()
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.theme_override_colors.font_color = Color(0.921569, 0.94902, 1, 1)
+	name_label.theme_override_constants.outline_size = 2
+	name_label.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+	name_label.theme_override_font_sizes.font_size = 20
+	name_label.text = str(entry.get("name", "Player"))
+	row.add_child(name_label)
+
+	var score_label_row := Label.new()
+	score_label_row.custom_minimum_size = Vector2(116, 0)
+	score_label_row.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_label_row.theme_override_colors.font_color = Color(0.964706, 0.843137, 0.54902, 1)
+	score_label_row.theme_override_constants.outline_size = 2
+	score_label_row.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+	score_label_row.theme_override_font_sizes.font_size = 20
+	score_label_row.text = str(int(entry.get("score", 0)))
+	row.add_child(score_label_row)
+
+	return row
+
+func _create_message_label(message: String) -> Label:
+	var label := Label.new()
+	label.custom_minimum_size = Vector2(0, 44)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.theme_override_colors.font_color = Color(0.776471, 0.85098, 0.94902, 0.95)
+	label.theme_override_constants.outline_size = 2
+	label.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+	label.theme_override_font_sizes.font_size = 18
+	label.text = message
+	return label
+
+func _get_empty_board_text() -> String:
+	if OnlineLeaderboard.FAMILY_ID == "global":
+		return "No global scores yet"
+	return "No family scores yet"
