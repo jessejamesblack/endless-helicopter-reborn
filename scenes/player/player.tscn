@@ -22,12 +22,15 @@ polygon = PackedVector2Array(-42, -14, -32, -24, -10, -30, 18, -28, 42, -16, 56,
 
 [node name="EngineSound" type="AudioStreamPlayer" parent="." unique_id=1712233997]
 stream = ExtResource("3_i3pqv")
+bus = &"SFX"
 volume_db = -14.0
 
 [node name="MissileFireSound" type="AudioStreamPlayer" parent="." unique_id=739341832]
 stream = ExtResource("4_hqtel")
+bus = &"SFX"
 volume_db = -4.0
 
 [node name="ReloadSound" type="AudioStreamPlayer" parent="." unique_id=1859566356]
 stream = ExtResource("5_sweqy")
+bus = &"SFX"
 volume_db = -7.0

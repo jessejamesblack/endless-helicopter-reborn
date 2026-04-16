@@ -17,6 +17,7 @@ config/icon="res://assets/icons/icon.svg"
 
 [autoload]
 
+GameSettings="*res://systems/game_settings.gd"
 PushNotifications="*res://systems/push_notifications.gd"
 
 [editor_plugins]
