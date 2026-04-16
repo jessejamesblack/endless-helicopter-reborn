@@ -1,12 +1,12 @@
 # Endless Helicopter Reborn
 
-`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, collect ammo, fire missiles, and compete on a shared online leaderboard.
+`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, bounce off the arena bounds to recover from mistakes, collect ammo, fire missiles, trigger rare glowing-rock screen clears, and compete on a shared online leaderboard.
 
 ## Features
 
 - Endless survival-style arcade gameplay
 - Mobile-friendly tap/click/space controls
-- Missiles, ammo pickups, explosions, and enemy variety
+- Missiles, ammo pickups, clearer explosions, and varied enemy roles
 - Shared online leaderboard with player names
 - In-app beat-your-score notifications
 - Android push notifications for score-beaten events

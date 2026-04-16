@@ -40,13 +40,14 @@ static func get_headers() -> PackedStringArray:
 		"Content-Type: application/json",
 	])
 
-static func get_fetch_url(limit: int = 10) -> String:
+static func get_fetch_url(limit: int = 10, offset: int = 0) -> String:
 	var encoded_family := FAMILY_ID.uri_encode()
-	return "%s/rest/v1/%s?select=player_id,name,score,created_at&family_id=eq.%s&order=score.desc,created_at.asc&limit=%d" % [
+	return "%s/rest/v1/%s?select=player_id,name,score,created_at&family_id=eq.%s&order=score.desc,created_at.asc&limit=%d&offset=%d" % [
 		SUPABASE_URL,
 		TABLE_NAME,
 		encoded_family,
 		limit,
+		offset,
 	]
 
 static func get_submit_url() -> String:

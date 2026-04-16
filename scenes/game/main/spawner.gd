@@ -10,10 +10,10 @@ extends Node2D
 var _timer: float = 0.0
 
 const ENEMY_VARIANTS := [
-	{"kind": "large_spiky_rock", "weight": 0.55},
-	{"kind": "stationary_turret", "weight": 0.15},
-	{"kind": "alien_drone", "weight": 0.15},
-	{"kind": "rock_core", "weight": 0.15},
+	{"kind": "large_spiky_rock", "weight": 0.58},
+	{"kind": "alien_drone", "weight": 0.24},
+	{"kind": "stationary_turret", "weight": 0.12},
+	{"kind": "glowing_rock", "weight": 0.06},
 ]
 
 func _process(delta: float) -> void:
@@ -65,7 +65,12 @@ func spawn_enemy_variant(kind: String) -> void:
         return
 
     var enemy = enemy_scene.instantiate()
-    enemy.position = Vector2(0, randf_range(spawn_y_min, spawn_y_max))
+    enemy.position = Vector2(0, _get_spawn_y_for_kind(kind))
     if enemy.has_method("configure"):
         enemy.configure(kind)
     add_child(enemy)
+
+func _get_spawn_y_for_kind(kind: String) -> float:
+    if kind == "stationary_turret":
+        return get_viewport_rect().size.y - 92.0
+    return randf_range(spawn_y_min, spawn_y_max)

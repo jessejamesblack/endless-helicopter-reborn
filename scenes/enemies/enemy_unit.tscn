@@ -11,10 +11,11 @@ script = ExtResource("1_script")
 texture = ExtResource("2_sheet")
 region_enabled = true
 region_rect = Rect2(1149, 1134, 242, 266)
+scale = Vector2(0.34, 0.34)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(-44, -50, 38, -50, 46, -28, 36, -10, 20, -2, 20, 18, 34, 50, 18, 64, -18, 64, -34, 48, -22, 18, -22, -2, -36, -12, -44, -28)
-position = Vector2(0, 8)
+polygon = PackedVector2Array(-24, -30, 18, -30, 24, -14, 20, 2, 24, 24, 12, 34, -12, 34, -24, 22, -20, 0, -18, -14)
+position = Vector2(0, 10)
 
 [node name="FireSound" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3_fire")

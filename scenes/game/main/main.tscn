@@ -7,6 +7,20 @@
 [ext_resource type="Script" uid="uid://b4q8jmijy0vgj" path="res://scenes/game/main/main.gd" id="5_main"]
 [ext_resource type="Texture2D" uid="uid://d4ft2deaao7iv" path="res://assets/art/ui/fire_button.svg" id="6_firebtn"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_panel"]
+bg_color = Color(0.0313726, 0.0784314, 0.145098, 0.86)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.286275, 0.603922, 0.8, 0.95)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 6
+
 [node name="Main" type="Node2D" unique_id=1950812381]
 script = ExtResource("5_main")
 
@@ -22,21 +36,53 @@ obstacle_scene = ExtResource("4_obstacle")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=507074889]
 
-[node name="ScoreLabel" type="Label" parent="UI" unique_id=1561047620]
+[node name="ScorePanel" type="Panel" parent="UI" unique_id=1883105104]
 offset_left = 20.0
 offset_top = 20.0
-offset_right = 160.0
-offset_bottom = 65.0
-theme_override_font_sizes/font_size = 32
-text = "Score: 0"
+offset_right = 232.0
+offset_bottom = 76.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_panel")
 
-[node name="AmmoLabel" type="Label" parent="UI" unique_id=1447987674]
+[node name="ScoreLabel" type="Label" parent="UI/ScorePanel" unique_id=1561047620]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.862745, 0.47451, 1)
+theme_override_colors/font_outline_color = Color(0.0470588, 0.109804, 0.180392, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 30
+text = "SCORE 0000"
+vertical_alignment = 1
+
+[node name="AmmoPanel" type="Panel" parent="UI" unique_id=1235352095]
 offset_left = 20.0
-offset_top = 65.0
-offset_right = 160.0
-offset_bottom = 110.0
-theme_override_font_sizes/font_size = 32
-text = "Ammo: 3"
+offset_top = 88.0
+offset_right = 196.0
+offset_bottom = 144.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_panel")
+
+[node name="AmmoLabel" type="Label" parent="UI/AmmoPanel" unique_id=1447987674]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.819608, 0.92549, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0470588, 0.109804, 0.180392, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 24
+text = "MISSILES 03"
+vertical_alignment = 1
 
 [node name="FireButton" type="TextureButton" parent="UI" unique_id=237402757]
 anchors_preset = 3

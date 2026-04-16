@@ -24,6 +24,7 @@ android/plugins/**/google-services.json
 addons/fcm_push_bridge/libs/*.aar
 !addons/fcm_push_bridge/libs/.gitkeep
 backend/supabase/.temp/
+supabase/.temp/
 
 # OS hidden files
 .DS_Store
