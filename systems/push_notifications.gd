@@ -119,8 +119,9 @@ func get_diagnostics() -> Dictionary:
 	if _plugin != null and _plugin.has_method("isPushSupported"):
 		firebase_ready = bool(_plugin.isPushSupported())
 
+	var bridge_supports_firebase_status := _plugin != null and _plugin.has_method("getFirebaseStatus")
 	var firebase_status := ""
-	if _plugin != null and _plugin.has_method("getFirebaseStatus"):
+	if bridge_supports_firebase_status:
 		firebase_status = str(_plugin.getFirebaseStatus())
 
 	var permission_granted := false
@@ -131,6 +132,7 @@ func get_diagnostics() -> Dictionary:
 		"leaderboard_configured": OnlineLeaderboardScript.is_configured(),
 		"is_android": OS.get_name() == "Android",
 		"plugin_loaded": _plugin != null,
+		"bridge_supports_firebase_status": bridge_supports_firebase_status,
 		"firebase_ready": firebase_ready,
 		"firebase_status": firebase_status,
 		"permission_granted": permission_granted,
@@ -152,6 +154,8 @@ func get_diagnostics_text() -> String:
 		return "Push unavailable here: Android APK only."
 	if not bool(status["plugin_loaded"]):
 		return "Push unavailable: Android FCM plugin is not loaded in this APK."
+	if not bool(status["bridge_supports_firebase_status"]):
+		return "Push unavailable: this APK is using an outdated Android push bridge. Rebuild the plugin AARs and export a fresh APK."
 	if not bool(status["firebase_ready"]):
 		var firebase_detail := str(status.get("firebase_status", "")).strip_edges()
 		if firebase_detail.is_empty():
@@ -176,6 +180,7 @@ func get_debug_report() -> String:
 		"Platform: %s" % OS.get_name(),
 		"Leaderboard configured: %s" % _yes_no(bool(status["leaderboard_configured"])),
 		"Plugin loaded: %s" % _yes_no(bool(status["plugin_loaded"])),
+		"Bridge diagnostics available: %s" % _yes_no(bool(status["bridge_supports_firebase_status"])),
 		"Firebase ready: %s" % _yes_no(bool(status["firebase_ready"])),
 		"Firebase status: %s" % str(status["firebase_status"]),
 		"Permission granted: %s" % _yes_no(bool(status["permission_granted"])),
