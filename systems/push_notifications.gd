@@ -169,6 +169,29 @@ func get_diagnostics_text() -> String:
 		return "Push registration failed: HTTP %d. %s" % [int(status["last_response_code"]), str(status["last_message"])]
 	return str(status["last_message"])
 
+func get_debug_report() -> String:
+	var status := get_diagnostics()
+	var lines := PackedStringArray([
+		"Debug build: %s" % _yes_no(OS.is_debug_build()),
+		"Platform: %s" % OS.get_name(),
+		"Leaderboard configured: %s" % _yes_no(bool(status["leaderboard_configured"])),
+		"Plugin loaded: %s" % _yes_no(bool(status["plugin_loaded"])),
+		"Firebase ready: %s" % _yes_no(bool(status["firebase_ready"])),
+		"Firebase status: %s" % str(status["firebase_status"]),
+		"Permission granted: %s" % _yes_no(bool(status["permission_granted"])),
+		"Device ID: %s" % _load_cached_device_id_for_debug(),
+		"Token present: %s" % _yes_no(bool(status["latest_token_present"])),
+		"Token preview: %s" % str(status["latest_token_preview"]),
+		"Registering now: %s" % _yes_no(bool(status["is_registering"])),
+		"Retry attempts left: %d" % _remaining_registration_retries,
+		"Last response code: %d" % int(status["last_response_code"]),
+		"Last HTTP result: %d" % int(status["last_result"]),
+		"Last message: %s" % str(status["last_message"]),
+		"Last attempt at: %s" % str(status["last_attempt_at"]),
+		"Last registered at: %s" % str(status["last_registered_at"]),
+	])
+	return "\n".join(lines)
+
 func consume_open_leaderboard_request() -> bool:
 	var should_open := _pending_open_leaderboard
 	_pending_open_leaderboard = false
@@ -281,6 +304,19 @@ func _load_or_create_device_id() -> String:
 		file.store_string(new_id)
 	return new_id
 
+func _load_cached_device_id_for_debug() -> String:
+	if not FileAccess.file_exists(DEVICE_ID_CACHE_PATH):
+		return "(not created yet)"
+
+	var file := FileAccess.open(DEVICE_ID_CACHE_PATH, FileAccess.READ)
+	if file == null:
+		return "(unreadable)"
+
+	var device_id := file.get_as_text().strip_edges()
+	if device_id.is_empty():
+		return "(empty)"
+	return device_id
+
 func _generate_device_id() -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -371,3 +407,6 @@ func _token_preview(token: String) -> String:
 	if clean_token.length() <= 10:
 		return clean_token
 	return "%s...%s" % [clean_token.substr(0, 6), clean_token.substr(clean_token.length() - 4, 4)]
+
+func _yes_no(value: bool) -> String:
+	return "yes" if value else "no"

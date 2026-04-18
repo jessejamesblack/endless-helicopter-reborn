@@ -16,6 +16,9 @@ const SIDE_RIGHT := "right"
 @onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/HapticsToggle
 @onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushSection/PushStatusLabel
 @onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushSection/EnablePushButton
+@onready var push_debug_section: VBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushDebugSection
+@onready var push_debug_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushDebugSection/PushDebugLabel
+@onready var retry_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushDebugSection/RetryPushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 
 func _ready() -> void:
@@ -29,6 +32,7 @@ func _ready() -> void:
 	fire_side_option.item_selected.connect(_on_fire_side_selected)
 	haptics_toggle.toggled.connect(_on_haptics_toggled)
 	enable_push_button.pressed.connect(_on_enable_push_pressed)
+	retry_push_button.pressed.connect(_on_retry_push_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
 	var push_notifications = _get_push_notifications()
@@ -136,13 +140,25 @@ func _on_push_diagnostics_changed(_status: Dictionary) -> void:
 
 func _update_push_status() -> void:
 	var push_notifications = _get_push_notifications()
+	push_debug_section.visible = OS.is_debug_build()
 	if push_notifications == null or not push_notifications.has_method("get_diagnostics_text"):
 		push_status_label.text = "Push unavailable: runtime service not loaded."
 		enable_push_button.disabled = true
+		push_debug_label.text = "Push runtime service missing."
 		return
 
 	push_status_label.text = push_notifications.get_diagnostics_text()
 	enable_push_button.disabled = OS.get_name() != "Android"
+	if push_notifications.has_method("get_debug_report"):
+		push_debug_label.text = push_notifications.get_debug_report()
+	else:
+		push_debug_label.text = "Push debug report unavailable."
+
+func _on_retry_push_pressed() -> void:
+	var push_notifications = _get_push_notifications()
+	if push_notifications != null and push_notifications.has_method("enable_notifications"):
+		push_notifications.enable_notifications()
+	_update_push_status()
 
 func _on_close_pressed() -> void:
 	close_menu()
