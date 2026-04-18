@@ -46,7 +46,9 @@ jobs:
             echo "::error::FIREBASE_GOOGLE_SERVICES_JSON_BASE64 is required for Firebase push-enabled Android builds."
             exit 1
           fi
-          echo "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/plugins/fcm_push_bridge/google-services.json
+          printf '%s' "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" \
+            | tr -d '\r\n[:space:]' \
+            | base64 --decode > android/plugins/fcm_push_bridge/google-services.json
           test -s android/plugins/fcm_push_bridge/google-services.json
 
       - name: Install Android SDK command-line tools
