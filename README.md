@@ -1,6 +1,6 @@
 # Endless Helicopter Reborn
 
-`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, bounce off the arena bounds to recover from mistakes, collect ammo, fire missiles, trigger rare glowing-rock screen clears, compete on a shared online leaderboard, and adjust controls/audio from the new settings menu.
+`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, bounce off the arena bounds to recover from mistakes, collect ammo, fire missiles, trigger rare glowing-rock screen clears, complete daily missions, unlock cosmetic helicopters, compete on a shared online leaderboard, and adjust controls/audio from the settings menu.
 
 ## Features
 
@@ -9,8 +9,9 @@
 - Missiles, ammo pickups, clearer explosions, and varied enemy roles
 - Adjustable master/music/SFX volume, fire-button side, mirrored HUD layout, and haptics
 - Shared online leaderboard with player names
+- Daily missions, cosmetic helicopter unlocks, and a hangar screen
 - In-app beat-your-score notifications
-- Android push notifications for score-beaten events
+- Android push notifications for score-beaten and daily-mission events
 - Original retro sci-fi menu and gameplay music
 - Automated Android APK builds with GitHub Actions
 
@@ -78,7 +79,9 @@ The game can use Supabase for a shared leaderboard.
 
 - Setup guide: [docs/ONLINE_LEADERBOARD_SETUP.md](docs/ONLINE_LEADERBOARD_SETUP.md)
 - Push setup: [docs/PUSH_NOTIFICATIONS_SETUP.md](docs/PUSH_NOTIFICATIONS_SETUP.md)
+- Daily mission push setup: [docs/DAILY_MISSIONS_PUSH_SETUP.md](docs/DAILY_MISSIONS_PUSH_SETUP.md)
 - SQL bootstrap: [backend/supabase_leaderboard_setup.sql](backend/supabase_leaderboard_setup.sql)
+- Player progress bootstrap: [backend/supabase_player_progress_setup.sql](backend/supabase_player_progress_setup.sql)
 - Runtime service: [systems/online_leaderboard.gd](systems/online_leaderboard.gd)
 - Push runtime: [systems/push_notifications.gd](systems/push_notifications.gd)
 

@@ -1,6 +1,6 @@
 # Android Push Notifications Setup
 
-This project supports Android push notifications for the existing `score_beaten` event.
+This project supports Android push notifications for both `score_beaten` and `daily_missions`.
 
 The delivery path is:
 
@@ -8,7 +8,7 @@ The delivery path is:
 2. Supabase inserts a row into `family_notifications`.
 3. A database trigger calls the `send-score-beaten-push` Edge Function.
 4. The Edge Function sends Firebase Cloud Messaging notifications to registered Android devices.
-5. Tapping the notification opens the game and routes the player to the leaderboard screen.
+5. Tapping the notification opens the game and routes the player to the leaderboard screen or the mission screen, depending on the payload type.
 
 This works with sideloaded APKs. You do not need Play Store publishing, but the device must have Google Play Services.
 
@@ -16,6 +16,7 @@ This works with sideloaded APKs. You do not need Play Store publishing, but the 
 
 - SQL bootstrap: [backend/supabase_leaderboard_setup.sql](../backend/supabase_leaderboard_setup.sql)
 - Supabase Edge Function: [backend/supabase/functions/send-score-beaten-push/index.ts](../backend/supabase/functions/send-score-beaten-push/index.ts)
+- Daily mission Edge Function: [backend/supabase/functions/send-daily-mission-push/index.ts](../backend/supabase/functions/send-daily-mission-push/index.ts)
 - Godot runtime service: [systems/push_notifications.gd](../systems/push_notifications.gd)
 - Android plugin project: [android/plugins/fcm_push_bridge](../android/plugins/fcm_push_bridge)
 - Godot export plugin: [addons/fcm_push_bridge](../addons/fcm_push_bridge)
@@ -49,6 +50,10 @@ If your project already used the older append-only leaderboard rows, also run:
 `backend/supabase_migrate_leaderboard_to_best_scores.sql`
 
 That migrates the leaderboard to one stored best score per player and installs the new best-score submit function.
+
+For Sprint 3 progression sync and daily mission reminders, also run:
+
+`backend/supabase_player_progress_setup.sql`
 
 ## 2. Create A Firebase Project
 
@@ -142,6 +147,20 @@ update public.family_push_runtime_config
 set enabled = false
 where id = true;
 ```
+
+## 5b. Daily Mission Push
+
+Sprint 3 also includes a scheduled `daily_missions` push path.
+
+- Setup guide: [docs/DAILY_MISSIONS_PUSH_SETUP.md](DAILY_MISSIONS_PUSH_SETUP.md)
+- Cron helper: [backend/supabase_daily_mission_push_setup.sql](../backend/supabase_daily_mission_push_setup.sql)
+
+The daily mission push uses:
+
+- `family_push_devices.daily_missions_enabled`
+- `family_daily_mission_progress`
+
+to skip devices that opted out locally or already finished today's synced missions.
 
 ## 6. Build The Android Plugin AAR
 
