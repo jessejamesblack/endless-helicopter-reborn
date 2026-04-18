@@ -1,6 +1,8 @@
 class_name OnlineLeaderboard
 extends RefCounted
 
+const AndroidIdentityScript = preload("res://systems/android_identity.gd")
+
 # Fill these in after creating your Supabase project.
 const SUPABASE_URL := "https://lxvniafwjlwatbiblwyi.supabase.co"
 const SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4dm5pYWZ3amx3YXRiaWJsd3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTQ1MjMsImV4cCI6MjA5MTc5MDUyM30.FzM4zxKx3yVyxvM1hbRFdAcNxrW3x9t6zerDEsDK42w"
@@ -9,7 +11,6 @@ const NOTIFICATION_TABLE_NAME := "family_notifications"
 const PUSH_DEVICE_TABLE_NAME := "family_push_devices"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
-const PLAYER_ID_CACHE_PATH := "user://player_id.save"
 const MAX_NAME_LENGTH := 12
 const BLOCKED_TERMS := [
 	"asshole",
@@ -173,18 +174,10 @@ static func has_saved_profile() -> bool:
 	return not load_cached_name().is_empty()
 
 static func load_or_create_player_id() -> String:
-	if FileAccess.file_exists(PLAYER_ID_CACHE_PATH):
-		var existing_file := FileAccess.open(PLAYER_ID_CACHE_PATH, FileAccess.READ)
-		if existing_file != null:
-			var existing_id := existing_file.get_as_text().strip_edges()
-			if not existing_id.is_empty():
-				return existing_id
+	return AndroidIdentityScript.load_or_create_player_id()
 
-	var new_id := _generate_player_id()
-	var file := FileAccess.open(PLAYER_ID_CACHE_PATH, FileAccess.WRITE)
-	if file != null:
-		file.store_string(new_id)
-	return new_id
+static func get_player_identity_source() -> String:
+	return AndroidIdentityScript.get_player_identity_source()
 
 static func make_mark_notifications_read_body() -> String:
 	return JSON.stringify({
@@ -306,12 +299,3 @@ static func _normalize_for_filter(name: String) -> String:
 		if is_lower or is_number:
 			normalized += character
 	return normalized
-
-static func _generate_player_id() -> String:
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var parts := [
-		"%08x" % int(Time.get_unix_time_from_system()),
-		"%08x" % rng.randi(),
-	]
-	return "-".join(parts)

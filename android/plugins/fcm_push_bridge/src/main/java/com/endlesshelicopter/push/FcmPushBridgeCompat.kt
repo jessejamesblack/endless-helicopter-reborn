@@ -60,6 +60,22 @@ class FcmPushBridgeCompat {
         }
 
         @JvmStatic
+        fun getStablePlayerId(): String = FcmPushBridgeCore.getStablePlayerId()
+
+        @JvmStatic
+        fun getStablePlayerId(context: Context?): String {
+            return if (context == null) "" else FcmPushBridgeCore.getStablePlayerId(context)
+        }
+
+        @JvmStatic
+        fun getStableDeviceId(): String = FcmPushBridgeCore.getStableDeviceId()
+
+        @JvmStatic
+        fun getStableDeviceId(context: Context?): String {
+            return if (context == null) "" else FcmPushBridgeCore.getStableDeviceId(context)
+        }
+
+        @JvmStatic
         fun consumeLaunchPayload(): String = FcmPushBridgeCore.consumeLaunchPayload()
 
         @JvmStatic

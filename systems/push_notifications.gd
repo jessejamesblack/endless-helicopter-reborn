@@ -4,12 +4,12 @@ signal push_token_received(token: String)
 signal push_notification_opened(payload: Dictionary)
 signal diagnostics_changed(status: Dictionary)
 
+const AndroidIdentityScript = preload("res://systems/android_identity.gd")
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const PLUGIN_SINGLETON := "FCMPushBridge"
 const ANDROID_RUNTIME_SINGLETON := "AndroidRuntime"
 const JAVA_CLASS_WRAPPER_SINGLETON := "JavaClassWrapper"
 const COMPAT_BRIDGE_CLASS := "com.endlesshelicopter.push.FcmPushBridgeCompat"
-const DEVICE_ID_CACHE_PATH := "user://push_device_id.save"
 const LEADERBOARD_SCENE_PATH := "res://scenes/ui/leaderboard/leaderboard_screen.tscn"
 const REGISTRATION_RETRY_SECONDS := 1.5
 const REGISTRATION_RETRY_ATTEMPTS := 5
@@ -154,6 +154,8 @@ func get_diagnostics() -> Dictionary:
 		"is_android": OS.get_name() == "Android",
 		"plugin_loaded": _plugin != null or _compat_bridge != null,
 		"compat_bridge_available": _compat_bridge != null,
+		"player_identity_source": OnlineLeaderboardScript.get_player_identity_source(),
+		"device_identity_source": AndroidIdentityScript.get_device_identity_source(),
 		"android_runtime_available": _android_runtime != null,
 		"bridge_supports_firebase_status": bridge_supports_firebase_status,
 		"plugin_method_names": plugin_method_names,
@@ -207,6 +209,8 @@ func get_debug_report() -> String:
 		"Plugin loaded: %s" % _yes_no(bool(status["plugin_loaded"])),
 		"Compat bridge available: %s" % _yes_no(bool(status["compat_bridge_available"])),
 		"Android runtime available: %s" % _yes_no(bool(status["android_runtime_available"])),
+		"Player identity source: %s" % str(status["player_identity_source"]),
+		"Device identity source: %s" % str(status["device_identity_source"]),
 		"Bridge diagnostics available: %s" % _yes_no(bool(status["bridge_supports_firebase_status"])),
 		"Firebase ready: %s" % _yes_no(bool(status["firebase_ready"])),
 		"Firebase status: %s" % str(status["firebase_status"]),
@@ -327,36 +331,10 @@ func _route_to_leaderboard_if_possible() -> void:
 	tree.change_scene_to_file(LEADERBOARD_SCENE_PATH)
 
 func _load_or_create_device_id() -> String:
-	if FileAccess.file_exists(DEVICE_ID_CACHE_PATH):
-		var existing_file := FileAccess.open(DEVICE_ID_CACHE_PATH, FileAccess.READ)
-		if existing_file != null:
-			var existing_id := existing_file.get_as_text().strip_edges()
-			if not existing_id.is_empty():
-				return existing_id
-
-	var new_id := _generate_device_id()
-	var file := FileAccess.open(DEVICE_ID_CACHE_PATH, FileAccess.WRITE)
-	if file != null:
-		file.store_string(new_id)
-	return new_id
+	return AndroidIdentityScript.load_or_create_device_id()
 
 func _load_cached_device_id_for_debug() -> String:
-	if not FileAccess.file_exists(DEVICE_ID_CACHE_PATH):
-		return "(not created yet)"
-
-	var file := FileAccess.open(DEVICE_ID_CACHE_PATH, FileAccess.READ)
-	if file == null:
-		return "(unreadable)"
-
-	var device_id := file.get_as_text().strip_edges()
-	if device_id.is_empty():
-		return "(empty)"
-	return device_id
-
-func _generate_device_id() -> String:
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	return "%08x-%08x" % [int(Time.get_unix_time_from_system()), rng.randi()]
+	return AndroidIdentityScript.get_cached_device_id_for_debug()
 
 func _on_register_request_completed(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
 	_last_registration_result = result

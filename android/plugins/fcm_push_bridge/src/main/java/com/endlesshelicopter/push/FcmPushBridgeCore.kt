@@ -6,11 +6,13 @@ import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
+import java.security.MessageDigest
 import java.lang.ref.WeakReference
 
 object FcmPushBridgeCore {
@@ -19,6 +21,7 @@ object FcmPushBridgeCore {
     private const val KEY_LATEST_TOKEN = "latest_token"
     private const val KEY_PENDING_OPEN_PAYLOAD = "pending_open_payload"
     private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 47821
+    private const val INVALID_ANDROID_ID = "9774d56d682e549c"
 
     @Volatile
     private var lastFirebaseStatus: String = "Firebase has not been checked yet."
@@ -175,6 +178,28 @@ object FcmPushBridgeCore {
         return getLatestToken(context)
     }
 
+    fun getStablePlayerId(context: Context): String = buildStableIdentity(
+        context,
+        "player",
+        "android-player-",
+    )
+
+    fun getStablePlayerId(): String {
+        val context = resolveApplicationContext() ?: return ""
+        return getStablePlayerId(context)
+    }
+
+    fun getStableDeviceId(context: Context): String = buildStableIdentity(
+        context,
+        "device",
+        "android-device-",
+    )
+
+    fun getStableDeviceId(): String {
+        val context = resolveApplicationContext() ?: return ""
+        return getStableDeviceId(context)
+    }
+
     fun consumeLaunchPayload(): String {
         val activity = resolveCurrentActivity() ?: return ""
         return consumeLaunchPayload(activity)
@@ -296,5 +321,45 @@ object FcmPushBridgeCore {
         } catch (_error: Throwable) {
             null
         }
+    }
+
+    private fun buildStableIdentity(context: Context, purpose: String, prefix: String): String {
+        rememberContext(context)
+        val androidId = resolveAndroidId(context)
+        if (androidId.isEmpty()) {
+            return ""
+        }
+
+        val packageName = context.packageName.trim()
+        if (packageName.isEmpty()) {
+            return ""
+        }
+
+        val rawValue = "$purpose:$packageName:$androidId"
+        return prefix + sha256Hex(rawValue).take(24)
+    }
+
+    private fun resolveAndroidId(context: Context): String {
+        val androidId = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ANDROID_ID,
+        ).orEmpty().trim()
+
+        if (
+            androidId.isEmpty() ||
+            androidId == "0000000000000000" ||
+            androidId.equals("unknown", ignoreCase = true) ||
+            androidId == INVALID_ANDROID_ID
+        ) {
+            return ""
+        }
+
+        return androidId
+    }
+
+    private fun sha256Hex(value: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(value.toByteArray(Charsets.UTF_8))
+        return digest.joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
     }
 }
