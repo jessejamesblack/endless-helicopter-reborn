@@ -5,17 +5,17 @@ signal closed
 const SIDE_LEFT := "left"
 const SIDE_RIGHT := "right"
 
-@onready var master_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MasterRow/MasterValueRow/MasterSlider
-@onready var master_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MasterRow/MasterValueRow/MasterValueLabel
-@onready var music_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MusicRow/MusicValueRow/MusicSlider
-@onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MusicRow/MusicValueRow/MusicValueLabel
-@onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/SfxRow/SfxValueRow/SfxSlider
-@onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/SfxRow/SfxValueRow/SfxValueLabel
-@onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/FireSideRow/FireSideOption
-@onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/HudSideValueLabel
-@onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/HapticsToggle
-@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/PushStatusLabel
-@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/EnablePushButton
+@onready var master_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterSlider
+@onready var master_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterValueLabel
+@onready var music_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicSlider
+@onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicValueLabel
+@onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxSlider
+@onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxValueLabel
+@onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/FireSideRow/FireSideOption
+@onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/HudSideValueLabel
+@onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/HapticsToggle
+@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushSection/PushStatusLabel
+@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushSection/EnablePushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 
 func _ready() -> void:
