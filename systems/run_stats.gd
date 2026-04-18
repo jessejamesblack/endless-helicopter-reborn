@@ -12,6 +12,16 @@ var _hostiles_destroyed: int = 0
 var _ammo_pickups_collected: int = 0
 var _glowing_rocks_triggered: int = 0
 var _boundary_bounces: int = 0
+var _near_misses: int = 0
+var _hostile_near_misses: int = 0
+var _projectile_near_misses: int = 0
+var _skill_score: int = 0
+var _max_combo_multiplier: float = 1.0
+var _max_combo_events: int = 0
+var _missile_hits: int = 0
+var _missile_misses: int = 0
+var _max_missile_hit_streak: int = 0
+var _projectile_intercepts: int = 0
 
 func _ready() -> void:
 	_load_local_best_score()
@@ -51,6 +61,45 @@ func record_boundary_bounce() -> void:
 		return
 	_boundary_bounces += 1
 
+func record_near_miss(kind: String) -> void:
+	if not _run_active:
+		return
+
+	_near_misses += 1
+	if kind == "projectile":
+		_projectile_near_misses += 1
+	else:
+		_hostile_near_misses += 1
+
+func record_skill_score(points: int) -> void:
+	if not _run_active:
+		return
+	_skill_score += maxi(points, 0)
+
+func record_combo_state(combo_events: int, multiplier: float) -> void:
+	if not _run_active:
+		return
+
+	_max_combo_events = maxi(_max_combo_events, combo_events)
+	_max_combo_multiplier = maxf(_max_combo_multiplier, multiplier)
+
+func record_missile_hit(streak: int) -> void:
+	if not _run_active:
+		return
+
+	_missile_hits += 1
+	_max_missile_hit_streak = maxi(_max_missile_hit_streak, streak)
+
+func record_missile_miss() -> void:
+	if not _run_active:
+		return
+	_missile_misses += 1
+
+func record_projectile_intercept() -> void:
+	if not _run_active:
+		return
+	_projectile_intercepts += 1
+
 func complete_run(final_score: int) -> Dictionary:
 	var safe_score: int = maxi(final_score, 0)
 	var best_score_before_run: int = _local_best_score
@@ -73,6 +122,16 @@ func complete_run(final_score: int) -> Dictionary:
 		"ammo_pickups_collected": _ammo_pickups_collected,
 		"glowing_rocks_triggered": _glowing_rocks_triggered,
 		"boundary_bounces": _boundary_bounces,
+		"near_misses": _near_misses,
+		"hostile_near_misses": _hostile_near_misses,
+		"projectile_near_misses": _projectile_near_misses,
+		"skill_score": _skill_score,
+		"max_combo_multiplier": _max_combo_multiplier,
+		"max_combo_events": _max_combo_events,
+		"missile_hits": _missile_hits,
+		"missile_misses": _missile_misses,
+		"max_missile_hit_streak": _max_missile_hit_streak,
+		"projectile_intercepts": _projectile_intercepts,
 	}
 
 	_run_active = false
@@ -101,6 +160,16 @@ func _reset_live_stats() -> void:
 	_ammo_pickups_collected = 0
 	_glowing_rocks_triggered = 0
 	_boundary_bounces = 0
+	_near_misses = 0
+	_hostile_near_misses = 0
+	_projectile_near_misses = 0
+	_skill_score = 0
+	_max_combo_multiplier = 1.0
+	_max_combo_events = 0
+	_missile_hits = 0
+	_missile_misses = 0
+	_max_missile_hit_streak = 0
+	_projectile_intercepts = 0
 
 func _load_local_best_score() -> void:
 	var config := ConfigFile.new()

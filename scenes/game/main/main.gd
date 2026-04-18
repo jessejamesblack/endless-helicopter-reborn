@@ -7,19 +7,37 @@ const SCORE_PANEL_LEFT_RECT := Rect2(20, 20, 212, 56)
 const SCORE_PANEL_RIGHT_RECT := Rect2(-232, 20, 212, 56)
 const AMMO_PANEL_LEFT_RECT := Rect2(20, 88, 176, 56)
 const AMMO_PANEL_RIGHT_RECT := Rect2(-196, 88, 176, 56)
+const COMBO_PANEL_LEFT_RECT := Rect2(20, 156, 176, 48)
+const COMBO_PANEL_RIGHT_RECT := Rect2(-196, 156, 176, 48)
 const FIRE_BUTTON_RIGHT_RECT := Rect2(-220, -140, 188, 120)
 const FIRE_BUTTON_LEFT_RECT := Rect2(32, -140, 188, 120)
+const NEAR_MISS_HOSTILE_SCORE := 15
+const NEAR_MISS_PROJECTILE_SCORE := 25
+const PROJECTILE_INTERCEPT_BONUS := 25
+const MISSILE_STREAK_BONUS_THRESHOLD := 3
+const MISSILE_STREAK_BONUS := 75
+const COMBO_TIMEOUT_SECONDS := 3.0
+const COMBO_EVENTS_PER_STEP := 3
+const COMBO_STEP := 0.25
+const COMBO_MAX_MULTIPLIER := 3.0
 
 var score: float = 0.0
 var is_crashed: bool = false
 var is_transitioning_to_game_over: bool = false
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
+var floating_score_scene: PackedScene = preload("res://scenes/effects/floating_score_text.tscn")
 var speed_multiplier: float = 1.0
+var combo_events: int = 0
+var combo_multiplier: float = 1.0
+var combo_timer: float = 0.0
+var missile_hit_streak: int = 0
 var _screen_flash_tween: Tween
 
 @onready var fire_button: TextureButton = $UI/FireButton
 @onready var score_panel: Panel = $UI/ScorePanel
 @onready var ammo_panel: Panel = $UI/AmmoPanel
+@onready var combo_panel: Panel = $UI/ComboPanel
+@onready var combo_label: Label = $UI/ComboPanel/ComboLabel
 @onready var pause_button: Button = $UI/PauseButton
 @onready var pause_menu = $UI/PauseMenu
 @onready var screen_flash: ColorRect = $UI/ScreenFlash
@@ -28,6 +46,8 @@ func _ready() -> void:
     var run_stats := _get_run_stats()
     if run_stats != null and run_stats.has_method("start_run"):
         run_stats.start_run()
+    reset_combo()
+    missile_hit_streak = 0
 
     var music_player = get_node_or_null("/root/MusicPlayer")
     if music_player != null and music_player.has_method("play_gameplay_music"):
@@ -62,6 +82,7 @@ func _process(delta: float) -> void:
     var run_stats := _get_run_stats()
     if run_stats != null and run_stats.has_method("record_survival_time"):
         run_stats.record_survival_time(delta)
+    _update_combo_timer(delta)
 
     # Increase score continuously based on time survived
     score += delta * 10.0
@@ -78,10 +99,142 @@ func _update_score_ui() -> void:
     if has_node("UI/ScorePanel/ScoreLabel"):
         $UI/ScorePanel/ScoreLabel.text = "SCORE %04d" % int(score)
 
+func award_skill_score(base_points: int, reason: String, world_position: Vector2 = Vector2.ZERO, builds_combo: bool = true) -> int:
+    if is_crashed or is_transitioning_to_game_over or get_tree().paused:
+        return 0
+
+    var applied_multiplier := combo_multiplier
+    var awarded := int(round(float(maxi(base_points, 0)) * applied_multiplier))
+    score += awarded
+    _update_score_ui()
+
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_skill_score"):
+        run_stats.record_skill_score(awarded)
+
+    if builds_combo:
+        _register_combo_event()
+
+    _show_floating_score(world_position, awarded, reason, applied_multiplier)
+    return awarded
+
+func _register_combo_event() -> void:
+    combo_events += 1
+    combo_timer = COMBO_TIMEOUT_SECONDS
+    combo_multiplier = _calculate_combo_multiplier(combo_events)
+
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_combo_state"):
+        run_stats.record_combo_state(combo_events, combo_multiplier)
+
+    _update_combo_ui()
+
+func _calculate_combo_multiplier(events: int) -> float:
+    var steps := int(floor(float(events) / float(COMBO_EVENTS_PER_STEP)))
+    return minf(1.0 + float(steps) * COMBO_STEP, COMBO_MAX_MULTIPLIER)
+
+func _update_combo_timer(delta: float) -> void:
+    if combo_events <= 0:
+        return
+
+    combo_timer -= delta
+    if combo_timer <= 0.0:
+        reset_combo()
+
+func reset_combo() -> void:
+    combo_events = 0
+    combo_multiplier = 1.0
+    combo_timer = 0.0
+    _update_combo_ui()
+
+func record_near_miss(kind: String, world_position: Vector2) -> void:
+    if is_crashed or is_transitioning_to_game_over:
+        return
+
+    var base_points := NEAR_MISS_PROJECTILE_SCORE if kind == "projectile" else NEAR_MISS_HOSTILE_SCORE
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_near_miss"):
+        run_stats.record_near_miss(kind)
+
+    award_skill_score(base_points, "NEAR MISS", world_position, true)
+
+func record_player_missile_hit(_target: Node, world_position: Vector2, base_score: int) -> void:
+    if is_crashed or is_transitioning_to_game_over:
+        return
+
+    missile_hit_streak += 1
+
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_missile_hit"):
+        run_stats.record_missile_hit(missile_hit_streak)
+
+    award_skill_score(base_score, "HIT", world_position, true)
+
+    if missile_hit_streak % MISSILE_STREAK_BONUS_THRESHOLD == 0:
+        award_skill_score(MISSILE_STREAK_BONUS, "HIT STREAK", world_position + Vector2(0, -28), true)
+
+func record_player_missile_miss() -> void:
+    if is_crashed or is_transitioning_to_game_over:
+        return
+
+    missile_hit_streak = 0
+
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_missile_miss"):
+        run_stats.record_missile_miss()
+
+func record_projectile_intercept(world_position: Vector2, base_score: int) -> void:
+    if is_crashed or is_transitioning_to_game_over:
+        return
+
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_projectile_intercept"):
+        run_stats.record_projectile_intercept()
+
+    record_player_missile_hit(null, world_position, base_score + PROJECTILE_INTERCEPT_BONUS)
+    _show_floating_text(world_position + Vector2(0, -24), "INTERCEPT", false)
+
+func record_boundary_recovery_feedback(world_position: Vector2) -> void:
+    if is_crashed or is_transitioning_to_game_over:
+        return
+
+    reset_combo()
+    _show_floating_text(world_position, "RECOVERED", false)
+
+func _update_combo_ui() -> void:
+    if combo_panel == null or combo_label == null:
+        return
+
+    if combo_events <= 0 or combo_multiplier <= 1.0:
+        combo_panel.visible = false
+        return
+
+    combo_panel.visible = true
+    combo_label.text = "COMBO x%.2f" % combo_multiplier
+
+func _show_floating_score(world_position: Vector2, points: int, reason: String, multiplier: float = 1.0) -> void:
+    var label_text := "+%d %s" % [points, reason]
+    if multiplier > 1.0:
+        label_text += " x%.2f" % multiplier
+
+    _show_floating_text(world_position, label_text, true)
+
+func _show_floating_text(world_position: Vector2, text_value: String, is_score: bool = true) -> void:
+    if floating_score_scene == null:
+        return
+
+    var node := floating_score_scene.instantiate()
+    node.global_position = world_position
+    if node.has_method("configure"):
+        node.configure(text_value, is_score)
+    add_child(node)
+
 func trigger_crash(crash_pos: Vector2) -> void:
     if is_crashed: return
     is_crashed = true
     is_transitioning_to_game_over = true
+    reset_combo()
+    missile_hit_streak = 0
     _clear_pause_state()
     _disable_gameplay_ui()
     var game_settings = _get_game_settings()
@@ -204,6 +357,8 @@ func _quit_to_menu() -> void:
         var run_stats := _get_run_stats()
         if run_stats != null and run_stats.has_method("cancel_run"):
             run_stats.cancel_run()
+    reset_combo()
+    missile_hit_streak = 0
     _clear_pause_state()
     get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
 
@@ -254,9 +409,11 @@ func _apply_fire_button_layout(side: String) -> void:
 func _apply_hud_layout(side: String) -> void:
     var score_rect := SCORE_PANEL_LEFT_RECT if side == HUD_SIDE_LEFT else SCORE_PANEL_RIGHT_RECT
     var ammo_rect := AMMO_PANEL_LEFT_RECT if side == HUD_SIDE_LEFT else AMMO_PANEL_RIGHT_RECT
+    var combo_rect := COMBO_PANEL_LEFT_RECT if side == HUD_SIDE_LEFT else COMBO_PANEL_RIGHT_RECT
 
     _position_panel(score_panel, score_rect, side == HUD_SIDE_LEFT)
     _position_panel(ammo_panel, ammo_rect, side == HUD_SIDE_LEFT)
+    _position_panel(combo_panel, combo_rect, side == HUD_SIDE_LEFT)
 
 func _position_panel(panel: Control, rect: Rect2, is_left_side: bool) -> void:
     if panel == null:

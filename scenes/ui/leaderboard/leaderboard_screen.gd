@@ -6,7 +6,7 @@ const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 const RESULTS_PANEL_RECT := Rect2(-320.0, -328.0, 640.0, 656.0)
 const BOARD_PANEL_RECT := Rect2(-320.0, -310.0, 640.0, 620.0)
 const SETUP_PANEL_RECT := Rect2(-280.0, -210.0, 560.0, 420.0)
-const PANEL_MARGIN := 24.0
+const PANEL_MARGIN := 4.0
 
 enum ScreenMode {
 	RESULTS,
@@ -39,12 +39,16 @@ var leaderboard_fetch_in_flight: bool = false
 @onready var results_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/ResultsCard
 @onready var best_score_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/BestScoreLabel
 @onready var delta_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/DeltaLabel
-@onready var time_survived_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid/TimeValueLabel
-@onready var missiles_fired_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid/MissilesValueLabel
-@onready var hostiles_destroyed_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid/HostilesValueLabel
-@onready var pickups_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid/PickupsValueLabel
-@onready var glowing_clears_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid/GlowingClearsValueLabel
-@onready var boundary_recoveries_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid/BoundaryRecoveriesValueLabel
+@onready var time_survived_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid/TimeValueLabel
+@onready var missiles_fired_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid/MissilesValueLabel
+@onready var hostiles_destroyed_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid/HostilesValueLabel
+@onready var pickups_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid/PickupsValueLabel
+@onready var glowing_clears_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid/GlowingClearsValueLabel
+@onready var boundary_recoveries_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid/BoundaryRecoveriesValueLabel
+@onready var near_misses_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid/NearMissesValueLabel
+@onready var max_combo_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid/MaxComboValueLabel
+@onready var intercepts_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid/InterceptsValueLabel
+@onready var skill_score_value_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid/SkillScoreValueLabel
 @onready var try_again_button: Button = $Panel/MarginContainer/VBoxContainer/TryAgainButton
 @onready var results_button_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow
 @onready var leaderboard_button: Button = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow/LeaderboardButton
@@ -242,10 +246,10 @@ func _apply_screen_mode() -> void:
 	back_button.disabled = current_mode != ScreenMode.LEADERBOARD or needs_profile_setup
 	title_label.text = _get_title_text()
 	score_label.text = _get_score_text()
-	title_label.add_theme_font_size_override("font_size", 28 if showing_results else 34)
-	score_label.add_theme_font_size_override("font_size", 52 if showing_results else 30)
-	status_label.add_theme_font_size_override("font_size", 16 if showing_results else 18)
-	status_label.custom_minimum_size = Vector2(0, 40 if showing_results else 34 if needs_profile_setup else 52)
+	title_label.add_theme_font_size_override("font_size", 24 if showing_results else 34)
+	score_label.add_theme_font_size_override("font_size", 44 if showing_results else 30)
+	status_label.add_theme_font_size_override("font_size", 15 if showing_results else 18)
+	status_label.custom_minimum_size = Vector2(0, 28 if showing_results else 34 if needs_profile_setup else 52)
 	_apply_panel_rect(_get_active_panel_rect())
 
 func _get_title_text() -> String:
@@ -290,6 +294,10 @@ func _populate_results_summary() -> void:
 		pickups_value_label.text = "0"
 		glowing_clears_value_label.text = "0"
 		boundary_recoveries_value_label.text = "0"
+		near_misses_value_label.text = "0"
+		max_combo_value_label.text = "x1.00"
+		intercepts_value_label.text = "0"
+		skill_score_value_label.text = "0"
 		return
 
 	best_score_label.text = "Local Best: %d" % int(current_run_summary.get("best_score_after_run", _get_local_best_score()))
@@ -308,6 +316,10 @@ func _populate_results_summary() -> void:
 	pickups_value_label.text = str(int(current_run_summary.get("ammo_pickups_collected", 0)))
 	glowing_clears_value_label.text = str(int(current_run_summary.get("glowing_rocks_triggered", 0)))
 	boundary_recoveries_value_label.text = str(int(current_run_summary.get("boundary_bounces", 0)))
+	near_misses_value_label.text = str(int(current_run_summary.get("near_misses", 0)))
+	max_combo_value_label.text = "x%.2f" % float(current_run_summary.get("max_combo_multiplier", 1.0))
+	intercepts_value_label.text = str(int(current_run_summary.get("projectile_intercepts", 0)))
+	skill_score_value_label.text = str(int(current_run_summary.get("skill_score", 0)))
 
 func _on_try_again_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/game/main/main.tscn")

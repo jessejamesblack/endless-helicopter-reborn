@@ -17,8 +17,11 @@ $scripts = @(
     'res://systems/push_notifications.gd',
     'res://scenes/game/main/main.gd',
     'res://scenes/player/player.gd',
+    'res://scenes/player/near_miss_detector.gd',
     'res://scenes/enemies/enemy_unit.gd',
-    'res://scenes/projectiles/enemy_projectile.gd'
+    'res://scenes/projectiles/missile.gd',
+    'res://scenes/projectiles/enemy_projectile.gd',
+    'res://scenes/effects/floating_score_text.gd'
 )
 
 foreach ($script in $scripts) {
@@ -33,6 +36,12 @@ Write-Host 'Validating leaderboard layout'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_leaderboard_layout.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot leaderboard layout validation failed'
+}
+
+Write-Host 'Validating Sprint 2 runtime'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_sprint2_runtime.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot Sprint 2 runtime validation failed'
 }
 
 Write-Host 'Godot validation completed successfully.'

@@ -25,11 +25,12 @@
 2. Players can open `Settings` from the start screen to adjust audio, controls, and haptics.
 3. Pressing `Play Game` opens `main.tscn`.
 4. The player survives, scores over time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
-5. During gameplay, `Pause` can resume, open settings, or quit cleanly back to the menu.
-6. On crash, `main.gd` finalizes the run in `RunStats` and transitions to `leaderboard_screen.tscn`.
-7. The post-run screen shows score, local best, delta-to-best, and Sprint 1 run stats with `Try Again` as the primary action.
-8. The same screen can switch into leaderboard mode, submit the run if configured, and show shared scores.
-9. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode.
+5. Near misses, direct missile hits, projectile intercepts, and hit streaks feed a combo-based skill-score loop with floating feedback and a compact combo HUD.
+6. During gameplay, `Pause` can resume, open settings, or quit cleanly back to the menu.
+7. On crash, `main.gd` finalizes the run in `RunStats` and transitions to `leaderboard_screen.tscn`.
+8. The post-run screen shows score, local best, delta-to-best, Sprint 1 run stats, and Sprint 2 skill stats with `Try Again` as the primary action.
+9. The same screen can switch into leaderboard mode, submit the run if configured, and show shared scores.
+10. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode.
 
 ## Enemy Roles
 
@@ -48,7 +49,7 @@
 
 - Scenes own gameplay behavior and local presentation.
 - `systems/` owns non-scene shared runtime services.
-- `run_stats.gd` owns run-level counters and local best persistence instead of scene tree metadata.
+- `run_stats.gd` owns run-level counters, combo/skill summary data, and local best persistence instead of scene tree metadata.
 - `backend/` owns external service bootstrap files.
 - `docs/` owns human/agent-readable project knowledge.
 

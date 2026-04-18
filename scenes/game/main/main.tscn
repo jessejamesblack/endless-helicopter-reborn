@@ -131,6 +131,32 @@ theme_override_font_sizes/font_size = 24
 text = "MISSILES 03"
 vertical_alignment = 1
 
+[node name="ComboPanel" type="Panel" parent="UI"]
+visible = false
+offset_left = 20.0
+offset_top = 156.0
+offset_right = 196.0
+offset_bottom = 204.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_panel")
+
+[node name="ComboLabel" type="Label" parent="UI/ComboPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 8.0
+offset_right = -14.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_colors/font_outline_color = Color(0.0470588, 0.109804, 0.180392, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "COMBO x1.25"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="PauseButton" type="Button" parent="UI" unique_id=988001251]
 anchors_preset = 10
 anchor_left = 0.5
