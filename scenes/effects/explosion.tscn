@@ -11,4 +11,5 @@ script = ExtResource("2_script")
 
 [node name="DeathSound" type="AudioStreamPlayer" parent="." unique_id=1835431304]
 stream = ExtResource("3_j4sxf")
+bus = &"SFX"
 autoplay = true

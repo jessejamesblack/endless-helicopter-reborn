@@ -7,20 +7,29 @@ const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
 const PLUGIN_SINGLETON := "FCMPushBridge"
 const DEVICE_ID_CACHE_PATH := "user://push_device_id.save"
 const LEADERBOARD_SCENE_PATH := "res://scenes/ui/leaderboard/leaderboard_screen.tscn"
+const REGISTRATION_RETRY_SECONDS := 1.5
+const REGISTRATION_RETRY_ATTEMPTS := 5
 
 var _http_request: HTTPRequest
+var _registration_retry_timer: Timer
 var _plugin: Object = null
 var _pending_open_leaderboard: bool = false
 var _pending_notification_payload: Dictionary = {}
 var _is_registering_device: bool = false
 var _pending_registration_token: String = ""
 var _registration_retry_by_token: bool = false
+var _remaining_registration_retries: int = 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_http_request = HTTPRequest.new()
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_register_request_completed)
+	_registration_retry_timer = Timer.new()
+	_registration_retry_timer.one_shot = true
+	_registration_retry_timer.process_callback = Timer.TIMER_PROCESS_IDLE
+	_registration_retry_timer.timeout.connect(_on_registration_retry_timeout)
+	add_child(_registration_retry_timer)
 	call_deferred("_bootstrap")
 
 func _notification(what: int) -> void:
@@ -46,6 +55,7 @@ func _bootstrap() -> void:
 	request_notification_permission()
 	_consume_launch_payload()
 	register_device_for_push()
+	_schedule_registration_retries()
 
 func is_push_supported() -> bool:
 	if not OnlineLeaderboard.is_configured():
@@ -196,6 +206,7 @@ func _on_register_request_completed(result: int, response_code: int, _headers: P
 
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		push_warning("Push device registration failed with response code %d" % response_code)
+		_schedule_registration_retries(2)
 
 func _retry_register_device_by_token(token: String) -> void:
 	if token.is_empty():
@@ -226,3 +237,22 @@ func _retry_register_device_by_token(token: String) -> void:
 		_is_registering_device = false
 		_pending_registration_token = ""
 		_registration_retry_by_token = false
+		_schedule_registration_retries(2)
+
+func _schedule_registration_retries(attempts: int = REGISTRATION_RETRY_ATTEMPTS) -> void:
+	if _registration_retry_timer == null or not is_push_supported():
+		return
+
+	_remaining_registration_retries = max(_remaining_registration_retries, attempts)
+	if _registration_retry_timer.is_stopped():
+		_registration_retry_timer.start(REGISTRATION_RETRY_SECONDS)
+
+func _on_registration_retry_timeout() -> void:
+	if _remaining_registration_retries <= 0:
+		return
+
+	_remaining_registration_retries -= 1
+	register_device_for_push()
+
+	if _remaining_registration_retries > 0:
+		_registration_retry_timer.start(REGISTRATION_RETRY_SECONDS)

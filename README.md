@@ -1,12 +1,13 @@
 # Endless Helicopter Reborn
 
-`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, bounce off the arena bounds to recover from mistakes, collect ammo, fire missiles, trigger rare glowing-rock screen clears, and compete on a shared online leaderboard.
+`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a helicopter through an endless obstacle field, bounce off the arena bounds to recover from mistakes, collect ammo, fire missiles, trigger rare glowing-rock screen clears, compete on a shared online leaderboard, and adjust controls/audio from the new settings menu.
 
 ## Features
 
 - Endless survival-style arcade gameplay
 - Mobile-friendly tap/click/space controls
 - Missiles, ammo pickups, clearer explosions, and varied enemy roles
+- Adjustable master/SFX volume, fire-button side, mirrored HUD layout, and haptics
 - Shared online leaderboard with player names
 - In-app beat-your-score notifications
 - Android push notifications for score-beaten events
@@ -39,6 +40,12 @@ res://
 1. Install Godot `4.6.x`.
 2. Open the repository root in Godot.
 3. The main scene is [scenes/ui/start_screen/start_screen.tscn](scenes/ui/start_screen/start_screen.tscn).
+
+## Settings And Pause
+
+- `Settings` is available from the start screen before a run.
+- During a run, `Pause` opens a menu with resume, settings, and quit-to-menu actions.
+- Settings persist in `user://` and apply immediately.
 
 ## Collaboration Flow
 

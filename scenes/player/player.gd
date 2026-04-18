@@ -71,6 +71,10 @@ func add_ammo(amount: int) -> void:
     var main := get_tree().current_scene
     if main != null and main.has_method("update_ammo_ui"):
         main.update_ammo_ui(ammo)
+
+    var game_settings = get_node_or_null("/root/GameSettings")
+    if game_settings != null and game_settings.has_method("vibrate"):
+        game_settings.vibrate(30)
         
     if has_node("ReloadSound"):
         $ReloadSound.play()

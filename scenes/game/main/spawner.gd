@@ -15,62 +15,73 @@ const ENEMY_VARIANTS := [
 	{"kind": "stationary_turret", "weight": 0.12},
 	{"kind": "glowing_rock", "weight": 0.06},
 ]
+const TURRET_BOTTOM_INSET := 34.0
 
 func _process(delta: float) -> void:
-    var current_interval = spawn_interval
-    var main := get_tree().current_scene
-    if main != null:
-        if main.is_crashed: return
-        current_interval /= main.speed_multiplier
+	var current_interval = spawn_interval
+	var main := get_tree().current_scene
+	if main != null:
+		if main.is_crashed: return
+		current_interval /= main.speed_multiplier
 
-    _timer += delta
-    if _timer >= current_interval:
-        _timer -= current_interval
+	_timer += delta
+	if _timer >= current_interval:
+		_timer -= current_interval
 
-        # 20% chance to spawn a missile pickup
-        if randf() < 0.2:
-            spawn_scene(pickup_scene)
-        else:
-            spawn_enemy()
+		# 20% chance to spawn a missile pickup
+		if randf() < 0.2:
+			spawn_scene(pickup_scene)
+		else:
+			spawn_enemy()
 
 func spawn_enemy() -> void:
-    var roll := randf()
-    var running_total := 0.0
+	var roll := randf()
+	var running_total := 0.0
 
-    for variant in ENEMY_VARIANTS:
-        running_total += float(variant["weight"])
-        if roll <= running_total:
-            var kind := String(variant["kind"])
-            if kind == "large_spiky_rock":
-                spawn_scene(obstacle_scene)
-            else:
-                spawn_enemy_variant(kind)
-            return
+	for variant in ENEMY_VARIANTS:
+		running_total += float(variant["weight"])
+		if roll <= running_total:
+			var kind := str(variant["kind"])
+			if kind == "large_spiky_rock":
+				spawn_scene(obstacle_scene)
+			elif kind == "stationary_turret" and _has_active_turret():
+				spawn_scene(obstacle_scene)
+			else:
+				spawn_enemy_variant(kind)
+			return
 
-    spawn_scene(obstacle_scene)
+	spawn_scene(obstacle_scene)
 
 func spawn_scene(scene_to_spawn: PackedScene) -> void:
-    if scene_to_spawn == null:
-        push_error("Scene is not assigned in the Spawner!")
-        return
-        
-    var item = scene_to_spawn.instantiate()
-    # Randomize the Y position between our min and max values
-    item.position = Vector2(0, randf_range(spawn_y_min, spawn_y_max))
-    add_child(item)
+	if scene_to_spawn == null:
+		push_error("Scene is not assigned in the Spawner!")
+		return
+		
+	var item = scene_to_spawn.instantiate()
+	# Randomize the Y position between our min and max values
+	item.position = Vector2(0, randf_range(spawn_y_min, spawn_y_max))
+	add_child(item)
 
 func spawn_enemy_variant(kind: String) -> void:
-    if enemy_scene == null:
-        push_error("Enemy scene is not assigned in the Spawner!")
-        return
+	if enemy_scene == null:
+		push_error("Enemy scene is not assigned in the Spawner!")
+		return
 
-    var enemy = enemy_scene.instantiate()
-    enemy.position = Vector2(0, _get_spawn_y_for_kind(kind))
-    if enemy.has_method("configure"):
-        enemy.configure(kind)
-    add_child(enemy)
+	var enemy = enemy_scene.instantiate()
+	enemy.position = Vector2(0, _get_spawn_y_for_kind(kind))
+	if enemy.has_method("configure"):
+		enemy.configure(kind)
+	add_child(enemy)
 
 func _get_spawn_y_for_kind(kind: String) -> float:
-    if kind == "stationary_turret":
-        return get_viewport_rect().size.y - 92.0
-    return randf_range(spawn_y_min, spawn_y_max)
+	if kind == "stationary_turret":
+		return get_viewport_rect().size.y - TURRET_BOTTOM_INSET
+	return randf_range(spawn_y_min, spawn_y_max)
+
+func _has_active_turret() -> bool:
+	for unit in get_tree().get_nodes_in_group("hostile_units"):
+		if not is_instance_valid(unit):
+			continue
+		if str(unit.get("enemy_kind")) == "stationary_turret":
+			return true
+	return false

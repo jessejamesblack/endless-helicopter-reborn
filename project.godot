@@ -10,23 +10,24 @@ config_version=5
 
 [application]
 
-config/name="Endless Helicopter Reborn"
+config/name="Endless Helicopter"
 run/main_scene="res://scenes/ui/start_screen/start_screen.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://assets/icons/icon.svg"
 
 [autoload]
 
+GameSettings="*res://systems/game_settings.gd"
 PushNotifications="*res://systems/push_notifications.gd"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/fcm_push_bridge/plugin.cfg")
 
 [display]
 
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/fcm_push_bridge/plugin.cfg")
 
 [physics]
 

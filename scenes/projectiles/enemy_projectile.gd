@@ -40,7 +40,8 @@ var PROJECTILE_DATA := {
 		]),
 		"score": 25,
 		"homing_enabled": true,
-		"turn_rate": 1.55,
+		"turn_rate": 0.85,
+		"retarget_interval": 0.35,
 	},
 }
 
@@ -54,6 +55,9 @@ var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn"
 var direction: Vector2 = Vector2.LEFT
 var homing_enabled: bool = false
 var homing_turn_rate: float = 0.0
+var homing_retarget_interval: float = 0.0
+var _homing_retarget_timer: float = 0.0
+var _homing_desired_direction: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	add_to_group("enemy_projectiles")
@@ -75,6 +79,9 @@ func apply_projectile_config() -> void:
 	collision_polygon.polygon = data["collision_polygon"]
 	homing_enabled = bool(data.get("homing_enabled", false))
 	homing_turn_rate = float(data.get("turn_rate", 0.0))
+	homing_retarget_interval = float(data.get("retarget_interval", 0.0))
+	_homing_retarget_timer = 0.0
+	_homing_desired_direction = direction
 	rotation = direction.angle()
 
 func _process(delta: float) -> void:
@@ -86,13 +93,15 @@ func _process(delta: float) -> void:
 		current_speed *= main.speed_multiplier
 
 	if homing_enabled:
-		var player: Node2D = _get_player_target()
-		if player != null:
-			var desired_direction: Vector2 = (player.global_position - global_position).normalized()
-			if desired_direction.length_squared() > 0.0:
-				var angle_delta: float = wrapf(desired_direction.angle() - direction.angle(), -PI, PI)
-				var clamped_turn: float = clamp(angle_delta, -homing_turn_rate * delta, homing_turn_rate * delta)
-				direction = direction.rotated(clamped_turn).normalized()
+		_homing_retarget_timer -= delta
+		if _homing_retarget_timer <= 0.0:
+			_update_homing_desired_direction()
+			_homing_retarget_timer = homing_retarget_interval
+
+		if _homing_desired_direction.length_squared() > 0.0:
+			var angle_delta: float = wrapf(_homing_desired_direction.angle() - direction.angle(), -PI, PI)
+			var clamped_turn: float = clamp(angle_delta, -homing_turn_rate * delta, homing_turn_rate * delta)
+			direction = direction.rotated(clamped_turn).normalized()
 
 	global_position += direction * current_speed * delta
 	rotation = direction.angle()
@@ -122,3 +131,12 @@ func _get_player_target() -> Node2D:
 	if main == null:
 		return null
 	return main.get_node_or_null("Player") as Node2D
+
+func _update_homing_desired_direction() -> void:
+	var player: Node2D = _get_player_target()
+	if player == null:
+		return
+
+	var desired_direction: Vector2 = (player.global_position - global_position).normalized()
+	if desired_direction.length_squared() > 0.0:
+		_homing_desired_direction = desired_direction
