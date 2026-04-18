@@ -2,6 +2,7 @@ extends SceneTree
 
 const DEBUG_MENU_SCENE := preload("res://scenes/ui/debug/debug_menu.tscn")
 const LEADERBOARD_SCREEN_SCENE := preload("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
+const MAIN_SCENE := preload("res://scenes/game/main/main.tscn")
 const VIEWPORT_SIZES := [
 	Vector2i(1152, 648),
 	Vector2i(960, 540),
@@ -18,6 +19,16 @@ const RESULTS_SUMMARY := {
 	"ammo_pickups_collected": 4,
 	"glowing_rocks_triggered": 3,
 	"boundary_bounces": 7,
+	"near_misses": 12,
+	"hostile_near_misses": 5,
+	"projectile_near_misses": 7,
+	"skill_score": 1640,
+	"max_combo_multiplier": 3.0,
+	"max_combo_events": 24,
+	"missile_hits": 18,
+	"missile_misses": 4,
+	"max_missile_hit_streak": 6,
+	"projectile_intercepts": 8,
 }
 
 var _failures: Array[String] = []
@@ -31,6 +42,7 @@ func _run_validation() -> void:
 		await _validate_setup_mode(viewport_size)
 		await _validate_leaderboard_mode(viewport_size)
 		await _validate_debug_menu(viewport_size)
+		await _validate_main_hud(viewport_size)
 
 	if _failures.is_empty():
 		print("UI layout validation completed successfully.")
@@ -87,6 +99,31 @@ func _validate_debug_menu(viewport_size: Vector2i) -> void:
 	_assert_within_panel(screen, "debug menu", viewport_size)
 	await _destroy_screen(screen)
 
+func _validate_main_hud(viewport_size: Vector2i) -> void:
+	var screen: Node = await _create_main_scene(viewport_size)
+	for hud_side in ["left", "right"]:
+		screen.set("combo_events", 3)
+		screen.set("combo_multiplier", 1.25)
+		screen.set("combo_timer", 3.0)
+		screen.call("_update_combo_ui")
+		screen.call("_apply_hud_layout", hud_side)
+		await process_frame
+
+		var combo_panel := screen.get("combo_panel") as Control
+		var score_panel := screen.get("score_panel") as Control
+		var ammo_panel := screen.get("ammo_panel") as Control
+		var pause_button := screen.get("pause_button") as Control
+		var fire_button := screen.get("fire_button") as Control
+
+		_assert_visible(combo_panel.visible, "Combo panel should be visible in HUD validation at %s on %s side." % [_format_viewport_size(viewport_size), hud_side])
+		_assert_inside_viewport(combo_panel, "Combo panel should stay onscreen at %s on %s side." % [_format_viewport_size(viewport_size), hud_side])
+		_assert_no_overlap(combo_panel, score_panel, "Combo panel should not overlap score panel at %s on %s side." % [_format_viewport_size(viewport_size), hud_side])
+		_assert_no_overlap(combo_panel, ammo_panel, "Combo panel should not overlap ammo panel at %s on %s side." % [_format_viewport_size(viewport_size), hud_side])
+		_assert_no_overlap(combo_panel, pause_button, "Combo panel should not overlap pause button at %s on %s side." % [_format_viewport_size(viewport_size), hud_side])
+		_assert_no_overlap(combo_panel, fire_button, "Combo panel should not overlap fire button at %s on %s side." % [_format_viewport_size(viewport_size), hud_side])
+
+	await _destroy_screen(screen)
+
 func _create_screen(viewport_size: Vector2i) -> Control:
 	var root_window := get_root()
 	root_window.size = viewport_size
@@ -103,6 +140,16 @@ func _create_debug_menu(viewport_size: Vector2i) -> Control:
 	root_window.size = viewport_size
 	await process_frame
 	var screen: Control = DEBUG_MENU_SCENE.instantiate() as Control
+	root_window.add_child(screen)
+	await process_frame
+	await process_frame
+	return screen
+
+func _create_main_scene(viewport_size: Vector2i) -> Node:
+	var root_window := get_root()
+	root_window.size = viewport_size
+	await process_frame
+	var screen := MAIN_SCENE.instantiate()
 	root_window.add_child(screen)
 	await process_frame
 	await process_frame
@@ -153,6 +200,26 @@ func _collect_visible_controls(root_control: Control) -> Array[Control]:
 
 func _assert_visible(condition: bool, message: String) -> void:
 	if not condition:
+		_failures.append(message)
+
+func _assert_inside_viewport(control: Control, message: String) -> void:
+	if control == null or not control.visible:
+		_failures.append(message)
+		return
+
+	var tolerance := 2.0
+	var viewport_size := control.get_viewport_rect().size
+	var viewport_rect := Rect2(
+		Vector2(-tolerance, -tolerance),
+		viewport_size + Vector2.ONE * tolerance * 2.0
+	)
+	if not viewport_rect.encloses(control.get_global_rect()):
+		_failures.append(message)
+
+func _assert_no_overlap(a: Control, b: Control, message: String) -> void:
+	if a == null or b == null or not a.visible or not b.visible:
+		return
+	if a.get_global_rect().intersects(b.get_global_rect()):
 		_failures.append(message)
 
 func _should_check_control(control: Control) -> bool:
