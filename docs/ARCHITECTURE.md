@@ -14,6 +14,7 @@
 - `scenes/ui/pause/`: in-game pause menu
 - `scenes/ui/leaderboard/`: death screen and leaderboard UI
 - `systems/game_settings.gd`: persistent audio, layout, and haptics settings
+- `systems/music_player.gd`: shared music playback service for menu and gameplay loops
 - `systems/online_leaderboard.gd`: shared leaderboard service
 - `systems/push_notifications.gd`: Android push registration and deep-link routing
 
@@ -52,10 +53,19 @@
 ## Settings Runtime
 
 - `game_settings.gd` persists settings to `user://game_settings.cfg`.
-- The settings service applies `Master` and `SFX` audio levels at runtime through the `SFX` bus.
+- The settings service applies `Master`, `Music`, and `SFX` audio levels at runtime.
+- `Master` affects the full mix.
+- `Music` affects the dedicated `Music` bus used by menu and gameplay loops.
+- `SFX` affects gameplay/effects audio only.
 - Fire-button side is configurable as `left` or `right`.
 - Score and ammo panels stay tied together and mirror to the opposite side of the fire button.
 - Haptics is controlled from the same shared settings service and used as the source of truth for vibration hooks.
+
+## Music Flow
+
+- `start_screen.gd` and `leaderboard_screen.gd` ask `MusicPlayer` for the calmer menu loop.
+- `main.gd` switches to a faster gameplay loop when a run starts.
+- `music_player.gd` owns the track swap and keeps playback alive across scene changes.
 
 ## Important External Integration
 

@@ -7,10 +7,11 @@
 - Endless survival-style arcade gameplay
 - Mobile-friendly tap/click/space controls
 - Missiles, ammo pickups, clearer explosions, and varied enemy roles
-- Adjustable master/SFX volume, fire-button side, mirrored HUD layout, and haptics
+- Adjustable master/music/SFX volume, fire-button side, mirrored HUD layout, and haptics
 - Shared online leaderboard with player names
 - In-app beat-your-score notifications
 - Android push notifications for score-beaten events
+- Original retro sci-fi menu and gameplay music
 - Automated Android APK builds with GitHub Actions
 
 ## Project Layout
@@ -46,6 +47,9 @@ res://
 - `Settings` is available from the start screen before a run.
 - During a run, `Pause` opens a menu with resume, settings, and quit-to-menu actions.
 - Settings persist in `user://` and apply immediately.
+- `Master Volume` controls the full mix.
+- `Music Volume` controls the menu and gameplay music layer.
+- `SFX Volume` controls effects only, such as helicopter, missiles, reloads, and explosions.
 
 ## Collaboration Flow
 
