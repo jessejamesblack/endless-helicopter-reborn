@@ -1,0 +1,41 @@
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=lxvniafwjlwatbiblwyi&read_only=true"
+startup_timeout_sec = 20
+tool_timeout_sec = 120
+
+[mcp_servers.context7]
+command = "C:\\Program Files\\nodejs\\npx.cmd"
+args = ["-y", "@upstash/context7-mcp@latest"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+
+[mcp_servers.context7.env]
+PATH = "C:\\Program Files\\nodejs;C:\\Windows\\System32;C:\\Windows"
+PATHEXT = ".COM;.EXE;.BAT;.CMD"
+
+# Optional local MCP servers that fit this project but require extra runtimes:
+#
+# 2. GitHub's official MCP server for PRs, Actions, and issue workflows.
+#    Requires Docker plus a GITHUB_PERSONAL_ACCESS_TOKEN environment variable.
+#
+# [mcp_servers.github]
+# command = "docker"
+# args = [
+#   "run",
+#   "-i",
+#   "--rm",
+#   "-e",
+#   "GITHUB_PERSONAL_ACCESS_TOKEN",
+#   "-e",
+#   "GITHUB_TOOLSETS",
+#   "ghcr.io/github/github-mcp-server",
+# ]
+# env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN"]
+#
+# [mcp_servers.github.env]
+# GITHUB_TOOLSETS = "repos,issues,pull_requests,actions"
