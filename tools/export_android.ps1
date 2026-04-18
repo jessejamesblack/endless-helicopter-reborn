@@ -22,7 +22,7 @@ $exportFlag = if ($Release.IsPresent) { '--export-release' } else { '--export-de
 
 if (Test-Path $buildPluginScript) {
     Write-Host 'Building Android push bridge plugin before export...'
-    & powershell -ExecutionPolicy Bypass -File $buildPluginScript -Variant Both
+    & $buildPluginScript -Variant Both
     if ($LASTEXITCODE -ne 0) {
         throw 'Android push bridge build failed.'
     }
