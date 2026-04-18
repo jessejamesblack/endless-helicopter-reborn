@@ -27,9 +27,9 @@ function Get-ProjectRelativePath {
         [string]$Path
     )
 
-    $projectUri = [Uri]((Resolve-Path $projectRoot).Path + [IO.Path]::DirectorySeparatorChar)
-    $fileUri = [Uri](Resolve-Path $Path).Path
-    return [Uri]::UnescapeDataString($projectUri.MakeRelativeUri($fileUri).ToString()).Replace('/', '\')
+    $resolvedProjectRoot = (Resolve-Path $projectRoot).Path
+    $resolvedPath = (Resolve-Path $Path).Path
+    return [IO.Path]::GetRelativePath($resolvedProjectRoot, $resolvedPath)
 }
 
 function Get-StaleApkCandidates {
@@ -74,7 +74,13 @@ $staleApkCandidates = Get-StaleApkCandidates
 if ($staleApkCandidates.Count -gt 0) {
     Write-Warning 'Other APK files exist outside build/android. Installing one of those can reuse a stale Android push bridge.'
     foreach ($candidate in $staleApkCandidates) {
-        $relativePath = Get-ProjectRelativePath -Path $candidate.FullName
+        $relativePath = $candidate.FullName
+        try {
+            $relativePath = Get-ProjectRelativePath -Path $candidate.FullName
+        }
+        catch {
+            # Keep the export successful even if relative-path display fails.
+        }
         Write-Host (" - {0} ({1})" -f $relativePath, $candidate.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
     }
 }
