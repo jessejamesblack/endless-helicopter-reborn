@@ -1,6 +1,6 @@
 extends Control
 
-const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const LEADERBOARD_PAGE_SIZE := 25
 const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 const BOARD_PANEL_RECT := Rect2(-320.0, -292.0, 640.0, 584.0)
@@ -52,8 +52,8 @@ func _ready() -> void:
 	else:
 		score_label.text = "Top Scores"
 
-	name_entry.text = OnlineLeaderboard.load_cached_name()
-	needs_profile_setup = has_pending_score and not OnlineLeaderboard.has_saved_profile()
+	name_entry.text = OnlineLeaderboardScript.load_cached_name()
+	needs_profile_setup = has_pending_score and not OnlineLeaderboardScript.has_saved_profile()
 	name_help_label.text = "Choose a public name once. This device will remember it."
 	alert_label.text = ""
 	_apply_screen_mode()
@@ -74,7 +74,7 @@ func _ready() -> void:
 		if not push_notifications.is_connected("push_notification_opened", push_callback):
 			push_notifications.connect("push_notification_opened", push_callback)
 
-	if OnlineLeaderboard.is_configured():
+	if OnlineLeaderboardScript.is_configured():
 		if needs_profile_setup:
 			set_status("Enter your name to save this run.")
 			name_entry.grab_focus()
@@ -105,7 +105,7 @@ func _apply_screen_mode() -> void:
 	_apply_panel_rect(SETUP_PANEL_RECT if needs_profile_setup else BOARD_PANEL_RECT)
 
 func _get_board_title() -> String:
-	if OnlineLeaderboard.FAMILY_ID == "global":
+	if OnlineLeaderboardScript.FAMILY_ID == "global":
 		return "Global Leaderboard"
 	return "Family Leaderboard"
 
@@ -126,18 +126,18 @@ func fetch_leaderboard(reset: bool = false) -> void:
 	var footer_message := "Loading leaderboard..."
 	if not leaderboard_entries.is_empty():
 		footer_message = "Loading more scores..."
-	_render_leaderboard_rows(OnlineLeaderboard.get_best_entries(leaderboard_entries), footer_message)
+	_render_leaderboard_rows(OnlineLeaderboardScript.get_best_entries(leaderboard_entries), footer_message)
 
 	$FetchRequest.request(
-		OnlineLeaderboard.get_fetch_url(LEADERBOARD_PAGE_SIZE, leaderboard_offset),
-		OnlineLeaderboard.get_headers(),
+		OnlineLeaderboardScript.get_fetch_url(LEADERBOARD_PAGE_SIZE, leaderboard_offset),
+		OnlineLeaderboardScript.get_headers(),
 		HTTPClient.METHOD_GET
 	)
 
 func fetch_notifications() -> void:
 	$NotificationRequest.request(
-		OnlineLeaderboard.get_notifications_url(5),
-		OnlineLeaderboard.get_headers(),
+		OnlineLeaderboardScript.get_notifications_url(5),
+		OnlineLeaderboardScript.get_headers(),
 		HTTPClient.METHOD_GET
 	)
 
@@ -150,7 +150,7 @@ func submit_score() -> void:
 		set_status("Score already saved.")
 		return
 
-	var validation := OnlineLeaderboard.validate_player_name(name_entry.text)
+	var validation := OnlineLeaderboardScript.validate_player_name(name_entry.text)
 	if not bool(validation.get("ok", false)):
 		set_status(str(validation.get("error", "Choose a different player name.")))
 		return
@@ -162,10 +162,10 @@ func submit_score() -> void:
 	set_status("Saving your score...")
 	save_button.disabled = true
 	$SubmitRequest.request(
-		OnlineLeaderboard.get_submit_url(),
-		OnlineLeaderboard.get_headers() + PackedStringArray(["Prefer: return=representation"]),
+		OnlineLeaderboardScript.get_submit_url(),
+		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
 		HTTPClient.METHOD_POST,
-		OnlineLeaderboard.make_submit_body(player_name, current_score)
+		OnlineLeaderboardScript.make_submit_body(player_name, current_score)
 	)
 
 func _on_save_pressed() -> void:
@@ -190,12 +190,12 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 		set_status("Could not load the leaderboard.")
 		return
 
-	var fetched_entries := OnlineLeaderboard.parse_entries(body)
+	var fetched_entries := OnlineLeaderboardScript.parse_entries(body)
 	leaderboard_entries.append_array(fetched_entries)
 	leaderboard_offset += fetched_entries.size()
 	leaderboard_has_more = fetched_entries.size() >= LEADERBOARD_PAGE_SIZE
 
-	_render_leaderboard_rows(OnlineLeaderboard.get_best_entries(leaderboard_entries))
+	_render_leaderboard_rows(OnlineLeaderboardScript.get_best_entries(leaderboard_entries))
 	_update_status_after_fetch()
 	call_deferred("_maybe_prefetch_if_needed")
 
@@ -203,17 +203,17 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 	is_submitting = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		save_button.disabled = false
-		var error_text := OnlineLeaderboard.parse_api_error(body, "Could not submit score.")
+		var error_text := OnlineLeaderboardScript.parse_api_error(body, "Could not submit score.")
 		set_status(error_text)
 		return
 
 	has_submitted = true
-	var saved_name := OnlineLeaderboard.parse_submit_name(body)
+	var saved_name := OnlineLeaderboardScript.parse_submit_name(body)
 	if saved_name.is_empty():
 		saved_name = pending_player_name
 	if not saved_name.is_empty():
 		name_entry.text = saved_name
-		OnlineLeaderboard.save_cached_name(saved_name)
+		OnlineLeaderboardScript.save_cached_name(saved_name)
 
 	pending_player_name = ""
 	has_pending_score = false
@@ -228,8 +228,8 @@ func _on_notification_request_completed(result: int, response_code: int, _header
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		return
 
-	var notifications := OnlineLeaderboard.parse_notifications(body)
-	alert_label.text = OnlineLeaderboard.format_notifications(notifications, 3)
+	var notifications := OnlineLeaderboardScript.parse_notifications(body)
+	alert_label.text = OnlineLeaderboardScript.format_notifications(notifications, 3)
 	_apply_screen_mode()
 	if notifications.is_empty():
 		return
@@ -239,10 +239,10 @@ func _on_notification_request_completed(result: int, response_code: int, _header
 		ids.append(int(notification.get("id", 0)))
 
 	$MarkNotificationsReadRequest.request(
-		OnlineLeaderboard.get_mark_notifications_read_url(ids),
-		OnlineLeaderboard.get_headers() + PackedStringArray(["Prefer: return=minimal"]),
+		OnlineLeaderboardScript.get_mark_notifications_read_url(ids),
+		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=minimal"]),
 		HTTPClient.METHOD_PATCH,
-		OnlineLeaderboard.make_mark_notifications_read_body()
+		OnlineLeaderboardScript.make_mark_notifications_read_body()
 	)
 
 func _on_mark_notifications_read_completed(_result: int, _response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
@@ -365,6 +365,6 @@ func _apply_panel_rect(rect: Rect2) -> void:
 	panel.offset_bottom = rect.position.y + rect.size.y
 
 func _get_empty_board_text() -> String:
-	if OnlineLeaderboard.FAMILY_ID == "global":
+	if OnlineLeaderboardScript.FAMILY_ID == "global":
 		return "No global scores yet"
 	return "No family scores yet"

@@ -4,7 +4,7 @@ signal push_token_received(token: String)
 signal push_notification_opened(payload: Dictionary)
 signal diagnostics_changed(status: Dictionary)
 
-const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const PLUGIN_SINGLETON := "FCMPushBridge"
 const DEVICE_ID_CACHE_PATH := "user://push_device_id.save"
 const LEADERBOARD_SCENE_PATH := "res://scenes/ui/leaderboard/leaderboard_screen.tscn"
@@ -68,7 +68,7 @@ func _bootstrap() -> void:
 	_emit_diagnostics()
 
 func is_push_supported() -> bool:
-	if not OnlineLeaderboard.is_configured():
+	if not OnlineLeaderboardScript.is_configured():
 		return false
 	if OS.get_name() != "Android":
 		return false
@@ -128,7 +128,7 @@ func get_diagnostics() -> Dictionary:
 		permission_granted = bool(_plugin.hasNotificationPermission())
 
 	return {
-		"leaderboard_configured": OnlineLeaderboard.is_configured(),
+		"leaderboard_configured": OnlineLeaderboardScript.is_configured(),
 		"is_android": OS.get_name() == "Android",
 		"plugin_loaded": _plugin != null,
 		"firebase_ready": firebase_ready,
@@ -230,10 +230,10 @@ func _register_device_token(token: String) -> void:
 	if _plugin != null and _plugin.has_method("hasNotificationPermission"):
 		notifications_enabled = bool(_plugin.hasNotificationPermission())
 
-	var request_headers := OnlineLeaderboard.get_headers() + PackedStringArray([
+	var request_headers := OnlineLeaderboardScript.get_headers() + PackedStringArray([
 		"Prefer: resolution=merge-duplicates,return=minimal",
 	])
-	var body := OnlineLeaderboard.make_push_device_body(
+	var body := OnlineLeaderboardScript.make_push_device_body(
 		token,
 		_load_or_create_device_id(),
 		notifications_enabled,
@@ -243,7 +243,7 @@ func _register_device_token(token: String) -> void:
 	_pending_registration_token = token
 	_registration_retry_by_token = false
 	var error := _http_request.request(
-		OnlineLeaderboard.get_push_device_upsert_url(),
+		OnlineLeaderboardScript.get_push_device_upsert_url(),
 		request_headers,
 		HTTPClient.METHOD_POST,
 		body
@@ -352,17 +352,17 @@ func _retry_register_device_by_token(token: String) -> void:
 		notifications_enabled = bool(_plugin.hasNotificationPermission())
 
 	_registration_retry_by_token = true
-	var request_headers := OnlineLeaderboard.get_headers() + PackedStringArray([
+	var request_headers := OnlineLeaderboardScript.get_headers() + PackedStringArray([
 		"Prefer: return=minimal",
 	])
-	var body := OnlineLeaderboard.make_push_device_body(
+	var body := OnlineLeaderboardScript.make_push_device_body(
 		token,
 		_load_or_create_device_id(),
 		notifications_enabled,
 		"Android"
 	)
 	var error := _http_request.request(
-		OnlineLeaderboard.get_push_device_update_by_token_url(token),
+		OnlineLeaderboardScript.get_push_device_update_by_token_url(token),
 		request_headers,
 		HTTPClient.METHOD_PATCH,
 		body
