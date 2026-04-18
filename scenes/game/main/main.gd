@@ -119,10 +119,15 @@ func trigger_glowing_rock_blast(blast_pos: Vector2, source: Node = null, caused_
     if is_crashed:
         return
 
+    if caused_by_player:
+        var run_stats := _get_run_stats()
+        if run_stats != null and run_stats.has_method("record_glowing_rock_clear"):
+            run_stats.record_glowing_rock_clear()
+
     spawn_configured_explosion(blast_pos, true, true)
     _play_screen_flash_pulses()
-    _destroy_group_members("enemy_projectiles", null, caused_by_player)
-    _destroy_group_members("hostile_units", source, caused_by_player)
+    _destroy_group_members("enemy_projectiles")
+    _destroy_group_members("hostile_units", source)
     _clear_group_members("screen_pickups")
 
     if is_instance_valid(source):

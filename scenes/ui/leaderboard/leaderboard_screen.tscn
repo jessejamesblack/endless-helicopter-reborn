@@ -145,7 +145,7 @@ theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -179,14 +179,14 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="ResultsVBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="BestScoreLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 text = "Local Best: 0"
 horizontal_alignment = 1
 
@@ -194,7 +194,7 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "Matched your local best"
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -202,63 +202,89 @@ autowrap_mode = 2
 [node name="StatsGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"]
 layout_mode = 2
 columns = 2
-theme_override_constants/h_separation = 16
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 6
 
 [node name="TimeLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 16
 text = "Time Survived"
 
 [node name="TimeValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "0.0s"
 horizontal_alignment = 2
 
 [node name="MissilesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 16
 text = "Missiles Fired"
 
 [node name="MissilesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "0"
 horizontal_alignment = 2
 
 [node name="HostilesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 16
 text = "Hostiles Destroyed"
 
 [node name="HostilesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "0"
 horizontal_alignment = 2
 
 [node name="PickupsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 16
 text = "Ammo Pickups"
 
 [node name="PickupsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 2
+
+[node name="GlowingClearsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 16
+text = "Glowing Clears"
+
+[node name="GlowingClearsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 2
+
+[node name="BoundaryRecoveriesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 16
+text = "Boundary Recoveries"
+
+[node name="BoundaryRecoveriesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_font_sizes/font_size = 18
 text = "0"
 horizontal_alignment = 2
 
 [node name="TryAgainButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
@@ -266,7 +292,7 @@ theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
@@ -275,10 +301,10 @@ text = "TRY AGAIN"
 
 [node name="ResultsButtonRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="LeaderboardButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ResultsButtonRow"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -287,7 +313,7 @@ theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
@@ -295,7 +321,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Leaderboard"
 
 [node name="MenuButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ResultsButtonRow"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -304,7 +330,7 @@ theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")

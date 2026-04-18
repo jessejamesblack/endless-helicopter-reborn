@@ -10,6 +10,8 @@ var _time_survived_seconds: float = 0.0
 var _missiles_fired: int = 0
 var _hostiles_destroyed: int = 0
 var _ammo_pickups_collected: int = 0
+var _glowing_rocks_triggered: int = 0
+var _boundary_bounces: int = 0
 
 func _ready() -> void:
 	_load_local_best_score()
@@ -39,6 +41,16 @@ func record_pickup_collected() -> void:
 		return
 	_ammo_pickups_collected += 1
 
+func record_glowing_rock_clear() -> void:
+	if not _run_active:
+		return
+	_glowing_rocks_triggered += 1
+
+func record_boundary_bounce() -> void:
+	if not _run_active:
+		return
+	_boundary_bounces += 1
+
 func complete_run(final_score: int) -> Dictionary:
 	var safe_score: int = maxi(final_score, 0)
 	var best_score_before_run: int = _local_best_score
@@ -59,6 +71,8 @@ func complete_run(final_score: int) -> Dictionary:
 		"missiles_fired": _missiles_fired,
 		"hostiles_destroyed": _hostiles_destroyed,
 		"ammo_pickups_collected": _ammo_pickups_collected,
+		"glowing_rocks_triggered": _glowing_rocks_triggered,
+		"boundary_bounces": _boundary_bounces,
 	}
 
 	_run_active = false
@@ -85,6 +99,8 @@ func _reset_live_stats() -> void:
 	_missiles_fired = 0
 	_hostiles_destroyed = 0
 	_ammo_pickups_collected = 0
+	_glowing_rocks_triggered = 0
+	_boundary_bounces = 0
 
 func _load_local_best_score() -> void:
 	var config := ConfigFile.new()

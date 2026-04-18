@@ -16,6 +16,8 @@ const RESULTS_SUMMARY := {
 	"missiles_fired": 27,
 	"hostiles_destroyed": 19,
 	"ammo_pickups_collected": 4,
+	"glowing_rocks_triggered": 3,
+	"boundary_bounces": 7,
 }
 
 var _failures: Array[String] = []
