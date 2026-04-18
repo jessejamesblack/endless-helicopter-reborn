@@ -12,6 +12,8 @@ const SIDE_RIGHT := "right"
 @onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/FireSideRow/FireSideOption
 @onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/HudSideValueLabel
 @onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/HapticsToggle
+@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/PushStatusLabel
+@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/EnablePushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 
 func _ready() -> void:
@@ -23,7 +25,14 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx_slider_changed)
 	fire_side_option.item_selected.connect(_on_fire_side_selected)
 	haptics_toggle.toggled.connect(_on_haptics_toggled)
+	enable_push_button.pressed.connect(_on_enable_push_pressed)
 	close_button.pressed.connect(_on_close_pressed)
+
+	var push_notifications = _get_push_notifications()
+	if push_notifications != null and push_notifications.has_signal("diagnostics_changed"):
+		var diagnostics_callback := Callable(self, "_on_push_diagnostics_changed")
+		if not push_notifications.is_connected("diagnostics_changed", diagnostics_callback):
+			push_notifications.connect("diagnostics_changed", diagnostics_callback)
 
 	_sync_from_settings()
 
@@ -66,6 +75,7 @@ func _sync_from_settings() -> void:
 
 	_update_audio_labels()
 	_update_layout_labels()
+	_update_push_status()
 
 func _update_audio_labels() -> void:
 	master_value_label.text = "%d%%" % int(round(master_slider.value * 100.0))
@@ -102,8 +112,30 @@ func _on_haptics_toggled(enabled: bool) -> void:
 	if game_settings != null:
 		game_settings.set_haptics_enabled(enabled)
 
+func _on_enable_push_pressed() -> void:
+	var push_notifications = _get_push_notifications()
+	if push_notifications != null and push_notifications.has_method("enable_notifications"):
+		push_notifications.enable_notifications()
+	_update_push_status()
+
+func _on_push_diagnostics_changed(_status: Dictionary) -> void:
+	_update_push_status()
+
+func _update_push_status() -> void:
+	var push_notifications = _get_push_notifications()
+	if push_notifications == null or not push_notifications.has_method("get_diagnostics_text"):
+		push_status_label.text = "Push unavailable: runtime service not loaded."
+		enable_push_button.disabled = true
+		return
+
+	push_status_label.text = push_notifications.get_diagnostics_text()
+	enable_push_button.disabled = OS.get_name() != "Android"
+
 func _on_close_pressed() -> void:
 	close_menu()
 
 func _get_game_settings():
 	return get_node_or_null("/root/GameSettings")
+
+func _get_push_notifications():
+	return get_node_or_null("/root/PushNotifications")
