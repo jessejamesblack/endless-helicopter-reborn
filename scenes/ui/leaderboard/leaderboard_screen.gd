@@ -4,7 +4,7 @@ const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
 const LEADERBOARD_PAGE_SIZE := 25
 const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 const BOARD_PANEL_RECT := Rect2(-320.0, -292.0, 640.0, 584.0)
-const SETUP_PANEL_RECT := Rect2(-280.0, -178.0, 560.0, 356.0)
+const SETUP_PANEL_RECT := Rect2(-280.0, -156.0, 560.0, 312.0)
 
 var current_score: int = 0
 var has_submitted: bool = false
@@ -97,6 +97,7 @@ func _apply_screen_mode() -> void:
 	refresh_button.disabled = needs_profile_setup
 	back_button.disabled = needs_profile_setup
 	title_label.text = "Save Your Score" if needs_profile_setup else _get_board_title()
+	status_label.custom_minimum_size = Vector2(0, 34 if needs_profile_setup else 52)
 	_apply_panel_rect(SETUP_PANEL_RECT if needs_profile_setup else BOARD_PANEL_RECT)
 
 func _get_board_title() -> String:
