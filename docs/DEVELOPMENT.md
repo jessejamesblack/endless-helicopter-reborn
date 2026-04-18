@@ -32,12 +32,12 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 
 - Workflow: `.github/workflows/android-apk.yml`
 - Pull requests to `main` run validation and produce an APK artifact.
-- Pushes to `main` run validation, build a signed release APK, and update the rolling release.
+- Pushes to `main` run validation, build an Android APK, and update the rolling release.
 - CI also builds the Android FCM plugin AARs before exporting the APK.
 - Outputs include a workflow artifact containing the generated APK.
 - Outputs also include a rolling GitHub prerelease: `Endless-Helicopter-Reborn Latest APK`.
 - PR APK names can be `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk` depending on signing secrets.
-- Pushes to `main` are expected to produce `Endless-Helicopter-Reborn-release.apk`.
+- Pushes to `main` can produce `Endless-Helicopter-Reborn-release.apk` when signing secrets are configured, otherwise they fall back to `Endless-Helicopter-Reborn-debug.apk`.
 
 ## Branching
 
@@ -54,7 +54,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - Local plugin builds require Gradle, Java 17, and the Android SDK.
 - The Firebase config file belongs at `android/plugins/fcm_push_bridge/google-services.json` and is intentionally ignored by git.
 - CI can build temporary debug artifacts for pull requests without a permanent keystore.
-- Pushes to `main` require repository signing secrets and fail if they are missing.
+- Pushes to `main` can still publish a debug build if repository signing secrets are missing.
 - For upgradeable installs between CI builds, use repository secrets for a stable keystore.
 - The workflow writes artifacts to `build/android/`.
 - The GitHub release is updated automatically on each successful build.
