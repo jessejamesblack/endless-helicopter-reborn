@@ -4,6 +4,10 @@ extends Control
 
 func _ready() -> void:
     get_tree().paused = false
+    var music_player = get_node_or_null("/root/MusicPlayer")
+    if music_player != null and music_player.has_method("play_menu_music"):
+        music_player.play_menu_music()
+
     var push_notifications := get_node_or_null("/root/PushNotifications")
     if push_notifications != null and push_notifications.has_method("consume_open_leaderboard_request"):
         if bool(push_notifications.consume_open_leaderboard_request()):

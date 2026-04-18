@@ -25,6 +25,10 @@ var _screen_flash_tween: Tween
 @onready var screen_flash: ColorRect = $UI/ScreenFlash
 
 func _ready() -> void:
+    var music_player = get_node_or_null("/root/MusicPlayer")
+    if music_player != null and music_player.has_method("play_gameplay_music"):
+        music_player.play_gameplay_music()
+
     pause_button.process_mode = Node.PROCESS_MODE_ALWAYS
     pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 

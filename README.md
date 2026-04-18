@@ -11,6 +11,7 @@
 - Shared online leaderboard with player names
 - In-app beat-your-score notifications
 - Android push notifications for score-beaten events
+- Original retro sci-fi menu and gameplay music
 - Automated Android APK builds with GitHub Actions
 
 ## Project Layout
@@ -46,6 +47,8 @@ res://
 - `Settings` is available from the start screen before a run.
 - During a run, `Pause` opens a menu with resume, settings, and quit-to-menu actions.
 - Settings persist in `user://` and apply immediately.
+- `Master Volume` controls all audio, including music and sound effects.
+- `SFX Volume` controls effects only, such as helicopter, missiles, reloads, and explosions.
 
 ## Collaboration Flow
 

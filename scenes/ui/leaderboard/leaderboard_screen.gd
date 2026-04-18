@@ -36,6 +36,10 @@ var leaderboard_fetch_in_flight: bool = false
 @onready var button_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ButtonRow
 
 func _ready() -> void:
+	var music_player = get_node_or_null("/root/MusicPlayer")
+	if music_player != null and music_player.has_method("play_menu_music"):
+		music_player.play_menu_music()
+
 	get_tree().paused = false
 	has_pending_score = get_tree().has_meta("last_run_score")
 	current_score = int(get_tree().get_meta("last_run_score", 0))
