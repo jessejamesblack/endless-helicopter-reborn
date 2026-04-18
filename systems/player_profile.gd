@@ -2,6 +2,7 @@ extends Node
 
 signal profile_changed(summary: Dictionary)
 
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const PROFILE_PATH := "user://player_profile.cfg"
 const PROFILE_SECTION := "player_profile"
 const DEFAULT_SKIN_ID := "default_scout"
@@ -22,7 +23,7 @@ var _top_skin_request_in_flight: bool = false
 func _ready() -> void:
 	_ensure_top_skin_request()
 	load_profile()
-	if not validation_mode_enabled and OnlineLeaderboard.is_configured():
+	if not validation_mode_enabled and OnlineLeaderboardScript.is_configured():
 		call_deferred("refresh_top_player_skin_access")
 
 func load_profile() -> void:
@@ -164,14 +165,14 @@ func mark_missions_intro_seen() -> void:
 	_emit_profile_changed()
 
 func refresh_top_player_skin_access() -> void:
-	if validation_mode_enabled or not OnlineLeaderboard.is_configured() or _top_skin_request_in_flight:
+	if validation_mode_enabled or not OnlineLeaderboardScript.is_configured() or _top_skin_request_in_flight:
 		return
 	_ensure_top_skin_request()
 	if _top_skin_request == null:
 		return
 	var request_error := _top_skin_request.request(
-		OnlineLeaderboard.get_top_entry_url(),
-		OnlineLeaderboard.get_headers(),
+		OnlineLeaderboardScript.get_top_entry_url(),
+		OnlineLeaderboardScript.get_headers(),
 		HTTPClient.METHOD_GET
 	)
 	if request_error == OK:
@@ -182,8 +183,8 @@ func apply_leaderboard_entries(entries: Array) -> bool:
 	for entry_variant in entries:
 		if entry_variant is Dictionary:
 			typed_entries.append(entry_variant)
-	var best_entries := OnlineLeaderboard.get_best_entries(typed_entries)
-	var local_player_id := OnlineLeaderboard.load_or_create_player_id()
+	var best_entries := OnlineLeaderboardScript.get_best_entries(typed_entries)
+	var local_player_id := OnlineLeaderboardScript.load_or_create_player_id()
 	var is_top_player := false
 	if not best_entries.is_empty():
 		is_top_player = str(best_entries[0].get("player_id", "")) == local_player_id
@@ -319,7 +320,7 @@ func _on_top_skin_request_completed(result: int, response_code: int, _headers: P
 	_top_skin_request_in_flight = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		return
-	apply_leaderboard_entries(OnlineLeaderboard.parse_entries(body))
+	apply_leaderboard_entries(OnlineLeaderboardScript.parse_entries(body))
 
 func _apply_verified_bonus_skin_access(is_top_player: bool) -> bool:
 	var previous_access := _leaderboard_bonus_skin_access
