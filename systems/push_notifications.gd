@@ -119,6 +119,10 @@ func get_diagnostics() -> Dictionary:
 	if _plugin != null and _plugin.has_method("isPushSupported"):
 		firebase_ready = bool(_plugin.isPushSupported())
 
+	var firebase_status := ""
+	if _plugin != null and _plugin.has_method("getFirebaseStatus"):
+		firebase_status = str(_plugin.getFirebaseStatus())
+
 	var permission_granted := false
 	if _plugin != null and _plugin.has_method("hasNotificationPermission"):
 		permission_granted = bool(_plugin.hasNotificationPermission())
@@ -128,6 +132,7 @@ func get_diagnostics() -> Dictionary:
 		"is_android": OS.get_name() == "Android",
 		"plugin_loaded": _plugin != null,
 		"firebase_ready": firebase_ready,
+		"firebase_status": firebase_status,
 		"permission_granted": permission_granted,
 		"latest_token_present": not latest_token.is_empty(),
 		"latest_token_preview": _token_preview(latest_token),
@@ -148,7 +153,10 @@ func get_diagnostics_text() -> String:
 	if not bool(status["plugin_loaded"]):
 		return "Push unavailable: Android FCM plugin is not loaded in this APK."
 	if not bool(status["firebase_ready"]):
-		return "Push unavailable: Firebase config is missing or invalid in this APK."
+		var firebase_detail := str(status.get("firebase_status", "")).strip_edges()
+		if firebase_detail.is_empty():
+			firebase_detail = "Firebase config is missing or invalid in this APK."
+		return "Push unavailable: %s" % firebase_detail
 	if not bool(status["permission_granted"]):
 		return "Push permission is not granted. Tap Enable Notifications or allow it in Android app settings."
 	if not bool(status["latest_token_present"]):
