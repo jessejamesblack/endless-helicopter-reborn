@@ -42,9 +42,12 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          if [[ -n "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" ]]; then
-            echo "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/plugins/fcm_push_bridge/google-services.json
+          if [[ -z "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" ]]; then
+            echo "::error::FIREBASE_GOOGLE_SERVICES_JSON_BASE64 is required for Firebase push-enabled Android builds."
+            exit 1
           fi
+          echo "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/plugins/fcm_push_bridge/google-services.json
+          test -s android/plugins/fcm_push_bridge/google-services.json
 
       - name: Install Android SDK command-line tools
         shell: bash

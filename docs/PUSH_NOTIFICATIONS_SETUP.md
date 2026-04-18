@@ -72,6 +72,8 @@ For GitHub Actions, base64-encode the same file and store it as this repository 
 
 `FIREBASE_GOOGLE_SERVICES_JSON_BASE64`
 
+CI fails if this secret is missing. That is intentional: without `google-services.json`, the APK can install and run but Firebase cannot initialize, so the app will never register a token in `family_push_devices`.
+
 PowerShell example:
 
 ```powershell
@@ -163,15 +165,43 @@ CI export:
 
 - PRs to `main` build an artifact
 - pushes to `main` update the rolling GitHub prerelease
+- CI requires `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` so the published APK can register for push.
 
 ## 8. Test Checklist
 
 1. Install the APK on device A and device B.
-2. Launch both devices once so they can register their FCM token.
+2. Launch both devices once, open `Settings`, and tap `Enable Notifications`.
 3. Submit a score on device A.
 4. Beat that score on device B.
 5. Confirm device A receives `Score Beaten`.
 6. Tap the notification and verify the game opens to the leaderboard screen.
+
+## Troubleshooting
+
+Open the in-game `Settings` screen to see the current push diagnostic message. It reports whether the Android plugin loaded, Firebase config is present, notification permission is granted, an FCM token exists, and the Supabase registration request succeeded.
+
+If `family_push_delivery_log.device_id` and `family_push_delivery_log.fcm_token` are `NULL`, the backend did run, but there were no registered devices for the target player. Check `family_push_devices` next:
+
+```sql
+select
+    family_id,
+    player_id,
+    device_id,
+    notifications_enabled,
+    last_seen_at,
+    created_at,
+    updated_at
+from public.family_push_devices
+order by updated_at desc;
+```
+
+Common causes:
+
+- `family_push_devices` is empty: install the latest APK, open `Settings`, tap `Enable Notifications`, and keep the app open briefly.
+- Settings says Firebase config is missing: confirm the APK was built with the matching `google-services.json` or GitHub secret.
+- Settings says permission is not granted: enable notifications in Android app settings, then tap `Enable Notifications` again.
+- Settings says the plugin is not loaded: rebuild the Android plugin AAR and export an Android APK, not a desktop Godot runner build.
+- A delivery row has `status = 'no_registered_devices'`: the score-beaten trigger fired correctly, but the beaten player has no active FCM token stored.
 
 ## Notes
 
