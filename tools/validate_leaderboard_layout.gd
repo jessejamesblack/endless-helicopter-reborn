@@ -3,10 +3,50 @@ extends SceneTree
 const DEBUG_MENU_SCENE := preload("res://scenes/ui/debug/debug_menu.tscn")
 const LEADERBOARD_SCREEN_SCENE := preload("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
 const MAIN_SCENE := preload("res://scenes/game/main/main.tscn")
+const MISSION_SCREEN_SCENE := preload("res://scenes/ui/missions/mission_screen.tscn")
 const VIEWPORT_SIZES := [
 	Vector2i(1152, 648),
 	Vector2i(960, 540),
 ]
+const MISSION_SUMMARY := {
+	"completed": 0,
+	"total": 3,
+	"time_until_reset": "02h 17m until new missions",
+	"daily_streak": 0,
+	"next_unlock": {
+		"display_name": "Bubble Chopper",
+		"progress_text": "0 / 1",
+	},
+	"missions": [
+		{
+			"id": "daily_2026-04-18_survive_seconds_total",
+			"type": "survive_seconds_total",
+			"title": "Survive 90 Seconds",
+			"description": "Stay airborne for 90 total seconds today.",
+			"target": 90,
+			"progress": 0,
+			"completed": false,
+		},
+		{
+			"id": "daily_2026-04-18_missiles_fired",
+			"type": "missiles_fired",
+			"title": "Fire 12 Missiles",
+			"description": "Fire 12 missiles today.",
+			"target": 12,
+			"progress": 0,
+			"completed": false,
+		},
+		{
+			"id": "daily_2026-04-18_projectile_intercepts",
+			"type": "projectile_intercepts",
+			"title": "Intercept 2 Projectiles",
+			"description": "Knock down two enemy projectiles in one day.",
+			"target": 2,
+			"progress": 0,
+			"completed": false,
+		},
+	],
+}
 const RESULTS_SUMMARY := {
 	"score": 9876,
 	"best_score_before_run": 9999,
@@ -41,6 +81,7 @@ func _run_validation() -> void:
 		await _validate_results_mode(viewport_size)
 		await _validate_setup_mode(viewport_size)
 		await _validate_leaderboard_mode(viewport_size)
+		await _validate_mission_screen(viewport_size)
 		await _validate_debug_menu(viewport_size)
 		await _validate_main_hud(viewport_size)
 
@@ -59,8 +100,10 @@ func _validate_results_mode(viewport_size: Vector2i) -> void:
 	await process_frame
 	await process_frame
 	_assert_visible((screen.get("results_card") as Control).visible, "Results card should be visible in results mode at %s." % _format_viewport_size(viewport_size))
+	_assert_visible((screen.get("mission_card") as Control).visible, "Mission card should be visible in results mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("try_again_button") as Control).visible, "Try Again should be visible in results mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("results_button_row") as Control).visible, "Results actions should be visible in results mode at %s." % _format_viewport_size(viewport_size))
+	_assert_visible((screen.get("missions_button") as Control).visible, "Missions button should be visible in results mode at %s." % _format_viewport_size(viewport_size))
 	_assert_within_panel(screen, "results", viewport_size)
 	await _destroy_screen(screen)
 
@@ -97,6 +140,17 @@ func _validate_debug_menu(viewport_size: Vector2i) -> void:
 	_assert_visible(screen.visible, "Debug menu should be visible at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("close_button") as Control).visible, "Debug close button should be visible at %s." % _format_viewport_size(viewport_size))
 	_assert_within_panel(screen, "debug menu", viewport_size)
+	await _destroy_screen(screen)
+
+func _validate_mission_screen(viewport_size: Vector2i) -> void:
+	var screen: Control = await _create_mission_screen(viewport_size)
+	screen.call("apply_validation_state", MISSION_SUMMARY)
+	await process_frame
+	await process_frame
+	_assert_visible((screen.get("mission_scroll") as Control).visible, "Mission scroll should be visible at %s." % _format_viewport_size(viewport_size))
+	_assert_visible((screen.get("button_row") as Control).visible, "Mission buttons should be visible at %s." % _format_viewport_size(viewport_size))
+	_assert_visible((screen.get("reminder_button") as Control).visible, "Reminder button should be visible at %s." % _format_viewport_size(viewport_size))
+	_assert_within_panel(screen, "mission screen", viewport_size)
 	await _destroy_screen(screen)
 
 func _validate_main_hud(viewport_size: Vector2i) -> void:
@@ -140,6 +194,17 @@ func _create_debug_menu(viewport_size: Vector2i) -> Control:
 	root_window.size = viewport_size
 	await process_frame
 	var screen: Control = DEBUG_MENU_SCENE.instantiate() as Control
+	root_window.add_child(screen)
+	await process_frame
+	await process_frame
+	return screen
+
+func _create_mission_screen(viewport_size: Vector2i) -> Control:
+	var root_window := get_root()
+	root_window.size = viewport_size
+	await process_frame
+	var screen: Control = MISSION_SCREEN_SCENE.instantiate() as Control
+	screen.set("validation_mode_enabled", true)
 	root_window.add_child(screen)
 	await process_frame
 	await process_frame

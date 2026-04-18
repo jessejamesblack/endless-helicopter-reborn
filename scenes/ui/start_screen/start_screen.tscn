@@ -6,7 +6,15 @@
 [ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="4_sheet"]
 [ext_resource type="PackedScene" path="res://scenes/ui/debug/debug_menu.tscn" id="5_debug"]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_alien_drone_menu"]
+atlas = ExtResource("4_sheet")
+region = Rect2(1623, 1192, 206, 180)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
 bg_color = Color(0.0705882, 0.105882, 0.196078, 0.92)
 border_width_left = 2
 border_width_top = 2
@@ -19,30 +27,12 @@ corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 shadow_color = Color(0, 0, 0, 0.35)
 shadow_size = 5
-content_margin_left = 18.0
-content_margin_top = 10.0
-content_margin_right = 18.0
-content_margin_bottom = 10.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.105882, 0.156863, 0.27451, 0.96)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.560784, 0.807843, 0.988235, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-shadow_color = Color(0, 0, 0, 0.38)
-shadow_size = 6
-content_margin_left = 18.0
-content_margin_top = 10.0
-content_margin_right = 18.0
-content_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
 bg_color = Color(0.0392157, 0.0745098, 0.14902, 0.98)
 border_width_left = 2
 border_width_top = 3
@@ -55,14 +45,24 @@ corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 shadow_color = Color(0, 0, 0, 0.28)
 shadow_size = 3
-content_margin_left = 18.0
-content_margin_top = 12.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_alien_drone_menu"]
-atlas = ExtResource("4_sheet")
-region = Rect2(1623, 1192, 206, 180)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.105882, 0.156863, 0.27451, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.560784, 0.807843, 0.988235, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 6
 
 [node name="StartScreen" type="Control" unique_id=398106654]
 layout_mode = 3
@@ -84,7 +84,7 @@ texture = ExtResource("2_pevhg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="BottomRightDrone" type="TextureRect" parent="."]
+[node name="BottomRightDrone" type="TextureRect" parent="." unique_id=920930014]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -102,9 +102,9 @@ texture = SubResource("AtlasTexture_alien_drone_menu")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ScoresButton" type="Button" parent="."]
+[node name="ScoresButton" type="Button" parent="." unique_id=348735556]
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -156.0
@@ -114,61 +114,82 @@ offset_bottom = 72.0
 grow_horizontal = 0
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
-theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 20
-theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Scores"
 
-[node name="SettingsButton" type="Button" parent="."]
+[node name="MissionsButton" type="Button" parent="." unique_id=2017018536]
 layout_mode = 1
-anchors_preset = 0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -156.0
+offset_top = 84.0
+offset_right = -24.0
+offset_bottom = 132.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Missions"
+
+[node name="SettingsButton" type="Button" parent="." unique_id=557101392]
+layout_mode = 1
 offset_left = 24.0
 offset_top = 24.0
 offset_right = 168.0
 offset_bottom = 72.0
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
-theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 20
-theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Settings"
 
-[node name="DebugButton" type="Button" parent="."]
+[node name="DebugButton" type="Button" parent="." unique_id=207787035]
 visible = false
 layout_mode = 1
-anchors_preset = 0
 offset_left = 24.0
 offset_top = 84.0
 offset_right = 168.0
 offset_bottom = 132.0
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
-theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 18
-theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Debug Menu"
 
 [node name="PlayButton" type="Button" parent="." unique_id=16473461]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
@@ -181,17 +202,19 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
-theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 28
-theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Play Game"
 
-[node name="SettingsMenu" parent="." instance=ExtResource("3_settings")]
+[node name="SettingsMenu" parent="." unique_id=474490483 instance=ExtResource("3_settings")]
+layout_mode = 1
 
-[node name="DebugMenu" parent="." instance=ExtResource("5_debug")]
+[node name="DebugMenu" parent="." unique_id=1620292755 instance=ExtResource("5_debug")]
+layout_mode = 1

@@ -9,6 +9,8 @@ const SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const TABLE_NAME := "family_leaderboard"
 const NOTIFICATION_TABLE_NAME := "family_notifications"
 const PUSH_DEVICE_TABLE_NAME := "family_push_devices"
+const PLAYER_PROFILE_TABLE_NAME := "family_player_profiles"
+const DAILY_MISSION_PROGRESS_TABLE_NAME := "family_daily_mission_progress"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
 const MAX_NAME_LENGTH := 12
@@ -42,20 +44,53 @@ static func get_headers() -> PackedStringArray:
 	])
 
 static func get_fetch_url(limit: int = 10, offset: int = 0) -> String:
+	return get_fetch_url_with_mode(limit, offset, true)
+
+static func get_fetch_url_with_mode(limit: int = 10, offset: int = 0, include_expanded_fields: bool = true) -> String:
 	var encoded_family := FAMILY_ID.uri_encode()
-	return "%s/rest/v1/%s?select=player_id,name,score,created_at&family_id=eq.%s&order=score.desc,created_at.asc&limit=%d&offset=%d" % [
+	var select_fields := "player_id,name,score,created_at,updated_at"
+	if include_expanded_fields:
+		select_fields += ",equipped_skin_id,skill_score,near_misses,max_combo_multiplier,projectile_intercepts"
+	return "%s/rest/v1/%s?select=%s&family_id=eq.%s&order=score.desc,created_at.asc&limit=%d&offset=%d" % [
 		SUPABASE_URL,
 		TABLE_NAME,
+		select_fields,
 		encoded_family,
 		limit,
 		offset,
 	]
+
+static func get_legacy_fetch_url(limit: int = 10, offset: int = 0) -> String:
+	return get_fetch_url_with_mode(limit, offset, false)
+
+static func get_top_entry_url() -> String:
+	var encoded_family := FAMILY_ID.uri_encode()
+	return "%s/rest/v1/%s?select=player_id,name,score,created_at,updated_at&family_id=eq.%s&order=score.desc,created_at.asc&limit=1" % [
+		SUPABASE_URL,
+		TABLE_NAME,
+		encoded_family,
+	]
+
+static func get_submit_v2_url() -> String:
+	return "%s/rest/v1/rpc/submit_family_score_v2" % SUPABASE_URL
 
 static func get_submit_url() -> String:
 	return "%s/rest/v1/rpc/submit_family_score" % SUPABASE_URL
 
 static func get_legacy_submit_url() -> String:
 	return "%s/rest/v1/%s" % [SUPABASE_URL, TABLE_NAME]
+
+static func get_sync_player_profile_url() -> String:
+	return "%s/rest/v1/rpc/sync_player_profile" % SUPABASE_URL
+
+static func get_sync_daily_mission_progress_url() -> String:
+	return "%s/rest/v1/rpc/sync_daily_mission_progress" % SUPABASE_URL
+
+static func get_get_player_profile_url() -> String:
+	return "%s/rest/v1/rpc/get_player_profile" % SUPABASE_URL
+
+static func get_get_daily_mission_progress_url() -> String:
+	return "%s/rest/v1/rpc/get_daily_mission_progress" % SUPABASE_URL
 
 static func get_notifications_url(limit: int = 10) -> String:
 	var encoded_family := FAMILY_ID.uri_encode()
@@ -93,11 +128,16 @@ static func parse_entries(body: PackedByteArray) -> Array[Dictionary]:
 			if item is Dictionary:
 				entries.append({
 					"player_id": str(item.get("player_id", "")),
-					"name": str(item.get("name", "Player")).strip_edges(),
-					"score": int(item.get("score", 0)),
-					"created_at": str(item.get("created_at", "")),
-					"updated_at": str(item.get("updated_at", "")),
-				})
+				"name": str(item.get("name", "Player")).strip_edges(),
+				"score": int(item.get("score", 0)),
+				"created_at": str(item.get("created_at", "")),
+				"updated_at": str(item.get("updated_at", "")),
+				"equipped_skin_id": str(item.get("equipped_skin_id", "")),
+				"skill_score": int(item.get("skill_score", 0)),
+				"near_misses": int(item.get("near_misses", 0)),
+				"max_combo_multiplier": float(item.get("max_combo_multiplier", 1.0)),
+				"projectile_intercepts": int(item.get("projectile_intercepts", 0)),
+			})
 
 	return entries
 
@@ -137,6 +177,17 @@ static func make_submit_body(name: String, score: int) -> String:
 		"p_player_id": load_or_create_player_id(),
 		"p_name": safe_name,
 		"p_score": score,
+	})
+
+static func make_submit_v2_body(name: String, score: int, run_summary: Dictionary, equipped_skin_id: String) -> String:
+	var safe_name := sanitize_name(name)
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_player_id": load_or_create_player_id(),
+		"p_name": safe_name,
+		"p_score": score,
+		"p_run_summary": run_summary,
+		"p_equipped_skin_id": equipped_skin_id,
 	})
 
 static func make_legacy_submit_body(name: String, score: int) -> String:
@@ -197,7 +248,7 @@ static func make_mark_notifications_read_body() -> String:
 		"read_at": Time.get_datetime_string_from_system(true),
 	})
 
-static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "") -> String:
+static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "", daily_missions_enabled: bool = true) -> String:
 	var timestamp := Time.get_datetime_string_from_system(true)
 	return JSON.stringify({
 		"family_id": FAMILY_ID,
@@ -207,7 +258,45 @@ static func make_push_device_body(fcm_token: String, device_id: String, notifica
 		"platform": "android",
 		"device_label": device_label,
 		"notifications_enabled": notifications_enabled,
+		"daily_missions_enabled": daily_missions_enabled,
 		"last_seen_at": timestamp,
+	})
+
+static func make_sync_player_profile_body(profile_summary: Dictionary) -> String:
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_player_id": load_or_create_player_id(),
+		"p_name": load_cached_name(),
+		"p_equipped_skin_id": str(profile_summary.get("equipped_skin_id", "default_scout")),
+		"p_unlocked_skins": profile_summary.get("unlocked_skins", ["default_scout"]),
+		"p_total_daily_missions_completed": int(profile_summary.get("total_daily_missions_completed", 0)),
+		"p_daily_streak": int(profile_summary.get("daily_streak", 0)),
+		"p_last_completed_daily_date": str(profile_summary.get("last_completed_daily_date", "")),
+		"p_daily_reminders_enabled": bool(profile_summary.get("daily_reminders_enabled", false)),
+		"p_profile_summary": profile_summary,
+	})
+
+static func make_sync_daily_mission_progress_body(mission_summary: Dictionary) -> String:
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_player_id": load_or_create_player_id(),
+		"p_mission_date": str(mission_summary.get("mission_date", "")),
+		"p_missions": mission_summary.get("missions", []),
+		"p_completed_count": int(mission_summary.get("completed_count", 0)),
+		"p_total_count": int(mission_summary.get("total_count", 3)),
+	})
+
+static func make_get_player_profile_body() -> String:
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_player_id": load_or_create_player_id(),
+	})
+
+static func make_get_daily_mission_progress_body(mission_date: String) -> String:
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_player_id": load_or_create_player_id(),
+		"p_mission_date": mission_date,
 	})
 
 static func parse_submit_name(body: PackedByteArray) -> String:
@@ -215,22 +304,22 @@ static func parse_submit_name(body: PackedByteArray) -> String:
 	return sanitize_name(str(submit_result.get("name", "")))
 
 static func parse_submit_result(body: PackedByteArray) -> Dictionary:
-	var parsed = JSON.parse_string(body.get_string_from_utf8())
-	if parsed is Dictionary:
+	var parsed = _parse_json_dictionary(body)
+	if not parsed.is_empty():
 		return {
 			"name": sanitize_name(str(parsed.get("name", ""))),
 			"best_score": int(parsed.get("best_score", parsed.get("score", 0))),
 			"score_improved": bool(parsed.get("score_improved", true)),
+			"run_summary": parsed.get("run_summary", {}),
+			"equipped_skin_id": str(parsed.get("equipped_skin_id", "")),
 		}
-	if parsed is Array and not parsed.is_empty():
-		var first_entry = parsed[0]
-		if first_entry is Dictionary:
-			return {
-				"name": sanitize_name(str(first_entry.get("name", ""))),
-				"best_score": int(first_entry.get("best_score", first_entry.get("score", 0))),
-				"score_improved": bool(first_entry.get("score_improved", true)),
-			}
 	return {}
+
+static func parse_profile_sync_result(body: PackedByteArray) -> Dictionary:
+	return _parse_json_dictionary(body)
+
+static func parse_daily_mission_sync_result(body: PackedByteArray) -> Dictionary:
+	return _parse_json_dictionary(body)
 
 static func parse_api_error(body: PackedByteArray, fallback: String = "Request failed.") -> String:
 	var text := body.get_string_from_utf8().strip_edges()
@@ -264,6 +353,22 @@ static func should_fallback_to_legacy_submit(error_text: String) -> bool:
 		or normalized.contains("schema cache")
 		or normalized.contains("function")
 	)
+
+static func should_disable_rpc(error_text: String, rpc_name: String) -> bool:
+	var normalized := error_text.to_lower()
+	return normalized.contains(rpc_name.to_lower()) and (
+		normalized.contains("could not find the function")
+		or normalized.contains("schema cache")
+		or normalized.contains("function")
+	)
+
+static func should_fallback_to_legacy_fetch(error_text: String) -> bool:
+	var normalized := error_text.to_lower()
+	if not normalized.contains("family_leaderboard"):
+		return false
+	if normalized.contains("equipped_skin_id") or normalized.contains("skill_score") or normalized.contains("near_misses") or normalized.contains("max_combo_multiplier") or normalized.contains("projectile_intercepts"):
+		return true
+	return normalized.contains("column") and normalized.contains("does not exist")
 
 static func format_notifications(notifications: Array[Dictionary], limit: int = 2) -> String:
 	if notifications.is_empty():
@@ -317,6 +422,16 @@ static func _entry_sort_timestamp(entry: Dictionary) -> String:
 	if not updated_at.is_empty():
 		return updated_at
 	return str(entry.get("created_at", ""))
+
+static func _parse_json_dictionary(body: PackedByteArray) -> Dictionary:
+	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	if parsed is Dictionary:
+		return parsed
+	if parsed is Array and not parsed.is_empty():
+		var first_entry = parsed[0]
+		if first_entry is Dictionary:
+			return first_entry
+	return {}
 
 static func _remove_invalid_name_characters(name: String) -> String:
 	var cleaned := ""
