@@ -109,9 +109,12 @@ func enable_notifications() -> void:
 
 func get_diagnostics() -> Dictionary:
 	_refresh_plugin_reference()
-	var latest_token := ""
-	if _plugin != null and _plugin.has_method("getLatestToken"):
-		latest_token = str(_plugin.getLatestToken()).strip_edges()
+	var plugin_method_names := _get_plugin_method_names()
+	var plugin_property_names := _get_plugin_property_names()
+	var latest_token := _get_plugin_string_value(
+		PackedStringArray(["getLatestToken", "get_latest_token"]),
+		PackedStringArray(["latestToken", "latest_token"])
+	)
 	if latest_token.is_empty():
 		latest_token = _last_token_preview
 
@@ -119,10 +122,11 @@ func get_diagnostics() -> Dictionary:
 	if _plugin != null and _plugin.has_method("isPushSupported"):
 		firebase_ready = bool(_plugin.isPushSupported())
 
-	var bridge_supports_firebase_status := _plugin != null and _plugin.has_method("getFirebaseStatus")
-	var firebase_status := ""
-	if bridge_supports_firebase_status:
-		firebase_status = str(_plugin.getFirebaseStatus())
+	var bridge_supports_firebase_status := _plugin_supports_any_method(PackedStringArray(["getFirebaseStatus", "get_firebase_status"]))
+	var firebase_status := _get_plugin_string_value(
+		PackedStringArray(["getFirebaseStatus", "get_firebase_status"]),
+		PackedStringArray(["firebaseStatus", "firebase_status"])
+	)
 
 	var permission_granted := false
 	if _plugin != null and _plugin.has_method("hasNotificationPermission"):
@@ -133,6 +137,8 @@ func get_diagnostics() -> Dictionary:
 		"is_android": OS.get_name() == "Android",
 		"plugin_loaded": _plugin != null,
 		"bridge_supports_firebase_status": bridge_supports_firebase_status,
+		"plugin_method_names": plugin_method_names,
+		"plugin_property_names": plugin_property_names,
 		"firebase_ready": firebase_ready,
 		"firebase_status": firebase_status,
 		"permission_granted": permission_granted,
@@ -194,6 +200,8 @@ func get_debug_report() -> String:
 		"Last message: %s" % str(status["last_message"]),
 		"Last attempt at: %s" % str(status["last_attempt_at"]),
 		"Last registered at: %s" % str(status["last_registered_at"]),
+		"Plugin methods: %s" % ", ".join(PackedStringArray(status["plugin_method_names"])),
+		"Plugin properties: %s" % ", ".join(PackedStringArray(status["plugin_property_names"])),
 	])
 	return "\n".join(lines)
 
@@ -401,6 +409,79 @@ func _on_registration_retry_timeout() -> void:
 func _refresh_plugin_reference() -> void:
 	if _plugin == null and Engine.has_singleton(PLUGIN_SINGLETON):
 		_plugin = Engine.get_singleton(PLUGIN_SINGLETON)
+
+func _plugin_supports_any_method(names: PackedStringArray) -> bool:
+	if _plugin == null:
+		return false
+	for method_name in names:
+		if _plugin.has_method(method_name):
+			return true
+	return false
+
+func _get_plugin_method_names() -> PackedStringArray:
+	if _plugin == null:
+		return PackedStringArray()
+	if not _plugin.has_method("get_method_list"):
+		return PackedStringArray()
+
+	var interesting_names := PackedStringArray()
+	for item in _plugin.get_method_list():
+		if item is Dictionary:
+			var name := str(item.get("name", ""))
+			if name.is_empty():
+				continue
+			if (
+				name.contains("Push")
+				or name.contains("push")
+				or name.contains("Firebase")
+				or name.contains("firebase")
+				or name.contains("Token")
+				or name.contains("token")
+				or name.contains("Permission")
+				or name.contains("permission")
+			):
+				interesting_names.append(name)
+	return interesting_names
+
+func _get_plugin_property_names() -> PackedStringArray:
+	if _plugin == null:
+		return PackedStringArray()
+	if not _plugin.has_method("get_property_list"):
+		return PackedStringArray()
+
+	var interesting_names := PackedStringArray()
+	for item in _plugin.get_property_list():
+		if item is Dictionary:
+			var name := str(item.get("name", ""))
+			if name.is_empty():
+				continue
+			if (
+				name.contains("push")
+				or name.contains("Push")
+				or name.contains("firebase")
+				or name.contains("Firebase")
+				or name.contains("token")
+				or name.contains("Token")
+				or name.contains("permission")
+				or name.contains("Permission")
+			):
+				interesting_names.append(name)
+	return interesting_names
+
+func _get_plugin_string_value(method_names: PackedStringArray, property_names: PackedStringArray = PackedStringArray()) -> String:
+	if _plugin == null:
+		return ""
+
+	for method_name in method_names:
+		if _plugin.has_method(method_name):
+			return str(_plugin.call(method_name)).strip_edges()
+
+	for property_name in property_names:
+		var property_value = _plugin.get(property_name)
+		if property_value != null:
+			return str(property_value).strip_edges()
+
+	return ""
 
 func _emit_diagnostics() -> void:
 	diagnostics_changed.emit(get_diagnostics())
