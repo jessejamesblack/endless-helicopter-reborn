@@ -5,6 +5,10 @@
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/helicopter_loop.wav" id="3_i3pqv"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/player_missile_fire.wav" id="4_hqtel"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/missile_reload_retro.wav" id="5_sweqy"]
+[ext_resource type="Script" path="res://scenes/player/near_miss_detector.gd" id="6_near_miss"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_near_miss"]
+radius = 64.0
 
 [node name="Player" type="CharacterBody2D" unique_id=648755744]
 script = ExtResource("1_4flbx")
@@ -19,6 +23,16 @@ region_rect = Rect2(1169.1538, 181.79488, 705.4358, 311.79486)
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1226378589]
 position = Vector2(1, -2)
 polygon = PackedVector2Array(-42, -14, -32, -24, -10, -30, 18, -28, 42, -16, 56, -2, 48, 10, 28, 18, 2, 20, -22, 16, -38, 8, -50, -2)
+
+[node name="NearMissDetector" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitoring = true
+monitorable = false
+script = ExtResource("6_near_miss")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NearMissDetector"]
+shape = SubResource("CircleShape2D_near_miss")
 
 [node name="EngineSound" type="AudioStreamPlayer" parent="." unique_id=1712233997]
 stream = ExtResource("3_i3pqv")

@@ -109,6 +109,16 @@ func _record_boundary_bounce() -> void:
     var run_stats := get_node_or_null("/root/RunStats")
     if run_stats != null and run_stats.has_method("record_boundary_bounce"):
         run_stats.record_boundary_bounce()
+    _record_boundary_recovery_feedback()
+
+func _record_boundary_recovery_feedback() -> void:
+    var main := get_tree().current_scene
+    if main != null and main.has_method("record_boundary_recovery_feedback"):
+        main.record_boundary_recovery_feedback(global_position)
+
+    var game_settings = get_node_or_null("/root/GameSettings")
+    if game_settings != null and game_settings.has_method("vibrate"):
+        game_settings.vibrate(20)
 
 func _setup_engine_audio() -> void:
     if engine_sound == null or engine_sound.stream == null:

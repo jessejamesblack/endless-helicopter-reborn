@@ -28,10 +28,10 @@ corner_radius_top_left = 14
 corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
 bg_color = Color(0.0705882, 0.105882, 0.196078, 0.95)
@@ -139,13 +139,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 14
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -179,112 +179,202 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="ResultsVBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="BestScoreLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "Local Best: 0"
 horizontal_alignment = 1
 
 [node name="DeltaLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"]
-custom_minimum_size = Vector2(0, 24)
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 16
 text = "Matched your local best"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="StatsGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"]
+[node name="ResultsColumns" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="RunStatsColumn" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="RunStatsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 15
+text = "Run Stats"
+horizontal_alignment = 1
+
+[node name="StatsGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn"]
 layout_mode = 2
 columns = 2
 theme_override_constants/h_separation = 14
-theme_override_constants/v_separation = 6
+theme_override_constants/v_separation = 4
 
-[node name="TimeLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="TimeLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "Time Survived"
 
-[node name="TimeValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="TimeValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "0.0s"
 horizontal_alignment = 2
 
-[node name="MissilesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="MissilesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "Missiles Fired"
 
-[node name="MissilesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="MissilesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "0"
 horizontal_alignment = 2
 
-[node name="HostilesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="HostilesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "Hostiles Destroyed"
 
-[node name="HostilesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="HostilesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "0"
 horizontal_alignment = 2
 
-[node name="PickupsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="PickupsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "Ammo Pickups"
 
-[node name="PickupsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="PickupsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "0"
 horizontal_alignment = 2
 
-[node name="GlowingClearsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="GlowingClearsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "Glowing Clears"
 
-[node name="GlowingClearsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="GlowingClearsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "0"
 horizontal_alignment = 2
 
-[node name="BoundaryRecoveriesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="BoundaryRecoveriesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "Boundary Recoveries"
 
-[node name="BoundaryRecoveriesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/StatsGrid"]
+[node name="BoundaryRecoveriesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/RunStatsColumn/StatsGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
+text = "0"
+horizontal_alignment = 2
+
+[node name="SkillStatsColumn" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="SkillStatsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 15
+text = "Skill Stats"
+horizontal_alignment = 1
+
+[node name="SkillStatsGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 2
+
+[node name="NearMissesLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 15
+text = "Near Misses"
+
+[node name="NearMissesValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+horizontal_alignment = 2
+
+[node name="MaxComboLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 15
+text = "Max Combo"
+
+[node name="MaxComboValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_font_sizes/font_size = 17
+text = "x1.00"
+horizontal_alignment = 2
+
+[node name="InterceptsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 15
+text = "Intercepts"
+
+[node name="InterceptsValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+horizontal_alignment = 2
+
+[node name="SkillScoreLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 15
+text = "Skill Score"
+
+[node name="SkillScoreValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/ResultsColumns/SkillStatsColumn/SkillStatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_font_sizes/font_size = 17
 text = "0"
 horizontal_alignment = 2
 
 [node name="TryAgainButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
@@ -292,7 +382,7 @@ theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
@@ -304,7 +394,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="LeaderboardButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ResultsButtonRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -313,7 +403,7 @@ theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
@@ -321,7 +411,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Leaderboard"
 
 [node name="MenuButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ResultsButtonRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -330,7 +420,7 @@ theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")

@@ -115,11 +115,6 @@ func _on_body_entered(body: Node2D) -> void:
 		queue_free()
 
 func destroy(_skip_special: bool = false, caused_by_player: bool = false) -> void:
-	if caused_by_player:
-		var run_stats := get_node_or_null("/root/RunStats")
-		if run_stats != null and run_stats.has_method("record_hostile_destroyed"):
-			run_stats.record_hostile_destroyed()
-
 	var explosion = explosion_scene.instantiate()
 	explosion.global_position = global_position
 	if explosion.has_method("configure"):
