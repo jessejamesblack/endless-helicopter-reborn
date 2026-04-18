@@ -168,11 +168,16 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player" and body.has_method("die"):
 		body.die()
 
-func destroy(skip_special: bool = false) -> void:
+func destroy(skip_special: bool = false, caused_by_player: bool = false) -> void:
+	if caused_by_player:
+		var run_stats := get_node_or_null("/root/RunStats")
+		if run_stats != null and run_stats.has_method("record_hostile_destroyed"):
+			run_stats.record_hostile_destroyed()
+
 	if _resolve_enemy_kind(enemy_kind) == "glowing_rock" and not skip_special:
 		var main := get_tree().current_scene
 		if main != null and main.has_method("trigger_glowing_rock_blast"):
-			main.trigger_glowing_rock_blast(global_position, self)
+			main.trigger_glowing_rock_blast(global_position, self, caused_by_player)
 			return
 
 	_spawn_explosion()

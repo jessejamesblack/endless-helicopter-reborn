@@ -62,6 +62,9 @@ func fire_missile() -> void:
         missile.global_position = global_position + spawn_offset
         missile.rotation = sprite.rotation
         get_tree().current_scene.add_child(missile)
+        var run_stats := get_node_or_null("/root/RunStats")
+        if run_stats != null and run_stats.has_method("record_missile_fired"):
+            run_stats.record_missile_fired()
         
         if has_node("MissileFireSound"):
             $MissileFireSound.play()
@@ -89,6 +92,7 @@ func _apply_boundary_bounce() -> void:
         if _boundary_recovery_timer <= 0.0:
             velocity.y = boundary_bounce_down_speed
             _boundary_recovery_timer = boundary_recovery_seconds
+            _record_boundary_bounce()
         elif velocity.y < 0.0:
             velocity.y = 0.0
 
@@ -97,8 +101,14 @@ func _apply_boundary_bounce() -> void:
         if _boundary_recovery_timer <= 0.0:
             velocity.y = -boundary_bounce_up_speed
             _boundary_recovery_timer = boundary_recovery_seconds
+            _record_boundary_bounce()
         elif velocity.y > 0.0:
             velocity.y = 0.0
+
+func _record_boundary_bounce() -> void:
+    var run_stats := get_node_or_null("/root/RunStats")
+    if run_stats != null and run_stats.has_method("record_boundary_bounce"):
+        run_stats.record_boundary_bounce()
 
 func _setup_engine_audio() -> void:
     if engine_sound == null or engine_sound.stream == null:

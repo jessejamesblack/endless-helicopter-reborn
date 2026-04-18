@@ -25,6 +25,10 @@ var _screen_flash_tween: Tween
 @onready var screen_flash: ColorRect = $UI/ScreenFlash
 
 func _ready() -> void:
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("start_run"):
+        run_stats.start_run()
+
     var music_player = get_node_or_null("/root/MusicPlayer")
     if music_player != null and music_player.has_method("play_gameplay_music"):
         music_player.play_gameplay_music()
@@ -55,6 +59,10 @@ func _process(delta: float) -> void:
     if is_crashed or is_transitioning_to_game_over or get_tree().paused:
         return
     
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_survival_time"):
+        run_stats.record_survival_time(delta)
+
     # Increase score continuously based on time survived
     score += delta * 10.0
     _update_score_ui()
@@ -82,13 +90,15 @@ func trigger_crash(crash_pos: Vector2) -> void:
     
     spawn_explosion(crash_pos, true)
     
-    # Wait for 1.5 seconds to let the explosion finish
-    await get_tree().create_timer(1.5, true).timeout
+    # Keep the explosion readable, but move to results quickly.
+    await get_tree().create_timer(0.5, true).timeout
     game_over()
 
 func game_over() -> void:
     _clear_pause_state()
-    get_tree().set_meta("last_run_score", int(score))
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("complete_run"):
+        run_stats.complete_run(int(score))
     var error := get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
     if error != OK:
         push_error("Could not change to leaderboard screen after death. Error code: %d" % error)
@@ -105,9 +115,14 @@ func spawn_configured_explosion(at_position: Vector2, is_large: bool = false, is
     add_child(explosion)
     return explosion
 
-func trigger_glowing_rock_blast(blast_pos: Vector2, source: Node = null) -> void:
+func trigger_glowing_rock_blast(blast_pos: Vector2, source: Node = null, caused_by_player: bool = false) -> void:
     if is_crashed:
         return
+
+    if caused_by_player:
+        var run_stats := _get_run_stats()
+        if run_stats != null and run_stats.has_method("record_glowing_rock_clear"):
+            run_stats.record_glowing_rock_clear()
 
     spawn_configured_explosion(blast_pos, true, true)
     _play_screen_flash_pulses()
@@ -118,12 +133,12 @@ func trigger_glowing_rock_blast(blast_pos: Vector2, source: Node = null) -> void
     if is_instance_valid(source):
         source.queue_free()
 
-func _destroy_group_members(group_name: String, exclude: Node = null) -> void:
+func _destroy_group_members(group_name: String, exclude: Node = null, caused_by_player: bool = false) -> void:
     for member in get_tree().get_nodes_in_group(group_name):
         if member == exclude or not is_instance_valid(member):
             continue
         if member.has_method("destroy"):
-            member.destroy(true)
+            member.destroy(true, caused_by_player)
         else:
             member.queue_free()
 
@@ -185,6 +200,10 @@ func _resume_game() -> void:
         pause_menu.close_menu()
 
 func _quit_to_menu() -> void:
+    if not is_crashed:
+        var run_stats := _get_run_stats()
+        if run_stats != null and run_stats.has_method("cancel_run"):
+            run_stats.cancel_run()
     _clear_pause_state()
     get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
 
@@ -254,3 +273,6 @@ func _position_panel(panel: Control, rect: Rect2, is_left_side: bool) -> void:
 
 func _get_game_settings():
     return get_node_or_null("/root/GameSettings")
+
+func _get_run_stats() -> Node:
+    return get_node_or_null("/root/RunStats")
