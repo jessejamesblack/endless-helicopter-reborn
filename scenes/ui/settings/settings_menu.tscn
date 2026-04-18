@@ -133,119 +133,134 @@ theme_override_font_sizes/font_size = 17
 text = "Adjust music, sound, control layout, and mobile feedback."
 horizontal_alignment = 1
 
-[node name="ContentScroll" type="ScrollContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 220)
+[node name="ContentColumns" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 18
 
-[node name="SettingsCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll"]
+[node name="AudioCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_settings_card")
 
-[node name="SettingsColumns" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard"]
-layout_mode = 2
-theme_override_constants/separation = 22
-
-[node name="AudioColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns"]
+[node name="AudioColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="MasterRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn"]
+[node name="AudioHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 22
+text = "Audio"
+
+[node name="MasterRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MasterLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow"]
+[node name="MasterLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MasterRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 20
 text = "Master Volume"
 
-[node name="MasterValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow"]
+[node name="MasterValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MasterRow"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MasterSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow"]
+[node name="MasterSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MasterRow/MasterValueRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 value = 1.0
 
-[node name="MasterValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow"]
+[node name="MasterValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MasterRow/MasterValueRow"]
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 text = "100%"
 
-[node name="MusicRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn"]
+[node name="MusicRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MusicLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow"]
+[node name="MusicLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MusicRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 20
 text = "Music Volume"
 
-[node name="MusicValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow"]
+[node name="MusicValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MusicRow"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MusicSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow"]
+[node name="MusicSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MusicRow/MusicValueRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 value = 0.85
 
-[node name="MusicValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow"]
+[node name="MusicValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MusicRow/MusicValueRow"]
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 text = "85%"
 
-[node name="SfxRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn"]
+[node name="SfxRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SfxLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow"]
+[node name="SfxLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/SfxRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 20
 text = "SFX Volume"
 
-[node name="SfxValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow"]
+[node name="SfxValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/SfxRow"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="SfxSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow"]
+[node name="SfxSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/SfxRow/SfxValueRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 value = 1.0
 
-[node name="SfxValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow"]
+[node name="SfxValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/SfxRow/SfxValueRow"]
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 text = "100%"
 
-[node name="SystemColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns"]
+[node name="SystemCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_settings_card")
+
+[node name="SystemColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="FireSideRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn"]
+[node name="SystemHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 22
+text = "Controls & Push"
+
+[node name="FireSideRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="FireSideLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/FireSideRow"]
+[node name="FireSideLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FireSideRow"]
 custom_minimum_size = Vector2(156, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -253,28 +268,34 @@ theme_override_font_sizes/font_size = 20
 text = "Fire Button Side"
 vertical_alignment = 1
 
-[node name="FireSideOption" type="OptionButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/FireSideRow"]
+[node name="FireSideOption" type="OptionButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FireSideRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HudSideValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn"]
+[node name="HudSideValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 17
 text = "HUD mirrors to: Left"
 
-[node name="HapticsToggle" type="CheckButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn"]
+[node name="HapticsToggle" type="CheckButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 20
 text = "Enable Haptics"
 button_pressed = true
 
-[node name="PushSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn"]
+[node name="PushSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="PushStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/PushSection"]
-custom_minimum_size = Vector2(0, 54)
+[node name="PushSectionHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Notifications"
+
+[node name="PushStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection"]
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 text = "Push unavailable here: Android APK only."
@@ -282,7 +303,7 @@ horizontal_alignment = 0
 vertical_alignment = 0
 autowrap_mode = 2
 
-[node name="EnablePushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/PushSection"]
+[node name="EnablePushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)

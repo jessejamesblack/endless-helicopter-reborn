@@ -4,22 +4,28 @@ signal closed
 
 const SIDE_LEFT := "left"
 const SIDE_RIGHT := "right"
-const PANEL_DESIRED_SIZE := Vector2(680.0, 496.0)
-const PANEL_MARGIN := 24.0
+const PANEL_DESIRED_SIZE := Vector2(920.0, 560.0)
+const PANEL_MARGIN := 18.0
 
 @onready var panel: Panel = $Overlay/Panel
-@onready var content_scroll: ScrollContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll
-@onready var master_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterSlider
-@onready var master_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterValueLabel
-@onready var music_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicSlider
-@onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicValueLabel
-@onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxSlider
-@onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxValueLabel
-@onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/FireSideRow/FireSideOption
-@onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/HudSideValueLabel
-@onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/HapticsToggle
-@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/PushSection/PushStatusLabel
-@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/PushSection/EnablePushButton
+@onready var title_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/TitleLabel
+@onready var subtitle_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SubtitleLabel
+@onready var content_columns: HBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns
+@onready var audio_card: PanelContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard
+@onready var audio_column: VBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn
+@onready var master_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MasterRow/MasterValueRow/MasterSlider
+@onready var master_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MasterRow/MasterValueRow/MasterValueLabel
+@onready var music_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MusicRow/MusicValueRow/MusicSlider
+@onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/MusicRow/MusicValueRow/MusicValueLabel
+@onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/SfxRow/SfxValueRow/SfxSlider
+@onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/AudioCard/AudioColumn/SfxRow/SfxValueRow/SfxValueLabel
+@onready var system_card: PanelContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard
+@onready var system_column: VBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn
+@onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FireSideRow/FireSideOption
+@onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HudSideValueLabel
+@onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsToggle
+@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/PushStatusLabel
+@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/EnablePushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 
 func _ready() -> void:
@@ -48,7 +54,6 @@ func _ready() -> void:
 func open_menu() -> void:
 	_fit_panel_to_viewport()
 	_sync_from_settings()
-	content_scroll.scroll_vertical = 0
 	visible = true
 	close_button.grab_focus()
 
@@ -178,3 +183,15 @@ func _fit_panel_to_viewport() -> void:
 	panel.offset_top = -target_size.y * 0.5
 	panel.offset_right = target_size.x * 0.5
 	panel.offset_bottom = target_size.y * 0.5
+	_apply_modal_density(target_size)
+
+func _apply_modal_density(target_size: Vector2) -> void:
+	var compact := target_size.x < 860.0 or target_size.y < 540.0
+	title_label.add_theme_font_size_override("font_size", 28 if compact else 32)
+	subtitle_label.add_theme_font_size_override("font_size", 15 if compact else 17)
+	content_columns.add_theme_constant_override("separation", 14 if compact else 18)
+	audio_column.add_theme_constant_override("separation", 12 if compact else 14)
+	system_column.add_theme_constant_override("separation", 12 if compact else 14)
+	audio_card.custom_minimum_size = Vector2(0.0, 0.0)
+	system_card.custom_minimum_size = Vector2(0.0, 0.0)
+	close_button.custom_minimum_size = Vector2(180.0, 48.0 if compact else 52.0)
