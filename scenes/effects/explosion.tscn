@@ -4,10 +4,24 @@
 [ext_resource type="Script" uid="uid://dqa6ds0py3y2w" path="res://scenes/effects/explosion.gd" id="2_script"]
 [ext_resource type="AudioStream" uid="uid://4sbbu6gmbp2r" path="res://assets/audio/sfx/death.wav" id="3_j4sxf"]
 
-[node name="Explosion" type="Sprite2D" unique_id=1554996589]
-texture = ExtResource("1_tex")
-region_enabled = true
+[node name="Explosion" type="Node2D" unique_id=1554996589]
 script = ExtResource("2_script")
+
+[node name="Shockwave" type="Sprite2D" parent="." unique_id=32010410]
+modulate = Color(1, 0.952941, 0.760784, 0)
+texture = ExtResource("1_tex")
+
+[node name="OuterBurst" type="Sprite2D" parent="." unique_id=388417101]
+modulate = Color(1, 0.733333, 0.356863, 1)
+texture = ExtResource("1_tex")
+
+[node name="InnerBurst" type="Sprite2D" parent="." unique_id=195822035]
+modulate = Color(1, 0.972549, 0.796078, 0.94)
+texture = ExtResource("1_tex")
+
+[node name="CoreFlash" type="Sprite2D" parent="." unique_id=647211843]
+modulate = Color(1, 0.996078, 0.917647, 0)
+texture = ExtResource("1_tex")
 
 [node name="DeathSound" type="AudioStreamPlayer" parent="." unique_id=1835431304]
 stream = ExtResource("3_j4sxf")

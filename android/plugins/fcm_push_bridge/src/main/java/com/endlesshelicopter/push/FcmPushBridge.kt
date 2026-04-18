@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import org.godotengine.godot.Godot
 import org.godotengine.godot.plugin.GodotPlugin
@@ -27,6 +28,9 @@ class FcmPushBridge(godot: Godot) : GodotPlugin(godot) {
 
         @Volatile
         private var activeInstance: FcmPushBridge? = null
+
+        @Volatile
+        private var lastFirebaseStatus: String = "Firebase has not been checked yet."
 
         fun storeToken(context: Context, token: String) {
             val prefs = preferences(context)
@@ -74,6 +78,12 @@ class FcmPushBridge(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun isPushSupported(): Boolean = isFirebaseConfigured()
+
+    @UsedByGodot
+    fun getFirebaseStatus(): String {
+        isFirebaseConfigured()
+        return lastFirebaseStatus
+    }
 
     @UsedByGodot
     fun hasNotificationPermission(): Boolean {
@@ -182,13 +192,63 @@ class FcmPushBridge(godot: Godot) : GodotPlugin(godot) {
     }
 
     private fun ensureFirebaseInitialized(context: Context): Boolean {
-        return try {
+        try {
             if (FirebaseApp.getApps(context).isEmpty()) {
                 FirebaseApp.initializeApp(context)
             }
-            FirebaseApp.getApps(context).isNotEmpty()
+            if (FirebaseApp.getApps(context).isNotEmpty()) {
+                lastFirebaseStatus = "Firebase initialized from Android resources."
+                return true
+            }
         } catch (_error: Throwable) {
+            lastFirebaseStatus = "Firebase automatic initialization failed: ${_error.message.orEmpty()}"
+        }
+
+        return initializeFirebaseFromResources(context)
+    }
+
+    private fun initializeFirebaseFromResources(context: Context): Boolean {
+        return try {
+            val appId = resourceString(context, "google_app_id")
+            val senderId = resourceString(context, "gcm_defaultSenderId")
+            val apiKey = resourceString(context, "google_api_key")
+            val projectId = resourceString(context, "project_id")
+            val storageBucket = resourceString(context, "google_storage_bucket")
+
+            if (appId.isBlank() || senderId.isBlank() || apiKey.isBlank() || projectId.isBlank()) {
+                lastFirebaseStatus = "Firebase resources missing. appId=${appId.isNotBlank()} senderId=${senderId.isNotBlank()} apiKey=${apiKey.isNotBlank()} projectId=${projectId.isNotBlank()}"
+                return false
+            }
+
+            val optionsBuilder = FirebaseOptions.Builder()
+                .setApplicationId(appId)
+                .setGcmSenderId(senderId)
+                .setApiKey(apiKey)
+                .setProjectId(projectId)
+
+            if (storageBucket.isNotBlank()) {
+                optionsBuilder.setStorageBucket(storageBucket)
+            }
+
+            FirebaseApp.initializeApp(context, optionsBuilder.build())
+            val initialized = FirebaseApp.getApps(context).isNotEmpty()
+            lastFirebaseStatus = if (initialized) {
+                "Firebase initialized from embedded config."
+            } else {
+                "Firebase initialization returned no app instance."
+            }
+            initialized
+        } catch (_error: Throwable) {
+            lastFirebaseStatus = "Firebase manual initialization failed: ${_error.javaClass.simpleName}: ${_error.message.orEmpty()}"
             false
         }
+    }
+
+    private fun resourceString(context: Context, name: String): String {
+        val resourceId = context.resources.getIdentifier(name, "string", context.packageName)
+        if (resourceId == 0) {
+            return ""
+        }
+        return context.getString(resourceId)
     }
 }

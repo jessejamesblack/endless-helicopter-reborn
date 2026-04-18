@@ -96,9 +96,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -290.0
-offset_top = -250.0
+offset_top = -292.0
 offset_right = 290.0
-offset_bottom = 250.0
+offset_bottom = 292.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_settings_panel")
@@ -140,7 +140,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_settings_card")
 
 [node name="SettingsVBox" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 14
 
 [node name="MasterRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox"]
 layout_mode = 2
@@ -225,6 +225,30 @@ theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 20
 text = "Enable Haptics"
 button_pressed = true
+
+[node name="PushStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Push unavailable here: Android APK only."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="EnablePushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Enable Notifications"
 
 [node name="ButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
