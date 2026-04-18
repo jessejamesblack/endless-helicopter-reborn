@@ -106,6 +106,28 @@ class FcmPushBridge(godot: Godot) : GodotPlugin(godot) {
     }
 
     @UsedByGodot
+    fun getStablePlayerId(): String {
+        FcmPushBridgeCore.rememberActivity(activity)
+        val context = activity?.applicationContext
+        return if (context != null) {
+            FcmPushBridgeCore.getStablePlayerId(context)
+        } else {
+            FcmPushBridgeCore.getStablePlayerId()
+        }
+    }
+
+    @UsedByGodot
+    fun getStableDeviceId(): String {
+        FcmPushBridgeCore.rememberActivity(activity)
+        val context = activity?.applicationContext
+        return if (context != null) {
+            FcmPushBridgeCore.getStableDeviceId(context)
+        } else {
+            FcmPushBridgeCore.getStableDeviceId()
+        }
+    }
+
+    @UsedByGodot
     fun consumeLaunchPayload(): String {
         val currentActivity = activity ?: return ""
         FcmPushBridgeCore.rememberActivity(currentActivity)

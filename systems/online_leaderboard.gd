@@ -1,6 +1,8 @@
 class_name OnlineLeaderboard
 extends RefCounted
 
+const AndroidIdentityScript = preload("res://systems/android_identity.gd")
+
 # Fill these in after creating your Supabase project.
 const SUPABASE_URL := "https://lxvniafwjlwatbiblwyi.supabase.co"
 const SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4dm5pYWZ3amx3YXRiaWJsd3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTQ1MjMsImV4cCI6MjA5MTc5MDUyM30.FzM4zxKx3yVyxvM1hbRFdAcNxrW3x9t6zerDEsDK42w"
@@ -9,7 +11,6 @@ const NOTIFICATION_TABLE_NAME := "family_notifications"
 const PUSH_DEVICE_TABLE_NAME := "family_push_devices"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
-const PLAYER_ID_CACHE_PATH := "user://player_id.save"
 const MAX_NAME_LENGTH := 12
 const BLOCKED_TERMS := [
 	"asshole",
@@ -51,6 +52,9 @@ static func get_fetch_url(limit: int = 10, offset: int = 0) -> String:
 	]
 
 static func get_submit_url() -> String:
+	return "%s/rest/v1/rpc/submit_family_score" % SUPABASE_URL
+
+static func get_legacy_submit_url() -> String:
 	return "%s/rest/v1/%s" % [SUPABASE_URL, TABLE_NAME]
 
 static func get_notifications_url(limit: int = 10) -> String:
@@ -92,6 +96,7 @@ static func parse_entries(body: PackedByteArray) -> Array[Dictionary]:
 					"name": str(item.get("name", "Player")).strip_edges(),
 					"score": int(item.get("score", 0)),
 					"created_at": str(item.get("created_at", "")),
+					"updated_at": str(item.get("updated_at", "")),
 				})
 
 	return entries
@@ -126,6 +131,15 @@ static func format_entries(entries: Array[Dictionary], limit: int = 5) -> String
 	return "\n".join(lines)
 
 static func make_submit_body(name: String, score: int) -> String:
+	var safe_name := sanitize_name(name)
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_player_id": load_or_create_player_id(),
+		"p_name": safe_name,
+		"p_score": score,
+	})
+
+static func make_legacy_submit_body(name: String, score: int) -> String:
 	var safe_name := sanitize_name(name)
 	return JSON.stringify({
 		"family_id": FAMILY_ID,
@@ -173,18 +187,10 @@ static func has_saved_profile() -> bool:
 	return not load_cached_name().is_empty()
 
 static func load_or_create_player_id() -> String:
-	if FileAccess.file_exists(PLAYER_ID_CACHE_PATH):
-		var existing_file := FileAccess.open(PLAYER_ID_CACHE_PATH, FileAccess.READ)
-		if existing_file != null:
-			var existing_id := existing_file.get_as_text().strip_edges()
-			if not existing_id.is_empty():
-				return existing_id
+	return AndroidIdentityScript.load_or_create_player_id()
 
-	var new_id := _generate_player_id()
-	var file := FileAccess.open(PLAYER_ID_CACHE_PATH, FileAccess.WRITE)
-	if file != null:
-		file.store_string(new_id)
-	return new_id
+static func get_player_identity_source() -> String:
+	return AndroidIdentityScript.get_player_identity_source()
 
 static func make_mark_notifications_read_body() -> String:
 	return JSON.stringify({
@@ -205,12 +211,26 @@ static func make_push_device_body(fcm_token: String, device_id: String, notifica
 	})
 
 static func parse_submit_name(body: PackedByteArray) -> String:
+	var submit_result := parse_submit_result(body)
+	return sanitize_name(str(submit_result.get("name", "")))
+
+static func parse_submit_result(body: PackedByteArray) -> Dictionary:
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	if parsed is Dictionary:
+		return {
+			"name": sanitize_name(str(parsed.get("name", ""))),
+			"best_score": int(parsed.get("best_score", parsed.get("score", 0))),
+			"score_improved": bool(parsed.get("score_improved", true)),
+		}
 	if parsed is Array and not parsed.is_empty():
 		var first_entry = parsed[0]
 		if first_entry is Dictionary:
-			return sanitize_name(str(first_entry.get("name", "")))
-	return ""
+			return {
+				"name": sanitize_name(str(first_entry.get("name", ""))),
+				"best_score": int(first_entry.get("best_score", first_entry.get("score", 0))),
+				"score_improved": bool(first_entry.get("score_improved", true)),
+			}
+	return {}
 
 static func parse_api_error(body: PackedByteArray, fallback: String = "Request failed.") -> String:
 	var text := body.get_string_from_utf8().strip_edges()
@@ -236,6 +256,14 @@ static func parse_api_error(body: PackedByteArray, fallback: String = "Request f
 			return error_text
 
 	return text
+
+static func should_fallback_to_legacy_submit(error_text: String) -> bool:
+	var normalized := error_text.to_lower()
+	return normalized.contains("submit_family_score") and (
+		normalized.contains("could not find the function")
+		or normalized.contains("schema cache")
+		or normalized.contains("function")
+	)
 
 static func format_notifications(notifications: Array[Dictionary], limit: int = 2) -> String:
 	if notifications.is_empty():
@@ -269,7 +297,7 @@ static func get_best_entries(entries: Array[Dictionary]) -> Array[Dictionary]:
 			best_by_player[key] = entry
 			continue
 
-		if int(entry.get("score", 0)) == int(existing.get("score", 0)) and str(entry.get("created_at", "")) < str(existing.get("created_at", "")):
+		if int(entry.get("score", 0)) == int(existing.get("score", 0)) and _entry_sort_timestamp(entry) < _entry_sort_timestamp(existing):
 			best_by_player[key] = entry
 
 	var best_entries: Array[Dictionary] = []
@@ -278,11 +306,17 @@ static func get_best_entries(entries: Array[Dictionary]) -> Array[Dictionary]:
 
 	best_entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if int(a.get("score", 0)) == int(b.get("score", 0)):
-			return str(a.get("created_at", "")) < str(b.get("created_at", ""))
+			return _entry_sort_timestamp(a) < _entry_sort_timestamp(b)
 		return int(a.get("score", 0)) > int(b.get("score", 0))
 	)
 
 	return best_entries
+
+static func _entry_sort_timestamp(entry: Dictionary) -> String:
+	var updated_at := str(entry.get("updated_at", "")).strip_edges()
+	if not updated_at.is_empty():
+		return updated_at
+	return str(entry.get("created_at", ""))
 
 static func _remove_invalid_name_characters(name: String) -> String:
 	var cleaned := ""
@@ -306,12 +340,3 @@ static func _normalize_for_filter(name: String) -> String:
 		if is_lower or is_number:
 			normalized += character
 	return normalized
-
-static func _generate_player_id() -> String:
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var parts := [
-		"%08x" % int(Time.get_unix_time_from_system()),
-		"%08x" % rng.randi(),
-	]
-	return "-".join(parts)

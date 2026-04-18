@@ -44,6 +44,12 @@ Without that policy, new score submissions can fail with:
 
 `new row violates row-level security policy for the table "family_notifications"`
 
+If your project already used the older append-only leaderboard rows, also run:
+
+`backend/supabase_migrate_leaderboard_to_best_scores.sql`
+
+That migrates the leaderboard to one stored best score per player and installs the new best-score submit function.
+
 ## 2. Create A Firebase Project
 
 1. Open the Firebase console.
@@ -168,6 +174,8 @@ In practice, this means:
 - `Compat bridge available: yes` is the stronger signal that the APK contains the current push bridge implementation
 - `Android runtime available: yes` means Godot exposed Android runtime objects directly to GDScript for this session
 - push can still work even if `Android runtime available` is `no`, because the compat bridge also keeps its own cached context fallback
+- fresh Android installs now derive both `player_id` and `device_id` from a hashed Android-backed stable id, so reinstalls on the same signed app keep push and leaderboard identity aligned
+- existing installs keep any cached local ids they already had; this stabilizes identity going forward, but it does not migrate old server-side player ids automatically
 
 ## 8. Export Or Download The APK
 
@@ -198,6 +206,8 @@ For first-pass verification on a single device, open the in-game debug or settin
 
 - `Plugin loaded: yes`
 - `Compat bridge available: yes`
+- `Player identity source: android_stable` on a fresh Android install
+- `Device identity source: android_stable` on a fresh Android install
 - `Bridge diagnostics available: yes`
 - `Firebase ready: yes`
 - `Permission granted: yes`
@@ -207,6 +217,12 @@ For first-pass verification on a single device, open the in-game debug or settin
 ## Troubleshooting
 
 Open the in-game `Settings` screen to see the current push diagnostic message. It reports whether the Android plugin loaded, Firebase config is present, notification permission is granted, an FCM token exists, and the Supabase registration request succeeded.
+
+The debug panel now also shows `Player identity source` and `Device identity source`:
+
+- `android_stable`: a fresh Android install is using the hashed Android-backed identity path
+- `legacy_cache`: this install is still using an older cached random id from before the stable-id rollout
+- `local_fallback`: the app could not resolve an Android-stable id and fell back to a local random id
 
 If `family_push_delivery_log.device_id` and `family_push_delivery_log.fcm_token` are `NULL`, the backend did run, but there were no registered devices for the target player. Check `family_push_devices` next:
 
@@ -238,6 +254,7 @@ Common causes:
 
 ## Notes
 
+- The leaderboard now stores only each player's current best score, not every historical run.
 - The game still keeps in-app notification history in `family_notifications`.
 - Push delivery is additive. If permission is denied, the leaderboard still works.
 - Device registrations are stored in `family_push_devices`.
