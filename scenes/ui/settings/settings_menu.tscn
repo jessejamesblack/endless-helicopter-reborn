@@ -130,7 +130,7 @@ horizontal_alignment = 1
 [node name="SubtitleLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 17
-text = "Adjust audio, control layout, and mobile feedback."
+text = "Adjust music, sound, control layout, and mobile feedback."
 horizontal_alignment = 1
 
 [node name="SettingsCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
@@ -169,6 +169,34 @@ layout_mode = 2
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 text = "100%"
+
+[node name="MusicRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MusicLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MusicRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Music Volume"
+
+[node name="MusicValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MusicRow"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MusicRow/MusicValueRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.85
+
+[node name="MusicValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox/MusicRow/MusicValueRow"]
+custom_minimum_size = Vector2(68, 0)
+layout_mode = 2
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 18
+text = "85%"
 
 [node name="SfxRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsVBox"]
 layout_mode = 2

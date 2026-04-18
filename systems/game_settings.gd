@@ -1,6 +1,6 @@
 extends Node
 
-signal audio_settings_changed(master_volume: float, sfx_volume: float)
+signal audio_settings_changed(master_volume: float, music_volume: float, sfx_volume: float)
 signal layout_settings_changed(fire_button_side: String, hud_side: String)
 signal haptics_settings_changed(haptics_enabled: bool)
 
@@ -8,10 +8,12 @@ const SETTINGS_PATH := "user://game_settings.cfg"
 const SETTINGS_SECTION := "settings"
 const SIDE_LEFT := "left"
 const SIDE_RIGHT := "right"
+const MUSIC_BUS_NAME := "Music"
 const SFX_BUS_NAME := "SFX"
 const MIN_VOLUME_LINEAR := 0.0001
 
 var master_volume: float = 1.0
+var music_volume: float = 0.85
 var sfx_volume: float = 1.0
 var fire_button_side: String = SIDE_RIGHT
 var hud_side: String = SIDE_LEFT
@@ -29,6 +31,7 @@ func load_settings() -> void:
 		return
 
 	master_volume = clampf(float(config.get_value(SETTINGS_SECTION, "master_volume", 1.0)), 0.0, 1.0)
+	music_volume = clampf(float(config.get_value(SETTINGS_SECTION, "music_volume", 0.85)), 0.0, 1.0)
 	sfx_volume = clampf(float(config.get_value(SETTINGS_SECTION, "sfx_volume", 1.0)), 0.0, 1.0)
 	fire_button_side = _sanitize_side(str(config.get_value(SETTINGS_SECTION, "fire_button_side", SIDE_RIGHT)))
 	hud_side = _mirror_side(fire_button_side)
@@ -37,6 +40,7 @@ func load_settings() -> void:
 func save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value(SETTINGS_SECTION, "master_volume", master_volume)
+	config.set_value(SETTINGS_SECTION, "music_volume", music_volume)
 	config.set_value(SETTINGS_SECTION, "sfx_volume", sfx_volume)
 	config.set_value(SETTINGS_SECTION, "fire_button_side", fire_button_side)
 	config.set_value(SETTINGS_SECTION, "hud_side", hud_side)
@@ -45,10 +49,10 @@ func save_settings() -> void:
 
 func apply_settings(emit_signals: bool = true) -> void:
 	hud_side = _mirror_side(fire_button_side)
-	_ensure_sfx_bus()
+	_ensure_audio_buses()
 	_apply_audio_bus_volumes()
 	if emit_signals:
-		audio_settings_changed.emit(master_volume, sfx_volume)
+		audio_settings_changed.emit(master_volume, music_volume, sfx_volume)
 		layout_settings_changed.emit(fire_button_side, hud_side)
 		haptics_settings_changed.emit(haptics_enabled)
 
@@ -56,13 +60,19 @@ func set_master_volume(value: float) -> void:
 	master_volume = clampf(value, 0.0, 1.0)
 	save_settings()
 	_apply_audio_bus_volumes()
-	audio_settings_changed.emit(master_volume, sfx_volume)
+	audio_settings_changed.emit(master_volume, music_volume, sfx_volume)
+
+func set_music_volume(value: float) -> void:
+	music_volume = clampf(value, 0.0, 1.0)
+	save_settings()
+	_apply_audio_bus_volumes()
+	audio_settings_changed.emit(master_volume, music_volume, sfx_volume)
 
 func set_sfx_volume(value: float) -> void:
 	sfx_volume = clampf(value, 0.0, 1.0)
 	save_settings()
 	_apply_audio_bus_volumes()
-	audio_settings_changed.emit(master_volume, sfx_volume)
+	audio_settings_changed.emit(master_volume, music_volume, sfx_volume)
 
 func set_fire_button_side(side: String) -> void:
 	fire_button_side = _sanitize_side(side)
@@ -80,6 +90,9 @@ func set_haptics_enabled(enabled: bool) -> void:
 
 func get_master_volume() -> float:
 	return master_volume
+
+func get_music_volume() -> float:
+	return music_volume
 
 func get_sfx_volume() -> float:
 	return sfx_volume
@@ -105,24 +118,33 @@ func reset_to_defaults() -> void:
 
 func _apply_defaults() -> void:
 	master_volume = 1.0
+	music_volume = 0.85
 	sfx_volume = 1.0
 	fire_button_side = SIDE_RIGHT
 	hud_side = SIDE_LEFT
 	haptics_enabled = true
 
-func _ensure_sfx_bus() -> void:
-	if AudioServer.get_bus_index(SFX_BUS_NAME) != -1:
+func _ensure_audio_buses() -> void:
+	_ensure_bus(MUSIC_BUS_NAME)
+	_ensure_bus(SFX_BUS_NAME)
+
+func _ensure_bus(bus_name: String) -> void:
+	if AudioServer.get_bus_index(bus_name) != -1:
 		return
 
 	var bus_position := AudioServer.get_bus_count()
 	AudioServer.add_bus(bus_position)
-	AudioServer.set_bus_name(bus_position, SFX_BUS_NAME)
+	AudioServer.set_bus_name(bus_position, bus_name)
 	AudioServer.set_bus_send(bus_position, "Master")
 
 func _apply_audio_bus_volumes() -> void:
 	var master_index := AudioServer.get_bus_index("Master")
 	if master_index != -1:
 		AudioServer.set_bus_volume_db(master_index, _linear_to_db(master_volume))
+
+	var music_index := AudioServer.get_bus_index(MUSIC_BUS_NAME)
+	if music_index != -1:
+		AudioServer.set_bus_volume_db(music_index, _linear_to_db(music_volume))
 
 	var sfx_index := AudioServer.get_bus_index(SFX_BUS_NAME)
 	if sfx_index != -1:

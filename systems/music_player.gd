@@ -111,5 +111,3 @@ func _ensure_music_bus() -> void:
 		AudioServer.add_bus(music_index)
 		AudioServer.set_bus_name(music_index, MUSIC_BUS_NAME)
 		AudioServer.set_bus_send(music_index, "Master")
-
-	AudioServer.set_bus_volume_db(music_index, 0.0)
