@@ -3,50 +3,50 @@ extends Area2D
 var ENEMY_DATA := {
 	"stationary_turret": {
 		"region": Rect2(1149, 1134, 242, 266),
-		"scale": Vector2(0.34, 0.34),
+		"scale": Vector2(0.255, 0.255),
 		"speed": 150.0,
-		"collision_offset": Vector2(0, 10),
+		"collision_offset": Vector2(0, 7.5),
 		"collision_polygon": PackedVector2Array([
-			Vector2(-24, -30),
-			Vector2(18, -30),
-			Vector2(24, -14),
-			Vector2(20, 2),
-			Vector2(24, 24),
-			Vector2(12, 34),
-			Vector2(-12, 34),
-			Vector2(-24, 22),
-			Vector2(-20, 0),
-			Vector2(-18, -14),
+			Vector2(-18, -22.5),
+			Vector2(13.5, -22.5),
+			Vector2(18, -10.5),
+			Vector2(15, 1.5),
+			Vector2(18, 18),
+			Vector2(9, 25.5),
+			Vector2(-9, 25.5),
+			Vector2(-18, 16.5),
+			Vector2(-15, 0),
+			Vector2(-13.5, -10.5),
 		]),
 		"fire_interval": 2.75,
 		"projectile_kind": "turret_round",
 		"projectile_speed": 285.0,
-		"fire_offset": Vector2(-30, -18),
+		"fire_offset": Vector2(-22.5, -13.5),
 		"score": 85,
 	},
 	"alien_drone": {
 		"region": Rect2(1623, 1192, 206, 180),
-		"scale": Vector2(0.54, 0.54),
+		"scale": Vector2(0.405, 0.405),
 		"speed": 228.0,
-		"collision_offset": Vector2(0, 2),
+		"collision_offset": Vector2(0, 1.5),
 		"collision_polygon": PackedVector2Array([
-			Vector2(-42, -6),
-			Vector2(-34, -22),
-			Vector2(-10, -32),
-			Vector2(16, -30),
-			Vector2(38, -18),
-			Vector2(46, -2),
-			Vector2(42, 14),
-			Vector2(28, 26),
-			Vector2(8, 34),
-			Vector2(-12, 32),
-			Vector2(-30, 24),
-			Vector2(-42, 8),
+			Vector2(-31.5, -4.5),
+			Vector2(-25.5, -16.5),
+			Vector2(-7.5, -24),
+			Vector2(12, -22.5),
+			Vector2(28.5, -13.5),
+			Vector2(34.5, -1.5),
+			Vector2(31.5, 10.5),
+			Vector2(21, 19.5),
+			Vector2(6, 25.5),
+			Vector2(-9, 24),
+			Vector2(-22.5, 18),
+			Vector2(-31.5, 6),
 		]),
 		"fire_interval": 2.05,
 		"projectile_kind": "player_missile",
 		"projectile_speed": 500.0,
-		"fire_offset": Vector2(-36, 0),
+		"fire_offset": Vector2(-27, 0),
 		"bob_amplitude": 18.0,
 		"bob_speed": 3.9,
 		"score": 90,
@@ -85,6 +85,8 @@ var ENEMY_DATA := {
 
 var enemy_projectile_scene: PackedScene = preload("res://scenes/projectiles/enemy_projectile.tscn")
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
+
+const TURRET_FIRE_RETRY_SECONDS := 0.25
 
 var _base_y: float = 0.0
 var _fire_timer: float = 0.0
@@ -140,9 +142,12 @@ func _process(delta: float) -> void:
 	if data.has("fire_interval") and data.has("projectile_kind"):
 		_fire_timer -= delta
 		if _fire_timer <= 0.0:
-			fire_projectile(data)
-			var fire_interval := float(data["fire_interval"])
-			_fire_timer = fire_interval + randf_range(-0.25, 0.35)
+			if _can_fire_projectile(data):
+				fire_projectile(data)
+				var fire_interval := float(data["fire_interval"])
+				_fire_timer = fire_interval + randf_range(-0.25, 0.35)
+			else:
+				_fire_timer = TURRET_FIRE_RETRY_SECONDS
 
 	if global_position.x < -250:
 		queue_free()
@@ -186,6 +191,19 @@ func _play_fire_sound() -> void:
 
 	fire_sound.pitch_scale = 0.88 if enemy_kind == "stationary_turret" else 1.06
 	fire_sound.play()
+
+func _can_fire_projectile(data: Dictionary) -> bool:
+	if str(data.get("projectile_kind", "")) != "turret_round":
+		return true
+	return not _has_active_turret_round()
+
+func _has_active_turret_round() -> bool:
+	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"):
+		if not is_instance_valid(projectile):
+			continue
+		if str(projectile.get("projectile_kind")) == "turret_round":
+			return true
+	return false
 
 func _resolve_enemy_kind(kind: String) -> String:
 	if kind == "rock_core":
