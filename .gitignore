@@ -21,6 +21,7 @@ android/.build_version
 android/plugins/**/build/
 android/plugins/**/.gradle/
 android/plugins/**/google-services.json
+android/plugins/**/local.properties
 addons/fcm_push_bridge/libs/*.aar
 !addons/fcm_push_bridge/libs/.gitkeep
 backend/supabase/.temp/

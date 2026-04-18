@@ -14,10 +14,12 @@ import org.json.JSONObject
 
 class ScoreBeatenFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
+        FcmPushBridgeCore.rememberContext(applicationContext)
         FcmPushBridge.storeToken(applicationContext, token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        FcmPushBridgeCore.rememberContext(applicationContext)
         if (message.data.isEmpty()) {
             return
         }

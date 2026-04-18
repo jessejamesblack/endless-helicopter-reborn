@@ -1,0 +1,21 @@
+{
+  "servers": {
+    "openaiDeveloperDocs": {
+      "type": "http",
+      "url": "https://developers.openai.com/mcp"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=lxvniafwjlwatbiblwyi&read_only=true"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {
+        "PATH": "C:\\Program Files\\nodejs;C:\\Windows\\System32;C:\\Windows",
+        "PATHEXT": ".COM;.EXE;.BAT;.CMD"
+      }
+    }
+  }
+}
