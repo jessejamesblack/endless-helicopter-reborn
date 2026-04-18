@@ -2,15 +2,23 @@ extends Control
 
 signal closed
 
-@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/DebugCard/DebugColumns/SummaryColumn/PushStatusLabel
-@onready var push_debug_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/DebugCard/DebugColumns/DetailsColumn/PushDebugLabel
-@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/DebugCard/DebugColumns/SummaryColumn/ButtonRow/EnablePushButton
-@onready var retry_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/DebugCard/DebugColumns/SummaryColumn/ButtonRow/RetryPushButton
+const PANEL_DESIRED_SIZE := Vector2(720.0, 416.0)
+const PANEL_MARGIN := 24.0
+
+@onready var panel: Panel = $Overlay/Panel
+@onready var content_scroll: ScrollContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll
+@onready var details_scroll: ScrollContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugCard/DebugColumns/DetailsColumn/DetailsScroll
+@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugCard/DebugColumns/SummaryColumn/PushStatusLabel
+@onready var push_debug_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugCard/DebugColumns/DetailsColumn/DetailsScroll/PushDebugLabel
+@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugCard/DebugColumns/SummaryColumn/ButtonRow/EnablePushButton
+@onready var retry_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugCard/DebugColumns/SummaryColumn/ButtonRow/RetryPushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	_fit_panel_to_viewport()
+	get_viewport().size_changed.connect(_fit_panel_to_viewport)
 	enable_push_button.pressed.connect(_on_enable_push_pressed)
 	retry_push_button.pressed.connect(_on_retry_push_pressed)
 	close_button.pressed.connect(_on_close_pressed)
@@ -24,7 +32,10 @@ func _ready() -> void:
 	_update_push_status()
 
 func open_menu() -> void:
+	_fit_panel_to_viewport()
 	_update_push_status()
+	content_scroll.scroll_vertical = 0
+	details_scroll.scroll_vertical = 0
 	visible = true
 	close_button.grab_focus()
 
@@ -76,3 +87,21 @@ func _on_close_pressed() -> void:
 
 func _get_push_notifications():
 	return get_node_or_null("/root/PushNotifications")
+
+func _fit_panel_to_viewport() -> void:
+	if not is_instance_valid(panel):
+		return
+
+	var viewport_size := get_viewport_rect().size
+	var max_size := Vector2(
+		max(220.0, viewport_size.x - PANEL_MARGIN * 2.0),
+		max(220.0, viewport_size.y - PANEL_MARGIN * 2.0)
+	)
+	var target_size := Vector2(
+		min(PANEL_DESIRED_SIZE.x, max_size.x),
+		min(PANEL_DESIRED_SIZE.y, max_size.y)
+	)
+	panel.offset_left = -target_size.x * 0.5
+	panel.offset_top = -target_size.y * 0.5
+	panel.offset_right = target_size.x * 0.5
+	panel.offset_bottom = target_size.y * 0.5

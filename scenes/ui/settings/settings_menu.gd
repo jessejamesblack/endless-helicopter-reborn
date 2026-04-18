@@ -4,23 +4,29 @@ signal closed
 
 const SIDE_LEFT := "left"
 const SIDE_RIGHT := "right"
+const PANEL_DESIRED_SIZE := Vector2(680.0, 496.0)
+const PANEL_MARGIN := 24.0
 
-@onready var master_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterSlider
-@onready var master_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterValueLabel
-@onready var music_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicSlider
-@onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicValueLabel
-@onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxSlider
-@onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxValueLabel
-@onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/FireSideRow/FireSideOption
-@onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/HudSideValueLabel
-@onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/HapticsToggle
-@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushSection/PushStatusLabel
-@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsCard/SettingsColumns/SystemColumn/PushSection/EnablePushButton
+@onready var panel: Panel = $Overlay/Panel
+@onready var content_scroll: ScrollContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll
+@onready var master_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterSlider
+@onready var master_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MasterRow/MasterValueRow/MasterValueLabel
+@onready var music_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicSlider
+@onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/MusicRow/MusicValueRow/MusicValueLabel
+@onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxSlider
+@onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/AudioColumn/SfxRow/SfxValueRow/SfxValueLabel
+@onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/FireSideRow/FireSideOption
+@onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/HudSideValueLabel
+@onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/HapticsToggle
+@onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/PushSection/PushStatusLabel
+@onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/SettingsCard/SettingsColumns/SystemColumn/PushSection/EnablePushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	_fit_panel_to_viewport()
+	get_viewport().size_changed.connect(_fit_panel_to_viewport)
 	_populate_side_options()
 
 	master_slider.value_changed.connect(_on_master_slider_changed)
@@ -40,7 +46,9 @@ func _ready() -> void:
 	_sync_from_settings()
 
 func open_menu() -> void:
+	_fit_panel_to_viewport()
 	_sync_from_settings()
+	content_scroll.scroll_vertical = 0
 	visible = true
 	close_button.grab_focus()
 
@@ -152,3 +160,21 @@ func _get_game_settings():
 
 func _get_push_notifications():
 	return get_node_or_null("/root/PushNotifications")
+
+func _fit_panel_to_viewport() -> void:
+	if not is_instance_valid(panel):
+		return
+
+	var viewport_size := get_viewport_rect().size
+	var max_size := Vector2(
+		max(240.0, viewport_size.x - PANEL_MARGIN * 2.0),
+		max(260.0, viewport_size.y - PANEL_MARGIN * 2.0)
+	)
+	var target_size := Vector2(
+		min(PANEL_DESIRED_SIZE.x, max_size.x),
+		min(PANEL_DESIRED_SIZE.y, max_size.y)
+	)
+	panel.offset_left = -target_size.x * 0.5
+	panel.offset_top = -target_size.y * 0.5
+	panel.offset_right = target_size.x * 0.5
+	panel.offset_bottom = target_size.y * 0.5

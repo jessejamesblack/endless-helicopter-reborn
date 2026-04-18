@@ -5,6 +5,7 @@ const LEADERBOARD_PAGE_SIZE := 25
 const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 const BOARD_PANEL_RECT := Rect2(-320.0, -292.0, 640.0, 584.0)
 const SETUP_PANEL_RECT := Rect2(-280.0, -156.0, 560.0, 312.0)
+const PANEL_MARGIN := 24.0
 
 var current_score: int = 0
 var has_submitted: bool = false
@@ -56,6 +57,8 @@ func _ready() -> void:
 	needs_profile_setup = has_pending_score and not OnlineLeaderboardScript.has_saved_profile()
 	name_help_label.text = "Choose a public name once. This device will remember it."
 	alert_label.text = ""
+	_apply_responsive_panel_rect(SETUP_PANEL_RECT if needs_profile_setup else BOARD_PANEL_RECT)
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_apply_screen_mode()
 	_connect_leaderboard_scroll()
 
@@ -359,12 +362,30 @@ func _apply_label_theme(label: Label, font_color: Color, font_size: int) -> void
 	label.add_theme_font_size_override("font_size", font_size)
 
 func _apply_panel_rect(rect: Rect2) -> void:
-	panel.offset_left = rect.position.x
-	panel.offset_top = rect.position.y
-	panel.offset_right = rect.position.x + rect.size.x
-	panel.offset_bottom = rect.position.y + rect.size.y
+	_apply_responsive_panel_rect(rect)
 
 func _get_empty_board_text() -> String:
 	if OnlineLeaderboardScript.FAMILY_ID == "global":
 		return "No global scores yet"
 	return "No family scores yet"
+
+func _apply_responsive_panel_rect(rect: Rect2) -> void:
+	if not is_instance_valid(panel):
+		return
+
+	var viewport_size := get_viewport_rect().size
+	var max_size := Vector2(
+		max(260.0, viewport_size.x - PANEL_MARGIN * 2.0),
+		max(260.0, viewport_size.y - PANEL_MARGIN * 2.0)
+	)
+	var target_size := Vector2(
+		min(rect.size.x, max_size.x),
+		min(rect.size.y, max_size.y)
+	)
+	panel.offset_left = -target_size.x * 0.5
+	panel.offset_top = -target_size.y * 0.5
+	panel.offset_right = target_size.x * 0.5
+	panel.offset_bottom = target_size.y * 0.5
+
+func _on_viewport_size_changed() -> void:
+	_apply_responsive_panel_rect(SETUP_PANEL_RECT if needs_profile_setup else BOARD_PANEL_RECT)
