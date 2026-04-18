@@ -14,6 +14,8 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C
 powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
 
+That script rebuilds the Android push bridge before export and writes the canonical local APK into `build/android/`. Install that fresh output, not any older APK that may still be sitting elsewhere in the repo.
+
 ### Build the Android push plugin locally
 
 ```powershell
@@ -50,7 +52,9 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 ## Android Export Notes
 
 - Android push notifications require the custom plugin under `android/plugins/fcm_push_bridge`.
-- Local Android exports should build the plugin AARs first with `tools/build_android_plugin.ps1`.
+- `tools/export_android.ps1` is the canonical local Android export path because it rebuilds the plugin AARs before packaging.
+- The canonical local install artifact lives under `build/android/`.
+- Avoid sideloading old APKs from the repo root or other ad-hoc locations; they can contain stale Android push bridge binaries.
 - Local plugin builds require Gradle, Java 17, and the Android SDK.
 - The Firebase config file belongs at `android/plugins/fcm_push_bridge/google-services.json` and is intentionally ignored by git.
 - CI can build temporary debug artifacts for pull requests without a permanent keystore.

@@ -161,7 +161,7 @@ Local export:
 powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
 
-That export script now rebuilds the Android push bridge plugin automatically before packaging the APK, so local Android builds do not silently reuse stale AARs.
+That export script now rebuilds the Android push bridge plugin automatically before packaging the APK, so local Android builds do not silently reuse stale AARs. Install the freshly exported APK from `build/android/` after each export.
 
 CI export:
 
@@ -202,6 +202,7 @@ Common causes:
 - `family_push_devices` is empty: install the latest APK, open `Settings`, tap `Enable Notifications`, and keep the app open briefly.
 - Settings says Firebase config is missing: confirm the APK was built with the matching `google-services.json` or GitHub secret.
 - Settings says the APK is using an outdated Android push bridge: rebuild the plugin AARs and export a fresh APK. `tools/export_android.ps1` now does this automatically for scripted local exports.
+- Local export worked but the device still shows the outdated bridge message: confirm you installed the fresh APK from `build/android/` and not an older APK from the repo root or another manual export path.
 - Settings says permission is not granted: enable notifications in Android app settings, then tap `Enable Notifications` again.
 - Settings says the plugin is not loaded: rebuild the Android plugin AAR and export an Android APK, not a desktop Godot runner build.
 - A delivery row has `status = 'no_registered_devices'`: the score-beaten trigger fired correctly, but the beaten player has no active FCM token stored.

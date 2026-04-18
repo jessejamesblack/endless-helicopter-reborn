@@ -96,11 +96,14 @@ This works with sideloaded APKs. You do not need Play Store publishing to receiv
 
 ### From a local build
 
-1. Export the Android preset from Godot.
-2. Copy the APK to your Android device.
-3. Open the APK on the device.
-4. If prompted, allow installs from unknown apps for the app you used to open the file.
-5. Finish installation.
+1. Export the Android preset with `tools/export_android.ps1`.
+2. Use the freshly exported APK from `build/android/`.
+3. Copy that APK to your Android device.
+4. Open the APK on the device.
+5. If prompted, allow installs from unknown apps for the app you used to open the file.
+6. Finish installation.
+
+Avoid installing older APKs that happen to be sitting elsewhere in the repo, such as stale root-level exports. Those can contain an outdated Android push bridge even when the current source and AARs are correct.
 
 ### From GitHub Releases
 
