@@ -92,6 +92,8 @@ Android push notifications use:
 
 This works with sideloaded APKs. You do not need Play Store publishing to receive FCM notifications on supported Android devices.
 
+Current Android builds also include a compatibility bridge so push registration can still work when the plugin singleton loads but Godot does not expose every bridge method reliably through the usual plugin path. If the in-game diagnostics say `Compat bridge available: yes`, you are on the current push-capable Android bridge.
+
 ## Android APK Installation
 
 ### From a local build
@@ -104,6 +106,13 @@ This works with sideloaded APKs. You do not need Play Store publishing to receiv
 6. Finish installation.
 
 Avoid installing older APKs that happen to be sitting elsewhere in the repo, such as stale root-level exports. Those can contain an outdated Android push bridge even when the current source and AARs are correct.
+
+After installing, open the in-game push diagnostics and confirm at least:
+
+- `Plugin loaded: yes`
+- `Compat bridge available: yes`
+- `Bridge diagnostics available: yes`
+- `Firebase ready: yes`
 
 ### From GitHub Releases
 

@@ -16,6 +16,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C
 
 That script rebuilds the Android push bridge before export and writes the canonical local APK into `build/android/`. Install that fresh output, not any older APK that may still be sitting elsewhere in the repo.
 
+For push-notification debugging, the exported app now reports:
+
+- whether the plugin singleton loaded
+- whether the compat bridge is available
+- whether Android runtime objects were exposed to GDScript
+- whether Firebase initialized successfully
+- whether an FCM token was obtained and registered with Supabase
+
 ### Build the Android push plugin locally
 
 ```powershell
@@ -52,9 +60,11 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 ## Android Export Notes
 
 - Android push notifications require the custom plugin under `android/plugins/fcm_push_bridge`.
+- The current push implementation also depends on the compat bridge classes under `android/plugins/fcm_push_bridge/src/main/java/com/endlesshelicopter/push/`.
 - `tools/export_android.ps1` is the canonical local Android export path because it rebuilds the plugin AARs before packaging.
 - The canonical local install artifact lives under `build/android/`.
 - Avoid sideloading old APKs from the repo root or other ad-hoc locations; they can contain stale Android push bridge binaries.
+- A successful install should show `Compat bridge available: yes` in the in-game push diagnostics.
 - Local plugin builds require Gradle, Java 17, and the Android SDK.
 - The Firebase config file belongs at `android/plugins/fcm_push_bridge/google-services.json` and is intentionally ignored by git.
 - CI can build temporary debug artifacts for pull requests without a permanent keystore.
@@ -62,3 +72,9 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - For upgradeable installs between CI builds, use repository secrets for a stable keystore.
 - The workflow writes artifacts to `build/android/`.
 - The GitHub release is updated automatically on each successful build.
+
+## MCP Servers
+
+- Repo-local Codex MCP config lives in [`.codex/config.toml`](../.codex/config.toml).
+- Repo-local VS Code MCP config lives in [`.vscode/mcp.json`](../.vscode/mcp.json).
+- See [docs/MCP_SETUP.md](MCP_SETUP.md) for login/auth steps and optional add-on servers.

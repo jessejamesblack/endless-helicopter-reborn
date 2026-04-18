@@ -153,7 +153,23 @@ Requirements:
 
 CI already builds the plugin automatically.
 
-## 7. Export Or Download The APK
+## 7. Android Runtime Notes
+
+The Android push bridge now uses two paths on purpose:
+
+- the normal Godot plugin singleton: `FCMPushBridge`
+- a static compatibility bridge: `com.endlesshelicopter.push.FcmPushBridgeCompat`
+
+The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available.
+
+In practice, this means:
+
+- seeing `Plugin loaded: yes` is no longer enough by itself
+- `Compat bridge available: yes` is the stronger signal that the APK contains the current push bridge implementation
+- `Android runtime available: yes` means Godot exposed Android runtime objects directly to GDScript for this session
+- push can still work even if `Android runtime available` is `no`, because the compat bridge also keeps its own cached context fallback
+
+## 8. Export Or Download The APK
 
 Local export:
 
@@ -169,7 +185,7 @@ CI export:
 - pushes to `main` update the rolling GitHub prerelease
 - CI requires `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` so the published APK can register for push.
 
-## 8. Test Checklist
+## 9. Test Checklist
 
 1. Install the APK on device A and device B.
 2. Launch both devices once, open `Settings`, and tap `Enable Notifications`.
@@ -177,6 +193,16 @@ CI export:
 4. Beat that score on device B.
 5. Confirm device A receives `Score Beaten`.
 6. Tap the notification and verify the game opens to the leaderboard screen.
+
+For first-pass verification on a single device, open the in-game debug or settings diagnostics panel after tapping `Enable Notifications` and confirm:
+
+- `Plugin loaded: yes`
+- `Compat bridge available: yes`
+- `Bridge diagnostics available: yes`
+- `Firebase ready: yes`
+- `Permission granted: yes`
+- `Token present: yes`
+- `Device ID:` is populated
 
 ## Troubleshooting
 
@@ -203,6 +229,9 @@ Common causes:
 - Settings says Firebase config is missing: confirm the APK was built with the matching `google-services.json` or GitHub secret.
 - Settings says the APK is using an outdated Android push bridge: rebuild the plugin AARs and export a fresh APK. `tools/export_android.ps1` now does this automatically for scripted local exports.
 - Local export worked but the device still shows the outdated bridge message: confirm you installed the fresh APK from `build/android/` and not an older APK from the repo root or another manual export path.
+- Settings says `Android context is unavailable`: install a build that includes the compat bridge fallback, then check `Compat bridge available` and `Android runtime available` in the debug report. Current builds resolve Android context from both Godot runtime objects and cached Kotlin-side fallbacks.
+- Settings shows `Plugin loaded: yes` but `Bridge diagnostics available: no`: the APK still contains an older bridge binary even if the plugin singleton name is present. Re-export and reinstall the APK from `build/android/`.
+- Settings shows `Compat bridge available: no`: the APK was exported before the compat bridge classes were added, or the new AAR was not packaged into the export.
 - Settings says permission is not granted: enable notifications in Android app settings, then tap `Enable Notifications` again.
 - Settings says the plugin is not loaded: rebuild the Android plugin AAR and export an Android APK, not a desktop Godot runner build.
 - A delivery row has `status = 'no_registered_devices'`: the score-beaten trigger fired correctly, but the beaten player has no active FCM token stored.
