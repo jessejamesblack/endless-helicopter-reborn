@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://du0fvfvybfwc5" path="res://assets/art/backgrounds/menu_background.svg" id="2_pevhg"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_menu.tscn" id="3_settings"]
 [ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="4_sheet"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug/debug_menu.tscn" id="5_debug"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
 bg_color = Color(0.0705882, 0.105882, 0.196078, 0.92)
@@ -144,6 +145,27 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Settings"
 
+[node name="DebugButton" type="Button" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 84.0
+offset_right = 168.0
+offset_bottom = 132.0
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Debug Menu"
+
 [node name="PlayButton" type="Button" parent="." unique_id=16473461]
 layout_mode = 1
 anchors_preset = 12
@@ -171,3 +193,5 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Play Game"
 
 [node name="SettingsMenu" parent="." instance=ExtResource("3_settings")]
+
+[node name="DebugMenu" parent="." instance=ExtResource("5_debug")]
