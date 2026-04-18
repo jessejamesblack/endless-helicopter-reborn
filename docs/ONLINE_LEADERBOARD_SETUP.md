@@ -24,6 +24,12 @@ If your project was already set up before the notification insert-policy fix, ru
 
 That fixes the `new row violates row-level security policy for the table "family_notifications"` error and allows score submissions to complete normally again.
 
+If your project already used the older append-only leaderboard model, also run:
+
+`backend/supabase_migrate_leaderboard_to_best_scores.sql`
+
+That migrates the board to one stored best score per player, removes older duplicate runs, and installs the new RPC-based score submit path.
+
 ## 2. Copy Your Project URL And Anon Key
 
 From the Supabase dashboard, copy:
@@ -59,7 +65,7 @@ If you want one world-wide board for everyone who installs the app, set:
 - Each device saves a public player name locally after the first submitted run.
 - Player names use a simple profanity filter.
 - The database enforces unique public names within a leaderboard.
-- Scores are grouped by player id so each player shows up cleanly on the board.
+- The database stores one current best score per player.
 - In-app score-beaten alerts are stored in `family_notifications`.
 
 ## Notes

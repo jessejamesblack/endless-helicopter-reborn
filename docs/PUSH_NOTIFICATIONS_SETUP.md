@@ -44,6 +44,12 @@ Without that policy, new score submissions can fail with:
 
 `new row violates row-level security policy for the table "family_notifications"`
 
+If your project already used the older append-only leaderboard rows, also run:
+
+`backend/supabase_migrate_leaderboard_to_best_scores.sql`
+
+That migrates the leaderboard to one stored best score per player and installs the new best-score submit function.
+
 ## 2. Create A Firebase Project
 
 1. Open the Firebase console.
@@ -248,6 +254,7 @@ Common causes:
 
 ## Notes
 
+- The leaderboard now stores only each player's current best score, not every historical run.
 - The game still keeps in-app notification history in `family_notifications`.
 - Push delivery is additive. If permission is denied, the leaderboard still works.
 - Device registrations are stored in `family_push_devices`.

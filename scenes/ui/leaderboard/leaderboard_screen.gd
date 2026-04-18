@@ -13,6 +13,7 @@ var has_pending_score: bool = false
 var needs_profile_setup: bool = false
 var pending_player_name: String = ""
 var is_submitting: bool = false
+var _use_legacy_submit_api: bool = false
 var push_notifications: Node = null
 var leaderboard_entries: Array[Dictionary] = []
 var leaderboard_offset: int = 0
@@ -60,6 +61,7 @@ func _ready() -> void:
 	_apply_responsive_panel_rect(SETUP_PANEL_RECT if needs_profile_setup else BOARD_PANEL_RECT)
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_apply_screen_mode()
+	_configure_touch_scroll()
 	_connect_leaderboard_scroll()
 
 	save_button.pressed.connect(_on_save_pressed)
@@ -165,10 +167,10 @@ func submit_score() -> void:
 	set_status("Saving your score...")
 	save_button.disabled = true
 	$SubmitRequest.request(
-		OnlineLeaderboardScript.get_submit_url(),
+		_get_submit_url(),
 		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
 		HTTPClient.METHOD_POST,
-		OnlineLeaderboardScript.make_submit_body(player_name, current_score)
+		_get_submit_body(player_name)
 	)
 
 func _on_save_pressed() -> void:
@@ -205,13 +207,28 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 func _on_submit_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	is_submitting = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
-		save_button.disabled = false
 		var error_text := OnlineLeaderboardScript.parse_api_error(body, "Could not submit score.")
+		if not _use_legacy_submit_api and OnlineLeaderboardScript.should_fallback_to_legacy_submit(error_text):
+			_use_legacy_submit_api = true
+			is_submitting = true
+			set_status("Using legacy leaderboard submit path...")
+			$SubmitRequest.request(
+				_get_submit_url(),
+				OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
+				HTTPClient.METHOD_POST,
+				_get_submit_body(pending_player_name)
+			)
+			return
+
+		save_button.disabled = false
 		set_status(error_text)
 		return
 
 	has_submitted = true
-	var saved_name := OnlineLeaderboardScript.parse_submit_name(body)
+	var submit_result := OnlineLeaderboardScript.parse_submit_result(body)
+	var saved_name := str(submit_result.get("name", ""))
+	var best_score := int(submit_result.get("best_score", current_score))
+	var score_improved := bool(submit_result.get("score_improved", true))
 	if saved_name.is_empty():
 		saved_name = pending_player_name
 	if not saved_name.is_empty():
@@ -223,9 +240,22 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 	needs_profile_setup = false
 	_apply_screen_mode()
 	save_button.disabled = true
-	set_status("Score submitted!")
+	if score_improved:
+		set_status("New personal best saved!")
+	else:
+		set_status("Best score remains %d." % best_score)
 	fetch_leaderboard(true)
 	fetch_notifications()
+
+func _get_submit_url() -> String:
+	if _use_legacy_submit_api:
+		return OnlineLeaderboardScript.get_legacy_submit_url()
+	return OnlineLeaderboardScript.get_submit_url()
+
+func _get_submit_body(player_name: String) -> String:
+	if _use_legacy_submit_api:
+		return OnlineLeaderboardScript.make_legacy_submit_body(player_name, current_score)
+	return OnlineLeaderboardScript.make_submit_body(player_name, current_score)
 
 func _on_notification_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
@@ -322,17 +352,20 @@ func _create_entry_row(rank: int, entry: Dictionary) -> HBoxContainer:
 	row.custom_minimum_size = Vector2(0, 34)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var rank_label := Label.new()
 	rank_label.custom_minimum_size = Vector2(44, 0)
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_apply_label_theme(rank_label, Color(0.588235, 0.784314, 0.964706, 1), 20)
+	rank_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rank_label.text = "%d." % rank
 	row.add_child(rank_label)
 
 	var name_label := Label.new()
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_label_theme(name_label, Color(0.921569, 0.94902, 1, 1), 20)
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.text = str(entry.get("name", "Player"))
 	row.add_child(name_label)
 
@@ -340,6 +373,7 @@ func _create_entry_row(rank: int, entry: Dictionary) -> HBoxContainer:
 	score_label_row.custom_minimum_size = Vector2(116, 0)
 	score_label_row.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_apply_label_theme(score_label_row, Color(0.964706, 0.843137, 0.54902, 1), 20)
+	score_label_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_label_row.text = str(int(entry.get("score", 0)))
 	row.add_child(score_label_row)
 
@@ -351,6 +385,7 @@ func _create_message_label(message: String) -> Label:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_apply_label_theme(label, Color(0.776471, 0.85098, 0.94902, 0.95), 18)
 	label.text = message
 	return label
@@ -360,6 +395,10 @@ func _apply_label_theme(label: Label, font_color: Color, font_size: int) -> void
 	label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
 	label.add_theme_constant_override("outline_size", 2)
 	label.add_theme_font_size_override("font_size", font_size)
+
+func _configure_touch_scroll() -> void:
+	leaderboard_scroll.scroll_deadzone = 12
+	leaderboard_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _apply_panel_rect(rect: Rect2) -> void:
 	_apply_responsive_panel_rect(rect)
