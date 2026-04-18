@@ -8,8 +8,6 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import org.json.JSONObject
@@ -21,10 +19,6 @@ class ScoreBeatenFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         if (message.data.isEmpty()) {
-            return
-        }
-
-        if (isAppInForeground()) {
             return
         }
 
@@ -84,7 +78,4 @@ class ScoreBeatenFirebaseMessagingService : FirebaseMessagingService() {
         return "$challengerName beat your $beatenScore with $challengerScore"
     }
 
-    private fun isAppInForeground(): Boolean {
-        return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-    }
 }

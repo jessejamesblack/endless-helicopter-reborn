@@ -61,6 +61,14 @@ Deno.serve(async (request: Request) => {
 
   const devices = (devicesResponse.data ?? []) as PushDeviceRow[];
   if (devices.length == 0) {
+    await supabase.from("family_push_delivery_log").insert({
+      family_id: payload.family_id,
+      target_player_id: payload.target_player_id,
+      notification_type: "score_beaten",
+      status: "no_registered_devices",
+      response_code: 200,
+      response_body: "No active Android push devices are registered for this player.",
+    });
     return jsonResponse({ delivered: 0, skipped: true }, 200);
   }
 

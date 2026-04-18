@@ -20,14 +20,14 @@ config/icon="res://assets/icons/icon.svg"
 GameSettings="*res://systems/game_settings.gd"
 PushNotifications="*res://systems/push_notifications.gd"
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/fcm_push_bridge/plugin.cfg")
-
 [display]
 
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/fcm_push_bridge/plugin.cfg")
 
 [physics]
 

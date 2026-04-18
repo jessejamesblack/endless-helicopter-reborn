@@ -178,8 +178,15 @@ class FcmPushBridge(godot: Godot) : GodotPlugin(godot) {
 
     private fun isFirebaseConfigured(): Boolean {
         val currentActivity = activity ?: return false
+        return ensureFirebaseInitialized(currentActivity.applicationContext)
+    }
+
+    private fun ensureFirebaseInitialized(context: Context): Boolean {
         return try {
-            FirebaseApp.getApps(currentActivity.applicationContext).isNotEmpty()
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+            FirebaseApp.getApps(context).isNotEmpty()
         } catch (_error: Throwable) {
             false
         }
