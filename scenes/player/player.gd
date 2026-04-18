@@ -62,6 +62,9 @@ func fire_missile() -> void:
         missile.global_position = global_position + spawn_offset
         missile.rotation = sprite.rotation
         get_tree().current_scene.add_child(missile)
+        var run_stats := get_node_or_null("/root/RunStats")
+        if run_stats != null and run_stats.has_method("record_missile_fired"):
+            run_stats.record_missile_fired()
         
         if has_node("MissileFireSound"):
             $MissileFireSound.play()

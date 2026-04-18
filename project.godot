@@ -20,6 +20,7 @@ config/icon="res://assets/icons/icon.svg"
 GameSettings="*res://systems/game_settings.gd"
 MusicPlayer="*res://systems/music_player.gd"
 PushNotifications="*res://systems/push_notifications.gd"
+RunStats="*res://systems/run_stats.gd"
 
 [display]
 

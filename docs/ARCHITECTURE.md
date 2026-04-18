@@ -12,10 +12,11 @@
 - `scenes/ui/start_screen/`: start menu
 - `scenes/ui/settings/`: reusable settings dialog
 - `scenes/ui/pause/`: in-game pause menu
-- `scenes/ui/leaderboard/`: death screen and leaderboard UI
+- `scenes/ui/leaderboard/`: post-run results and leaderboard UI
 - `systems/game_settings.gd`: persistent audio, layout, and haptics settings
 - `systems/music_player.gd`: shared music playback service for menu and gameplay loops
 - `systems/online_leaderboard.gd`: shared leaderboard service
+- `systems/run_stats.gd`: live run stats, local best score persistence, and the last completed run summary
 - `systems/push_notifications.gd`: Android push registration and deep-link routing
 
 ## Gameplay Flow
@@ -25,10 +26,10 @@
 3. Pressing `Play Game` opens `main.tscn`.
 4. The player survives, scores over time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
 5. During gameplay, `Pause` can resume, open settings, or quit cleanly back to the menu.
-6. On crash, `main.gd` stores the run score in tree metadata.
-7. The app transitions to `leaderboard_screen.tscn`.
-8. The leaderboard screen submits the run if configured and shows shared scores.
-9. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen.
+6. On crash, `main.gd` finalizes the run in `RunStats` and transitions to `leaderboard_screen.tscn`.
+7. The post-run screen shows score, local best, delta-to-best, and Sprint 1 run stats with `Try Again` as the primary action.
+8. The same screen can switch into leaderboard mode, submit the run if configured, and show shared scores.
+9. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode.
 
 ## Enemy Roles
 
@@ -47,6 +48,7 @@
 
 - Scenes own gameplay behavior and local presentation.
 - `systems/` owns non-scene shared runtime services.
+- `run_stats.gd` owns run-level counters and local best persistence instead of scene tree metadata.
 - `backend/` owns external service bootstrap files.
 - `docs/` owns human/agent-readable project knowledge.
 

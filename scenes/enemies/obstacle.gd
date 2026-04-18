@@ -26,7 +26,12 @@ func _on_body_entered(body: Node2D) -> void:
         if body.has_method("die"):
             body.die()
 
-func destroy(_skip_special: bool = false) -> void:
+func destroy(_skip_special: bool = false, caused_by_player: bool = false) -> void:
+    if caused_by_player:
+        var run_stats := get_node_or_null("/root/RunStats")
+        if run_stats != null and run_stats.has_method("record_hostile_destroyed"):
+            run_stats.record_hostile_destroyed()
+
     # Spawn an explosion exactly where the obstacle was
     var explosion = explosion_scene.instantiate()
     explosion.global_position = global_position

@@ -23,7 +23,7 @@ func _on_area_entered(area: Area2D) -> void:
         var score_boost := 50
         if area.has_method("get_destroy_score"):
             score_boost = area.get_destroy_score()
-        area.destroy()
+        area.destroy(false, true)
         
         # Reward the player based on what they destroyed.
         var main := get_tree().current_scene
