@@ -127,12 +127,12 @@ If you want the raw workflow output directly, every push also uploads an artifac
 This repository includes `.github/workflows/android-apk.yml`.
 
 - On pull requests to `main`, it validates the project and exports an Android APK artifact.
-- On pushes to `main`, it validates the project, exports a signed Android release APK, and updates the rolling GitHub release.
+- On pushes to `main`, it validates the project, exports an Android APK, and updates the rolling GitHub release.
 - The workflow also builds the Android FCM plugin AAR before the APK export.
 - The APK is uploaded as a workflow artifact.
 - The workflow also updates a rolling GitHub prerelease named `Endless-Helicopter-Reborn Latest APK`.
 - Pull request APK filenames use `Endless-Helicopter-Reborn-debug.apk` unless signing secrets are present.
-- Pushes to `main` publish `Endless-Helicopter-Reborn-release.apk`.
+- Pushes to `main` publish `Endless-Helicopter-Reborn-release.apk` when signing secrets are configured, otherwise they fall back to `Endless-Helicopter-Reborn-debug.apk`.
 - This is better than committing generated APKs into the repository on every change.
 
 ### Stable signed builds
@@ -143,8 +143,7 @@ If you want Android installs to upgrade cleanly between CI builds, add these Git
 - `ANDROID_KEYSTORE_PASSWORD`
 - `ANDROID_KEY_ALIAS`
 
-If these secrets are not present, pull request builds fall back to a temporary debug keystore for artifact generation.
-Pushes to `main` fail instead of publishing a debug APK.
+If these secrets are not present, pull request and `main` builds fall back to a temporary debug keystore for artifact generation.
 
 ## AI Collaboration
 

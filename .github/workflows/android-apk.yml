@@ -94,11 +94,6 @@ jobs:
           set -euxo pipefail
           mkdir -p "$HOME/.config/godot" build/android
 
-          REQUIRE_RELEASE_BUILD=false
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            REQUIRE_RELEASE_BUILD=true
-          fi
-
           if [[ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" && -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" && -n "${{ secrets.ANDROID_KEY_ALIAS }}" ]]; then
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/android-release.keystore"
             {
@@ -110,10 +105,6 @@ jobs:
             KEYSTORE_PATH="$RUNNER_TEMP/android-release.keystore"
             KEYSTORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
           else
-            if [[ "$REQUIRE_RELEASE_BUILD" == "true" ]]; then
-              echo "::error::Pushes to main require ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, and ANDROID_KEY_ALIAS so CI can publish a signed release APK."
-              exit 1
-            fi
             keytool -genkeypair -v \
               -keystore "$RUNNER_TEMP/android-debug.keystore" \
               -storepass android \
