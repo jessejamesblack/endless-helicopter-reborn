@@ -15,12 +15,14 @@ var is_crashed: bool = false
 var is_transitioning_to_game_over: bool = false
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 var speed_multiplier: float = 1.0
+var _screen_flash_tween: Tween
 
 @onready var fire_button: TextureButton = $UI/FireButton
 @onready var score_panel: Panel = $UI/ScorePanel
 @onready var ammo_panel: Panel = $UI/AmmoPanel
 @onready var pause_button: Button = $UI/PauseButton
 @onready var pause_menu = $UI/PauseMenu
+@onready var screen_flash: ColorRect = $UI/ScreenFlash
 
 func _ready() -> void:
     pause_button.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -89,10 +91,13 @@ func game_over() -> void:
         is_transitioning_to_game_over = false
 
 func spawn_explosion(at_position: Vector2, is_large: bool = false) -> Node2D:
+    return spawn_configured_explosion(at_position, is_large, false)
+
+func spawn_configured_explosion(at_position: Vector2, is_large: bool = false, is_blast: bool = false) -> Node2D:
     var explosion = explosion_scene.instantiate()
     explosion.global_position = at_position
     if explosion.has_method("configure"):
-        explosion.configure(is_large)
+        explosion.configure(is_large, is_blast)
     add_child(explosion)
     return explosion
 
@@ -100,7 +105,8 @@ func trigger_glowing_rock_blast(blast_pos: Vector2, source: Node = null) -> void
     if is_crashed:
         return
 
-    spawn_explosion(blast_pos, true)
+    spawn_configured_explosion(blast_pos, true, true)
+    _play_screen_flash_pulses()
     _destroy_group_members("enemy_projectiles")
     _destroy_group_members("hostile_units", source)
     _clear_group_members("screen_pickups")
@@ -121,6 +127,28 @@ func _clear_group_members(group_name: String) -> void:
     for member in get_tree().get_nodes_in_group(group_name):
         if is_instance_valid(member):
             member.queue_free()
+
+func _play_screen_flash_pulses() -> void:
+    if screen_flash == null:
+        return
+
+    if _screen_flash_tween != null and _screen_flash_tween.is_valid():
+        _screen_flash_tween.kill()
+
+    screen_flash.visible = true
+    screen_flash.color = Color(1.0, 0.94, 0.76, 0.0)
+
+    _screen_flash_tween = create_tween()
+    _screen_flash_tween.set_parallel(false)
+
+    for pulse in 3:
+        var peak_alpha := 0.26 - (pulse * 0.04)
+        _screen_flash_tween.tween_property(screen_flash, "color", Color(1.0, 0.96, 0.82, peak_alpha), 0.06).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+        _screen_flash_tween.tween_property(screen_flash, "color", Color(1.0, 0.94, 0.76, 0.0), 0.11).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+    _screen_flash_tween.finished.connect(func() -> void:
+        screen_flash.visible = false
+    )
 
 func _unhandled_input(event: InputEvent) -> void:
     if event.is_action_pressed("ui_cancel"):
