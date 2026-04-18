@@ -3,6 +3,7 @@ extends Control
 @onready var settings_menu = $SettingsMenu
 
 func _ready() -> void:
+    get_tree().paused = false
     var push_notifications := get_node_or_null("/root/PushNotifications")
     if push_notifications != null and push_notifications.has_method("consume_open_leaderboard_request"):
         if bool(push_notifications.consume_open_leaderboard_request()):

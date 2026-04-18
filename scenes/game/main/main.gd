@@ -12,6 +12,7 @@ const FIRE_BUTTON_LEFT_RECT := Rect2(32, -140, 188, 120)
 
 var score: float = 0.0
 var is_crashed: bool = false
+var is_transitioning_to_game_over: bool = false
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 var speed_multiplier: float = 1.0
 
@@ -22,7 +23,6 @@ var speed_multiplier: float = 1.0
 @onready var pause_menu = $UI/PauseMenu
 
 func _ready() -> void:
-    process_mode = Node.PROCESS_MODE_ALWAYS
     pause_button.process_mode = Node.PROCESS_MODE_ALWAYS
     pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -46,7 +46,7 @@ func _ready() -> void:
         $Spawner.position.x = get_viewport_rect().size.x + 100
 
 func _process(delta: float) -> void:
-    if is_crashed or get_tree().paused:
+    if is_crashed or is_transitioning_to_game_over or get_tree().paused:
         return
     
     # Increase score continuously based on time survived
@@ -67,6 +67,9 @@ func _update_score_ui() -> void:
 func trigger_crash(crash_pos: Vector2) -> void:
     if is_crashed: return
     is_crashed = true
+    is_transitioning_to_game_over = true
+    _clear_pause_state()
+    _disable_gameplay_ui()
     var game_settings = _get_game_settings()
     if game_settings != null and game_settings.has_method("vibrate"):
         game_settings.vibrate(70)
@@ -74,12 +77,16 @@ func trigger_crash(crash_pos: Vector2) -> void:
     spawn_explosion(crash_pos, true)
     
     # Wait for 1.5 seconds to let the explosion finish
-    await get_tree().create_timer(1.5).timeout
+    await get_tree().create_timer(1.5, true).timeout
     game_over()
 
 func game_over() -> void:
+    _clear_pause_state()
     get_tree().set_meta("last_run_score", int(score))
-    get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
+    var error := get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
+    if error != OK:
+        push_error("Could not change to leaderboard screen after death. Error code: %d" % error)
+        is_transitioning_to_game_over = false
 
 func spawn_explosion(at_position: Vector2, is_large: bool = false) -> Node2D:
     var explosion = explosion_scene.instantiate()
@@ -129,11 +136,11 @@ func _pause_game() -> void:
     if is_crashed or get_tree().paused:
         return
 
-    get_tree().paused = true
     if fire_button != null:
         fire_button.disabled = true
     if pause_menu != null:
         pause_menu.open_menu()
+    get_tree().paused = true
 
 func _resume_game() -> void:
     if not get_tree().paused:
@@ -146,10 +153,23 @@ func _resume_game() -> void:
         pause_menu.close_menu()
 
 func _quit_to_menu() -> void:
+    _clear_pause_state()
+    get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
+
+func _clear_pause_state() -> void:
     get_tree().paused = false
     if fire_button != null:
         fire_button.disabled = false
-    get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
+    if pause_menu != null:
+        pause_menu.close_menu()
+
+func _disable_gameplay_ui() -> void:
+    if fire_button != null:
+        fire_button.disabled = true
+        fire_button.visible = false
+    if pause_button != null:
+        pause_button.disabled = true
+        pause_button.visible = false
 
 func _on_layout_settings_changed(_fire_button_side: String, _hud_side: String) -> void:
     _apply_runtime_layout()

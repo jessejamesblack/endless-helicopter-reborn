@@ -3,6 +3,8 @@ extends Control
 const OnlineLeaderboard = preload("res://systems/online_leaderboard.gd")
 const LEADERBOARD_PAGE_SIZE := 25
 const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
+const BOARD_PANEL_RECT := Rect2(-320.0, -292.0, 640.0, 584.0)
+const SETUP_PANEL_RECT := Rect2(-280.0, -178.0, 560.0, 356.0)
 
 var current_score: int = 0
 var has_submitted: bool = false
@@ -17,6 +19,7 @@ var leaderboard_has_more: bool = true
 var leaderboard_fetch_in_flight: bool = false
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
+@onready var panel: Panel = $Panel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
 @onready var status_label: Label = $Panel/MarginContainer/VBoxContainer/StatusLabel
 @onready var setup_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/SetupCard
@@ -27,10 +30,13 @@ var leaderboard_fetch_in_flight: bool = false
 @onready var back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/BackButton
 @onready var alert_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/AlertCard
 @onready var alert_label: Label = $Panel/MarginContainer/VBoxContainer/AlertCard/AlertLabel
+@onready var leaderboard_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/LeaderboardCard
 @onready var leaderboard_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/LeaderboardCard/LeaderboardScroll
 @onready var leaderboard_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/LeaderboardCard/LeaderboardScroll/LeaderboardList
+@onready var button_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ButtonRow
 
 func _ready() -> void:
+	get_tree().paused = false
 	has_pending_score = get_tree().has_meta("last_run_score")
 	current_score = int(get_tree().get_meta("last_run_score", 0))
 	if has_pending_score:
@@ -65,9 +71,13 @@ func _ready() -> void:
 			push_notifications.connect("push_notification_opened", push_callback)
 
 	if OnlineLeaderboard.is_configured():
-		set_status("Loading leaderboard...")
-		fetch_leaderboard(true)
-		fetch_notifications()
+		if needs_profile_setup:
+			set_status("Enter your name to save this run.")
+			name_entry.grab_focus()
+		else:
+			set_status("Loading leaderboard...")
+			fetch_leaderboard(true)
+			fetch_notifications()
 		if has_pending_score and not needs_profile_setup:
 			submit_score()
 	else:
@@ -81,7 +91,13 @@ func set_status(message: String) -> void:
 
 func _apply_screen_mode() -> void:
 	setup_card.visible = needs_profile_setup
-	alert_card.visible = not alert_label.text.is_empty()
+	alert_card.visible = not needs_profile_setup and not alert_label.text.is_empty()
+	leaderboard_card.visible = not needs_profile_setup
+	button_row.visible = not needs_profile_setup
+	refresh_button.disabled = needs_profile_setup
+	back_button.disabled = needs_profile_setup
+	title_label.text = "Save Your Score" if needs_profile_setup else _get_board_title()
+	_apply_panel_rect(SETUP_PANEL_RECT if needs_profile_setup else BOARD_PANEL_RECT)
 
 func _get_board_title() -> String:
 	if OnlineLeaderboard.FAMILY_ID == "global":
@@ -199,6 +215,7 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 	needs_profile_setup = false
 	_apply_screen_mode()
 	save_button.disabled = true
+	set_status("Score submitted!")
 	fetch_leaderboard(true)
 	fetch_notifications()
 
@@ -301,29 +318,20 @@ func _create_entry_row(rank: int, entry: Dictionary) -> HBoxContainer:
 	var rank_label := Label.new()
 	rank_label.custom_minimum_size = Vector2(44, 0)
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	rank_label.theme_override_colors.font_color = Color(0.588235, 0.784314, 0.964706, 1)
-	rank_label.theme_override_constants.outline_size = 2
-	rank_label.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-	rank_label.theme_override_font_sizes.font_size = 20
+	_apply_label_theme(rank_label, Color(0.588235, 0.784314, 0.964706, 1), 20)
 	rank_label.text = "%d." % rank
 	row.add_child(rank_label)
 
 	var name_label := Label.new()
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.theme_override_colors.font_color = Color(0.921569, 0.94902, 1, 1)
-	name_label.theme_override_constants.outline_size = 2
-	name_label.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-	name_label.theme_override_font_sizes.font_size = 20
+	_apply_label_theme(name_label, Color(0.921569, 0.94902, 1, 1), 20)
 	name_label.text = str(entry.get("name", "Player"))
 	row.add_child(name_label)
 
 	var score_label_row := Label.new()
 	score_label_row.custom_minimum_size = Vector2(116, 0)
 	score_label_row.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	score_label_row.theme_override_colors.font_color = Color(0.964706, 0.843137, 0.54902, 1)
-	score_label_row.theme_override_constants.outline_size = 2
-	score_label_row.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-	score_label_row.theme_override_font_sizes.font_size = 20
+	_apply_label_theme(score_label_row, Color(0.964706, 0.843137, 0.54902, 1), 20)
 	score_label_row.text = str(int(entry.get("score", 0)))
 	row.add_child(score_label_row)
 
@@ -335,12 +343,21 @@ func _create_message_label(message: String) -> Label:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.theme_override_colors.font_color = Color(0.776471, 0.85098, 0.94902, 0.95)
-	label.theme_override_constants.outline_size = 2
-	label.theme_override_colors.font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-	label.theme_override_font_sizes.font_size = 18
+	_apply_label_theme(label, Color(0.776471, 0.85098, 0.94902, 0.95), 18)
 	label.text = message
 	return label
+
+func _apply_label_theme(label: Label, font_color: Color, font_size: int) -> void:
+	label.add_theme_color_override("font_color", font_color)
+	label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
+	label.add_theme_constant_override("outline_size", 2)
+	label.add_theme_font_size_override("font_size", font_size)
+
+func _apply_panel_rect(rect: Rect2) -> void:
+	panel.offset_left = rect.position.x
+	panel.offset_top = rect.position.y
+	panel.offset_right = rect.position.x + rect.size.x
+	panel.offset_bottom = rect.position.y + rect.size.y
 
 func _get_empty_board_text() -> String:
 	if OnlineLeaderboard.FAMILY_ID == "global":
