@@ -2,6 +2,7 @@ extends SceneTree
 
 const NEAR_MISS_DETECTOR_SCRIPT := preload("res://scenes/player/near_miss_detector.gd")
 const FLOATING_SCORE_TEXT_SCENE := preload("res://scenes/effects/floating_score_text.tscn")
+const MAIN_SCENE := preload("res://scenes/game/main/main.tscn")
 
 class TestMain:
 	extends Node2D
@@ -22,6 +23,7 @@ func _initialize() -> void:
 	call_deferred("_run_validation")
 
 func _run_validation() -> void:
+	await _validate_combo_threshold_feedback_multiplier()
 	await _validate_near_miss_awards_once()
 	await _validate_destroyed_hazard_is_dropped()
 	await _validate_floating_score_configure_before_ready()
@@ -34,6 +36,38 @@ func _run_validation() -> void:
 	for failure in _failures:
 		push_error(failure)
 	quit(1)
+
+func _validate_combo_threshold_feedback_multiplier() -> void:
+	var main := await _create_runtime_main_scene()
+	main.set("combo_events", 2)
+	main.set("combo_multiplier", 1.0)
+	main.set("combo_timer", 3.0)
+	var score_before: float = float(main.get("score"))
+
+	var awarded: int = int(main.call("award_skill_score", 20, "TEST", Vector2(240, 180), true))
+	var score_after_award: float = float(main.get("score"))
+	await process_frame
+
+	if awarded != 20:
+		_failures.append("Combo threshold award should use the pre-event multiplier when calculating skill score.")
+
+	if absf((score_after_award - score_before) - 20.0) > 0.01:
+		_failures.append("Combo threshold award should add the pre-event multiplied points to the score.")
+
+	if absf(float(main.get("combo_multiplier")) - 1.25) > 0.001:
+		_failures.append("Combo threshold event should still advance the combo multiplier after awarding score.")
+
+	var floating_text := main.find_child("FloatingScoreText", true, false)
+	if floating_text == null:
+		_failures.append("Combo threshold award should spawn floating score feedback.")
+	else:
+		var label := floating_text.get_node_or_null("Label") as Label
+		if label == null:
+			_failures.append("Floating score feedback should include a Label child.")
+		elif label.text != "+20 TEST":
+			_failures.append("Combo threshold floating text should show the applied pre-event multiplier, not the post-event multiplier.")
+
+	await _destroy_node(main)
 
 func _validate_near_miss_awards_once() -> void:
 	var main := await _create_test_main()
@@ -97,6 +131,14 @@ func _create_test_main() -> TestMain:
 	var main := TestMain.new()
 	get_root().add_child(main)
 	current_scene = main
+	await process_frame
+	return main
+
+func _create_runtime_main_scene() -> Node:
+	var main := MAIN_SCENE.instantiate()
+	get_root().add_child(main)
+	current_scene = main
+	await process_frame
 	await process_frame
 	return main
 

@@ -103,7 +103,8 @@ func award_skill_score(base_points: int, reason: String, world_position: Vector2
     if is_crashed or is_transitioning_to_game_over or get_tree().paused:
         return 0
 
-    var awarded := int(round(float(maxi(base_points, 0)) * combo_multiplier))
+    var applied_multiplier := combo_multiplier
+    var awarded := int(round(float(maxi(base_points, 0)) * applied_multiplier))
     score += awarded
     _update_score_ui()
 
@@ -114,7 +115,7 @@ func award_skill_score(base_points: int, reason: String, world_position: Vector2
     if builds_combo:
         _register_combo_event()
 
-    _show_floating_score(world_position, awarded, reason, combo_multiplier)
+    _show_floating_score(world_position, awarded, reason, applied_multiplier)
     return awarded
 
 func _register_combo_event() -> void:
