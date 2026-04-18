@@ -18,17 +18,26 @@ function Find-GradleCommand {
         return 'gradle'
     }
 
-    $searchRoots = @(
-        (Join-Path $env:USERPROFILE '.gradle\wrapper\dists'),
-        (Join-Path $env:LOCALAPPDATA 'Temp')
-    )
+    $searchRoots = @()
+    if ($env:USERPROFILE) {
+        $searchRoots += (Join-Path $env:USERPROFILE '.gradle\wrapper\dists')
+    }
+    if ($env:HOME) {
+        $searchRoots += (Join-Path $env:HOME '.gradle/wrapper/dists')
+    }
+    if ($env:LOCALAPPDATA) {
+        $searchRoots += (Join-Path $env:LOCALAPPDATA 'Temp')
+    }
+    if ($env:TMPDIR) {
+        $searchRoots += $env:TMPDIR
+    }
 
     foreach ($root in $searchRoots) {
         if (-not $root -or -not (Test-Path $root)) {
             continue
         }
 
-        $candidate = Get-ChildItem -Path $root -Recurse -Filter gradle.bat -ErrorAction SilentlyContinue |
+        $candidate = Get-ChildItem -Path $root -Recurse -Include gradle,gradle.bat -File -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1 -ExpandProperty FullName
 
@@ -43,9 +52,15 @@ function Find-GradleCommand {
 function Find-AndroidSdkPath {
     $candidates = @(
         $env:ANDROID_HOME,
-        $env:ANDROID_SDK_ROOT,
-        (Join-Path $env:LOCALAPPDATA 'Android\Sdk')
+        $env:ANDROID_SDK_ROOT
     )
+
+    if ($env:LOCALAPPDATA) {
+        $candidates += (Join-Path $env:LOCALAPPDATA 'Android\Sdk')
+    }
+    if ($env:HOME) {
+        $candidates += (Join-Path $env:HOME 'Android/Sdk')
+    }
 
     foreach ($candidate in $candidates) {
         if ($candidate -and (Test-Path $candidate)) {
