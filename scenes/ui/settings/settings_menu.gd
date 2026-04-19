@@ -240,9 +240,9 @@ func _restore_with_device_player_id_async() -> void:
 	if is_instance_valid(restore_player_id_entry):
 		restore_player_id_entry.text = ""
 	var current_player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
-	var current_player_id_source := OnlineLeaderboardScript.get_player_identity_source()
-	if current_player_id.is_empty():
-		_refresh_restore_progress_section("This phone's player ID is not ready yet. Try again in a moment.")
+	var current_player_id_source := OnlineLeaderboardScript.get_player_identity_source_label()
+	if not OnlineLeaderboardScript.is_current_player_id_ready_for_cloud():
+		_refresh_restore_progress_section("This phone is still waiting for its stable Android player ID. Try again in a moment.")
 		return
 	_refresh_restore_progress_section("Switched back to this device's player ID %s (%s). Restoring cloud progress..." % [
 		current_player_id,
@@ -426,7 +426,7 @@ func _refresh_restore_progress_section(message: String = "") -> void:
 		restore_progress_status_label.text = message
 		return
 	var player_id := OnlineLeaderboardScript.get_player_id_for_display()
-	var player_id_source := OnlineLeaderboardScript.get_player_identity_source()
+	var player_id_source := OnlineLeaderboardScript.get_player_identity_source_label()
 	var entered_player_id := ""
 	if is_instance_valid(restore_player_id_entry):
 		entered_player_id = restore_player_id_entry.text.strip_edges()
@@ -435,6 +435,8 @@ func _refresh_restore_progress_section(message: String = "") -> void:
 		source_hint = "Restore will use the pasted player ID above."
 	elif OnlineLeaderboardScript.has_manual_player_id_override():
 		source_hint = "Using a pasted player ID."
+	if player_id.begins_with("(waiting"):
+		source_hint = "This phone is still starting its stable Android player ID. You can paste a support player ID above if you need to restore right away."
 	restore_progress_status_label.text = "Current Player ID: %s\nPlayer ID Source: %s\n%s Paste a player ID from support if restore doesn't work on its own, then tap Restore Progress." % [
 		player_id,
 		player_id_source,
@@ -462,8 +464,8 @@ func _restore_progress_async() -> void:
 		OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
 		restore_player_id_entry.text = validated_player_id
 	var player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
-	if player_id.is_empty():
-		_refresh_restore_progress_section("No player ID is ready yet. Paste one from support or try again once this device has one.")
+	if player_id.is_empty() or (entered_player_id.is_empty() and not OnlineLeaderboardScript.is_current_player_id_ready_for_cloud()):
+		_refresh_restore_progress_section("This phone is still waiting for its stable Android player ID. Paste one from support or try again in a moment.")
 		return
 	var sync_queue = _get_sync_queue()
 	if sync_queue == null:

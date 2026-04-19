@@ -76,6 +76,31 @@ Deno.serve(async (request: Request) => {
     }
   }
 
+  const existingByDevice = await supabase
+    .from("family_push_devices")
+    .select("id, family_id, player_id, fcm_token")
+    .eq("family_id", familyId)
+    .eq("device_id", deviceId);
+
+  if (!existingByDevice.error && Array.isArray(existingByDevice.data) && existingByDevice.data.length > 0) {
+    const obsoleteDeviceIds = existingByDevice.data
+      .filter((row) =>
+        String(row.player_id ?? "") !== playerId ||
+        String(row.fcm_token ?? "") !== fcmToken
+      )
+      .map((row) => Number(row.id))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (obsoleteDeviceIds.length > 0) {
+      const deleteResponse = await supabase
+        .from("family_push_devices")
+        .delete()
+        .in("id", obsoleteDeviceIds);
+      if (deleteResponse.error) {
+        return jsonResponse({ error: deleteResponse.error.message }, 500);
+      }
+    }
+  }
+
   const response = await supabase
     .from("family_push_devices")
     .upsert(row, { onConflict: "family_id,player_id,device_id" })

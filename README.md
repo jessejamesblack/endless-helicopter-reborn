@@ -120,7 +120,7 @@ After installing, open the in-game push diagnostics and confirm at least:
 
 ### From GitHub Releases
 
-Each successful CI build updates a rolling prerelease on GitHub.
+Each successful release build from `main` updates a rolling prerelease on GitHub.
 
 1. Open the repository on GitHub.
 2. Go to `Releases`.
@@ -144,6 +144,7 @@ This repository includes `.github/workflows/android-apk.yml`.
 
 - On pull requests to `main`, it validates the project and exports an Android APK artifact.
 - On pushes to `main`, it validates the project, exports an Android APK, and updates the rolling GitHub release.
+- Manual workflow runs only publish a release when they are run from `main`; branch and PR builds stay artifact-only.
 - The workflow also builds the Android FCM plugin AAR before the APK export.
 - The APK is uploaded as a workflow artifact.
 - The workflow also updates a rolling GitHub prerelease named `Endless-Helicopter-Reborn Latest APK`.

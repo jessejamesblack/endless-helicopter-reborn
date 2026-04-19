@@ -52,12 +52,14 @@ func _ready() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_notify_sync_queue_identity_state_changed()
 		_consume_launch_payload()
 		register_device_for_push()
 
 func _bootstrap() -> void:
 	_refresh_plugin_reference()
 	_connect_player_profile()
+	_connect_sync_queue()
 	if not is_push_supported():
 		_last_registration_message = get_diagnostics_text()
 		_emit_diagnostics()
@@ -74,6 +76,7 @@ func _bootstrap() -> void:
 			_plugin.connect("push_notification_opened", open_callback)
 
 	request_notification_permission()
+	_notify_sync_queue_identity_state_changed()
 	_consume_launch_payload()
 	register_device_for_push()
 	_schedule_registration_retries()
@@ -86,6 +89,14 @@ func _connect_player_profile() -> void:
 	var profile_callback := Callable(self, "_on_profile_changed")
 	if not player_profile.is_connected("profile_changed", profile_callback):
 		player_profile.connect("profile_changed", profile_callback)
+
+func _connect_sync_queue() -> void:
+	var sync_queue = get_node_or_null("/root/SupabaseSyncQueue")
+	if sync_queue == null or not sync_queue.has_signal("startup_sync_state_changed"):
+		return
+	var sync_callback := Callable(self, "_on_startup_sync_state_changed")
+	if not sync_queue.is_connected("startup_sync_state_changed", sync_callback):
+		sync_queue.connect("startup_sync_state_changed", sync_callback)
 
 func is_push_supported() -> bool:
 	if not OnlineLeaderboardScript.is_configured():
@@ -338,6 +349,7 @@ func _register_device_token(token: String) -> void:
 func _on_plugin_push_token_received(token: String) -> void:
 	_last_token_preview = _token_preview(token)
 	push_token_received.emit(token)
+	_notify_sync_queue_identity_state_changed()
 	_register_device_token(token)
 
 func _on_plugin_push_notification_opened(payload_json: String) -> void:
@@ -496,6 +508,13 @@ func _on_registration_retry_timeout() -> void:
 func _on_profile_changed(_summary: Dictionary) -> void:
 	if not is_push_supported():
 		return
+	_notify_sync_queue_identity_state_changed()
+	register_device_for_push()
+
+func _on_startup_sync_state_changed() -> void:
+	if not is_push_supported():
+		return
+	_notify_sync_queue_identity_state_changed()
 	register_device_for_push()
 
 func _refresh_plugin_reference() -> void:
@@ -679,3 +698,8 @@ func _report_registration_issue(category: String, message: String, context: Dict
 	var reporter = get_node_or_null("/root/ErrorReporter")
 	if reporter != null and reporter.has_method("report_warning"):
 		reporter.report_warning(category, message, context)
+
+func _notify_sync_queue_identity_state_changed() -> void:
+	var sync_queue = get_node_or_null("/root/SupabaseSyncQueue")
+	if sync_queue != null and sync_queue.has_method("notify_identity_state_changed"):
+		sync_queue.notify_identity_state_changed()

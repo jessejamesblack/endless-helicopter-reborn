@@ -4,6 +4,7 @@ signal queue_changed(pending_count: int)
 signal startup_sync_state_changed()
 
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
+const AndroidIdentityScript = preload("res://systems/android_identity.gd")
 const QUEUE_PATH := "user://supabase_sync_queue.cfg"
 const QUEUE_SECTION := "supabase_sync_queue"
 const MAX_QUEUE_SIZE := 50
@@ -23,6 +24,7 @@ var _startup_sync_in_progress: bool = false
 var _startup_sync_completed: bool = false
 var _identity_retry_attempts_remaining: int = 0
 var _cloud_access_blocked_reason: String = ""
+var _last_identity_snapshot: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -35,6 +37,7 @@ func _ready() -> void:
 	_identity_retry_timer.timeout.connect(_on_identity_retry_timeout)
 	add_child(_identity_retry_timer)
 	_load_queue()
+	_last_identity_snapshot = _get_identity_snapshot()
 	call_deferred("_startup_sync")
 
 func enqueue_submit_score_v2(name: String, score: int, run_summary: Dictionary, equipped_skin_id: String) -> void:
@@ -82,6 +85,16 @@ func has_completed_startup_sync() -> bool:
 func is_startup_sync_in_progress() -> bool:
 	return _startup_sync_in_progress
 
+func notify_identity_state_changed() -> void:
+	if not OnlineLeaderboardScript.is_configured() or _is_cloud_access_blocked():
+		return
+	var current_snapshot := _get_identity_snapshot()
+	if current_snapshot == _last_identity_snapshot:
+		return
+	_last_identity_snapshot = current_snapshot
+	_reset_startup_sync_for_identity_change()
+	call_deferred("_startup_sync")
+
 func _startup_sync() -> void:
 	if _startup_sync_completed or _startup_sync_in_progress:
 		return
@@ -99,7 +112,7 @@ func _run_startup_sync() -> void:
 		return
 	var identity_ready := await _ensure_remote_identity_ready()
 	if identity_ready:
-		await _pull_remote_state()
+		await _pull_remote_state(_should_replace_local_state_on_startup())
 		await _flush_async()
 		_finish_startup_sync()
 	else:
@@ -170,7 +183,7 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
 		var mission_manager := get_node_or_null("/root/MissionManager")
 		outcome["mission_restored"] = not remote_progress.is_empty()
-		if replace_existing_state and bool(outcome.get("profile_restored", false)):
+		if replace_existing_state:
 			if outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
 				mission_manager.replace_remote_daily_progress(remote_progress)
 			elif not outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
@@ -244,6 +257,7 @@ func _ensure_remote_identity_ready() -> bool:
 			return false
 		if _is_success_response(response):
 			OnlineLeaderboardScript.finalize_remote_identity_migration()
+			_last_identity_snapshot = _get_identity_snapshot()
 			return OnlineLeaderboardScript.is_remote_profile_identity_ready()
 		_report_identity_issue("identity_migration", "Remote identity migration did not complete.", {
 			"old_player_id_present": not old_player_id.is_empty(),
@@ -287,6 +301,14 @@ func _finish_startup_sync() -> void:
 	_startup_sync_completed = true
 	_startup_sync_in_progress = false
 	_identity_retry_attempts_remaining = 0
+	if _identity_retry_timer != null:
+		_identity_retry_timer.stop()
+	startup_sync_state_changed.emit()
+
+func _reset_startup_sync_for_identity_change() -> void:
+	_startup_sync_completed = false
+	_startup_sync_in_progress = false
+	_identity_retry_attempts_remaining = IDENTITY_RETRY_ATTEMPTS
 	if _identity_retry_timer != null:
 		_identity_retry_timer.stop()
 	startup_sync_state_changed.emit()
@@ -463,3 +485,23 @@ func _drop_all_jobs_for_upgrade_required() -> void:
 	_jobs.clear()
 	_save_queue()
 	_emit_queue_changed()
+
+func _should_replace_local_state_on_startup() -> bool:
+	return not OnlineLeaderboardScript.has_saved_profile()
+
+func _get_identity_snapshot() -> String:
+	var player_info := AndroidIdentityScript.get_player_identity_info()
+	var device_info := AndroidIdentityScript.get_device_identity_info()
+	return JSON.stringify({
+		"player_id": str(OnlineLeaderboardScript.load_or_create_player_id()).strip_edges(),
+		"player_source": str(player_info.get("source", "")),
+		"player_remote_ready": bool(player_info.get("remote_ready", false)),
+		"player_needs_migration": bool(player_info.get("needs_migration", false)),
+		"stable_player_id": str(player_info.get("stable_value", "")),
+		"device_id": str(device_info.get("value", "")),
+		"device_source": str(device_info.get("source", "")),
+		"device_remote_ready": bool(device_info.get("remote_ready", false)),
+		"device_needs_migration": bool(device_info.get("needs_migration", false)),
+		"stable_device_id": str(device_info.get("stable_value", "")),
+		"manual_override": OnlineLeaderboardScript.has_manual_player_id_override(),
+	})

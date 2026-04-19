@@ -149,14 +149,18 @@ func _run_validation() -> void:
 	_assert(identity_text.contains("\"remote_ready\""), "AndroidIdentity should track when remote identities are safe to use.")
 	_assert(identity_text.contains("android.provider.Settings$Secure"), "AndroidIdentity should include a direct Android ID fallback for stable identity resolution.")
 	_assert(identity_text.contains("HashingContext.HASH_SHA256"), "AndroidIdentity should hash stable Android identities deterministically.")
+	_assert(identity_text.contains("IDENTITY_SOURCE_ANDROID_PENDING"), "AndroidIdentity should expose a pending Android identity source while stable IDs are still starting.")
+	_assert(not identity_text.contains("var fallback_value := _generate_random_id()"), "AndroidIdentity should no longer generate random Android fallback IDs for remote identity.")
 
 	var leaderboard_text := Helper.read_text("res://systems/online_leaderboard.gd")
 	_assert(leaderboard_text.contains("migrate_player_identity"), "OnlineLeaderboard should expose the identity migration RPC.")
 	_assert(leaderboard_text.contains("profile_summary"), "OnlineLeaderboard should still parse profile summaries.")
 	_assert(leaderboard_text.contains("if not parsed.has(resolved_key)"), "OnlineLeaderboard should flatten nested profile_summary fields for restore merges.")
+	_assert(leaderboard_text.contains("Waiting for stable Android ID"), "OnlineLeaderboard should surface stable Android identity wait states clearly.")
 
 	var queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")
 	_assert(queue_text.contains("_ensure_remote_identity_ready"), "SupabaseSyncQueue should wait for a stable remote identity before syncing.")
+	_assert(queue_text.contains("notify_identity_state_changed"), "SupabaseSyncQueue should allow identity changes to restart startup restore.")
 
 	var sql_text := Helper.read_text("res://backend/supabase_vehicle_skins_setup.sql")
 	_assert(sql_text.contains("create or replace function public.migrate_player_identity"), "Supabase restore SQL should define migrate_player_identity.")
@@ -165,6 +169,9 @@ func _run_validation() -> void:
 
 	var build_info_text := Helper.read_text("res://systems/build_info.gd")
 	_assert(build_info_text.contains("APP_PACKAGE_NAME"), "BuildInfo should expose the canonical Android package name for stable identity fallback.")
+
+	var push_registration_text := Helper.read_text("res://backend/supabase/functions/register-push-device/index.ts")
+	_assert(push_registration_text.contains(".eq(\"device_id\", deviceId)"), "register-push-device should reconcile existing rows for the current device ID.")
 
 	_finish()
 

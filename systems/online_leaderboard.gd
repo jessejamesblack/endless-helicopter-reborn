@@ -18,6 +18,10 @@ const PLAYER_ID_OVERRIDE_CACHE_PATH := "user://player_id_override.save"
 const MAX_NAME_LENGTH := 12
 const MAX_PLAYER_ID_LENGTH := 96
 const PLAYER_ID_SOURCE_MANUAL_OVERRIDE := "manual_override"
+const PLAYER_ID_SOURCE_ANDROID_PENDING := "android_pending"
+const PLAYER_ID_SOURCE_ANDROID_STABLE := "android_stable"
+const PLAYER_ID_SOURCE_LEGACY_CACHE := "legacy_cache"
+const PLAYER_ID_SOURCE_LOCAL_FALLBACK := "local_fallback"
 const BLOCKED_TERMS := [
 	"asshole",
 	"bastard",
@@ -278,6 +282,12 @@ static func get_player_identity_source() -> String:
 static func get_device_identity_source() -> String:
 	return AndroidIdentityScript.get_device_identity_source()
 
+static func get_player_identity_source_label() -> String:
+	return get_identity_source_label(get_player_identity_source())
+
+static func get_device_identity_source_label() -> String:
+	return get_identity_source_label(get_device_identity_source())
+
 static func is_remote_identity_ready() -> bool:
 	return AndroidIdentityScript.is_remote_identity_ready()
 
@@ -287,6 +297,9 @@ static func is_remote_profile_identity_ready() -> bool:
 	if OS.get_name() != "Android":
 		return not load_or_create_player_id().is_empty()
 	return bool(AndroidIdentityScript.get_player_identity_info().get("remote_ready", false))
+
+static func is_current_player_id_ready_for_cloud() -> bool:
+	return not load_or_create_player_id().strip_edges().is_empty() and is_remote_profile_identity_ready()
 
 static func has_pending_remote_identity_migration() -> bool:
 	if has_manual_player_id_override():
@@ -303,8 +316,10 @@ static func finalize_remote_identity_migration() -> void:
 
 static func get_player_id_for_display() -> String:
 	var player_id := load_or_create_player_id().strip_edges()
+	if OS.get_name() == "Android" and not has_manual_player_id_override() and not is_remote_profile_identity_ready():
+		return "(waiting for stable Android ID)"
 	if player_id.is_empty():
-		return "(not ready yet)"
+		return "(waiting for stable Android ID)" if OS.get_name() == "Android" and not has_manual_player_id_override() else "(not ready yet)"
 	return player_id
 
 static func validate_player_id(player_id: String) -> Dictionary:
@@ -323,6 +338,20 @@ static func validate_player_id(player_id: String) -> Dictionary:
 			continue
 		return {"ok": false, "error": "Player ID can use letters, numbers, dashes, underscores, dots, and colons only."}
 	return {"ok": true, "player_id": trimmed}
+
+static func get_identity_source_label(source: String) -> String:
+	match source:
+		PLAYER_ID_SOURCE_MANUAL_OVERRIDE:
+			return "Manual override"
+		PLAYER_ID_SOURCE_ANDROID_STABLE:
+			return "Stable Android ID"
+		PLAYER_ID_SOURCE_LEGACY_CACHE:
+			return "Legacy install ID"
+		PLAYER_ID_SOURCE_ANDROID_PENDING:
+			return "Waiting for stable Android ID"
+		PLAYER_ID_SOURCE_LOCAL_FALLBACK:
+			return "Local fallback"
+	return source.replace("_", " ").capitalize()
 
 static func get_migrate_player_identity_url() -> String:
 	return get_edge_function_url("migrate-player-identity")

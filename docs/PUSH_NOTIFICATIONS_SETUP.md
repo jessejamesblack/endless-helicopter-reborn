@@ -214,7 +214,8 @@ In practice, this means:
 - `Android runtime available: yes` means Godot exposed Android runtime objects directly to GDScript for this session
 - push can still work even if `Android runtime available` is `no`, because the compat bridge also keeps its own cached context fallback
 - fresh Android installs now derive both `player_id` and `device_id` from a hashed Android-backed stable id, so reinstalls on the same signed app keep push and leaderboard identity aligned
-- existing installs keep any cached local ids they already had; this stabilizes identity going forward, but it does not migrate old server-side player ids automatically
+- Android no longer creates random fallback cloud identities; if the stable Android id is not ready yet, remote restore/save/push registration waits instead of minting a new account
+- existing installs with legacy cached ids now wait for the stable Android id, migrate server-side ownership to the canonical stable ids, and then resume restore/sync/push registration
 
 ## 8. Export Or Download The APK
 

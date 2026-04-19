@@ -773,9 +773,9 @@ func _prepare_player_id_for_online_actions() -> bool:
 	if _is_waiting_for_startup_restore():
 		set_status("Checking cloud progress for this device. Try again in a moment.")
 		return false
-	if not OnlineLeaderboardScript.load_or_create_player_id().strip_edges().is_empty():
+	if OnlineLeaderboardScript.is_current_player_id_ready_for_cloud():
 		return true
-	set_status("Cloud profile isn't ready yet. Try again in a moment.")
+	set_status("This phone is still waiting for its stable Android player ID. Try again in a moment.")
 	return false
 
 func _handle_upgrade_required_response(operation: String, response_code: int, body: PackedByteArray) -> bool:

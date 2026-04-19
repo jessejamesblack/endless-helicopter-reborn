@@ -61,7 +61,8 @@ If you want one world-wide board for everyone who installs the app, set:
 
 ## What The Leaderboard Does
 
-- Each device gets a persistent player id.
+- Android devices derive a reinstall-stable player id from the signed app package plus the device's Android-backed stable id.
+- Existing legacy Android installs migrate old cached player ids to the canonical stable id the first time the stable id resolves.
 - Each device saves a public player name locally after the first submitted run.
 - Player names use a simple profanity filter.
 - The database enforces unique public names within a leaderboard.
