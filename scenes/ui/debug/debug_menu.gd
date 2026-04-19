@@ -4,6 +4,8 @@ signal closed
 
 const BuildInfoScript = preload("res://systems/build_info.gd")
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
+const QA_TESTING_NAME := "QATesting"
+const QA_LOOKUP_LIMIT := 10
 const PANEL_DESIRED_SIZE := Vector2(980.0, 640.0)
 const PANEL_MARGIN := 18.0
 const TOUCH_SCROLL_DEADZONE := 10.0
@@ -61,6 +63,9 @@ var _scroll_dragging: bool = false
 var _scroll_pointer_id: int = -1
 var _scroll_press_position: Vector2 = Vector2.ZERO
 var _scroll_origin: float = 0.0
+var _qa_lookup_request: HTTPRequest
+var _qa_lookup_in_flight: bool = false
+var _cached_name_status_message: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -94,6 +99,7 @@ func _ready() -> void:
 	_refresh_support_state()
 	_update_push_status()
 	_configure_touch_scroll()
+	_ensure_qa_lookup_request()
 
 func open_menu() -> void:
 	_fit_panel_to_viewport()
@@ -181,12 +187,14 @@ func _on_send_feedback_pressed() -> void:
 		feedback_screen.open_menu()
 
 func _on_use_qa_name_pressed() -> void:
-	OnlineLeaderboardScript.save_cached_name("QATesting")
-	_update_cached_name_label()
+	call_deferred("_apply_qa_profile_async")
 
 func _on_clear_name_pressed() -> void:
 	OnlineLeaderboardScript.clear_cached_name()
+	OnlineLeaderboardScript.clear_manual_player_id_override()
+	_cached_name_status_message = ""
 	_update_cached_name_label()
+	_update_push_status()
 
 func _on_copy_bug_report_pressed() -> void:
 	var reporter = get_node_or_null("/root/ErrorReporter")
@@ -415,10 +423,159 @@ func _yes_no(value: bool) -> String:
 
 func _update_cached_name_label() -> void:
 	var cached_name := OnlineLeaderboardScript.load_cached_name()
-	if cached_name.is_empty():
-		cached_name_label.text = "Cached leaderboard name: (not set)"
+	var player_id := OnlineLeaderboardScript.get_player_id_for_display()
+	var source_text := str(OnlineLeaderboardScript.get_player_identity_source())
+	var name_text := "(not set)" if cached_name.is_empty() else cached_name
+	var lines := PackedStringArray([
+		"Cached leaderboard name: %s" % name_text,
+		"Player ID: %s" % player_id,
+		"Player ID source: %s" % source_text,
+	])
+	if not _cached_name_status_message.is_empty():
+		lines.append(_cached_name_status_message)
+	cached_name_label.text = "\n".join(lines)
+
+func _ensure_qa_lookup_request() -> void:
+	if _qa_lookup_request != null:
 		return
-	cached_name_label.text = "Cached leaderboard name: %s" % cached_name
+	_qa_lookup_request = HTTPRequest.new()
+	add_child(_qa_lookup_request)
+
+func _apply_qa_profile_async() -> void:
+	if _qa_lookup_in_flight:
+		return
+	_ensure_qa_lookup_request()
+	if not OnlineLeaderboardScript.is_configured():
+		_cached_name_status_message = "QATesting lookup unavailable: online services are not configured."
+		_update_cached_name_label()
+		return
+	_qa_lookup_in_flight = true
+	use_qa_name_button.disabled = true
+	_cached_name_status_message = "Resolving the live QATesting player ID..."
+	_update_cached_name_label()
+
+	var resolved_player_id := await _resolve_player_id_for_name(QA_TESTING_NAME)
+	if resolved_player_id.is_empty():
+		_cached_name_status_message = "Couldn't find a cloud QATesting profile to apply."
+		_qa_lookup_in_flight = false
+		use_qa_name_button.disabled = false
+		_update_cached_name_label()
+		return
+
+	OnlineLeaderboardScript.save_cached_name(QA_TESTING_NAME)
+	OnlineLeaderboardScript.save_manual_player_id_override(resolved_player_id)
+	_cached_name_status_message = "QATesting applied with player ID %s. Restoring cloud progress..." % resolved_player_id
+	_update_cached_name_label()
+	_update_push_status()
+
+	var sync_queue = get_node_or_null("/root/SupabaseSyncQueue")
+	if sync_queue != null and sync_queue.has_method("pull_remote_profile_state_async"):
+		var restore_result: Dictionary = await sync_queue.pull_remote_profile_state_async()
+		if not bool(restore_result.get("ok", false)):
+			_cached_name_status_message = "QATesting applied, but cloud restore failed: %s" % str(restore_result.get("error_message", "unknown error"))
+		elif bool(restore_result.get("profile_restored", false)) or bool(restore_result.get("mission_restored", false)):
+			_cached_name_status_message = "QATesting applied and cloud progress restored."
+		else:
+			_cached_name_status_message = "QATesting applied, but no cloud progress was found for that player ID."
+	else:
+		_cached_name_status_message = "QATesting applied. Restore service was not available in this scene."
+
+	_qa_lookup_in_flight = false
+	use_qa_name_button.disabled = false
+	_update_cached_name_label()
+
+func _resolve_player_id_for_name(player_name: String) -> String:
+	var profile_url := "%s/rest/v1/%s?select=player_id,name,total_daily_missions_completed,unlocked_vehicles,updated_at&family_id=eq.%s&name=eq.%s&order=updated_at.desc&limit=%d" % [
+		OnlineLeaderboardScript.SUPABASE_URL,
+		OnlineLeaderboardScript.PLAYER_PROFILE_TABLE_NAME,
+		OnlineLeaderboardScript.FAMILY_ID.uri_encode(),
+		player_name.uri_encode(),
+		QA_LOOKUP_LIMIT,
+	]
+	var profile_response := await _request_json(_qa_lookup_request, profile_url)
+	if _is_success_response(profile_response):
+		var best_profile_id := _pick_best_player_id_from_profile_rows(profile_response.body)
+		if not best_profile_id.is_empty():
+			return best_profile_id
+
+	var leaderboard_url := "%s/rest/v1/%s?select=player_id,name,score,updated_at&family_id=eq.%s&name=eq.%s&order=score.desc,updated_at.desc&limit=%d" % [
+		OnlineLeaderboardScript.SUPABASE_URL,
+		OnlineLeaderboardScript.TABLE_NAME,
+		OnlineLeaderboardScript.FAMILY_ID.uri_encode(),
+		player_name.uri_encode(),
+		QA_LOOKUP_LIMIT,
+	]
+	var leaderboard_response := await _request_json(_qa_lookup_request, leaderboard_url)
+	if _is_success_response(leaderboard_response):
+		return _pick_best_player_id_from_leaderboard_rows(leaderboard_response.body)
+	return ""
+
+func _pick_best_player_id_from_profile_rows(body: PackedByteArray) -> String:
+	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	if parsed is not Array:
+		return ""
+	var best_player_id := ""
+	var best_completed := -1
+	var best_unlock_count := -1
+	var best_updated_at := ""
+	for row_variant in parsed:
+		if row_variant is not Dictionary:
+			continue
+		var row := row_variant as Dictionary
+		var player_id := str(row.get("player_id", "")).strip_edges()
+		if player_id.is_empty():
+			continue
+		var completed_count := int(row.get("total_daily_missions_completed", 0))
+		var unlock_count := 0
+		var unlocked_vehicles = row.get("unlocked_vehicles", [])
+		if unlocked_vehicles is Array:
+			unlock_count = unlocked_vehicles.size()
+		var updated_at := str(row.get("updated_at", "")).strip_edges()
+		var is_better := false
+		if completed_count > best_completed:
+			is_better = true
+		elif completed_count == best_completed and unlock_count > best_unlock_count:
+			is_better = true
+		elif completed_count == best_completed and unlock_count == best_unlock_count and updated_at > best_updated_at:
+			is_better = true
+		if is_better:
+			best_player_id = player_id
+			best_completed = completed_count
+			best_unlock_count = unlock_count
+			best_updated_at = updated_at
+	return best_player_id
+
+func _pick_best_player_id_from_leaderboard_rows(body: PackedByteArray) -> String:
+	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	if parsed is not Array:
+		return ""
+	for row_variant in parsed:
+		if row_variant is not Dictionary:
+			continue
+		var player_id := str((row_variant as Dictionary).get("player_id", "")).strip_edges()
+		if not player_id.is_empty():
+			return player_id
+	return ""
+
+func _request_json(request: HTTPRequest, url: String, method: int = HTTPClient.METHOD_GET, body: String = "") -> Dictionary:
+	var start_error := request.request(url, OnlineLeaderboardScript.get_headers(), method, body)
+	if start_error != OK:
+		return {
+			"result": start_error,
+			"response_code": 0,
+			"body": PackedByteArray(),
+		}
+	var completed = await request.request_completed
+	return {
+		"result": int(completed[0]),
+		"response_code": int(completed[1]),
+		"body": completed[3],
+	}
+
+func _is_success_response(response: Dictionary) -> bool:
+	return int(response.get("result", HTTPRequest.RESULT_CANT_CONNECT)) == HTTPRequest.RESULT_SUCCESS \
+		and int(response.get("response_code", 0)) >= 200 \
+		and int(response.get("response_code", 0)) < 300
 
 func _get_debug_value_labels() -> Array[Label]:
 	return [
