@@ -249,6 +249,34 @@ static func load_or_create_player_id() -> String:
 static func get_player_identity_source() -> String:
 	return AndroidIdentityScript.get_player_identity_source()
 
+static func get_device_identity_source() -> String:
+	return AndroidIdentityScript.get_device_identity_source()
+
+static func is_remote_identity_ready() -> bool:
+	return AndroidIdentityScript.is_remote_identity_ready()
+
+static func has_pending_remote_identity_migration() -> bool:
+	return AndroidIdentityScript.has_pending_remote_identity_migration()
+
+static func get_pending_remote_identity_migration() -> Dictionary:
+	return AndroidIdentityScript.get_pending_remote_identity_migration()
+
+static func finalize_remote_identity_migration() -> void:
+	AndroidIdentityScript.finalize_remote_identity_migration()
+
+static func get_migrate_player_identity_url() -> String:
+	return "%s/rest/v1/rpc/migrate_player_identity" % SUPABASE_URL
+
+static func make_migrate_player_identity_body() -> String:
+	var migration := get_pending_remote_identity_migration()
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_old_player_id": str(migration.get("old_player_id", "")),
+		"p_new_player_id": str(migration.get("new_player_id", "")),
+		"p_old_device_id": str(migration.get("old_device_id", "")),
+		"p_new_device_id": str(migration.get("new_device_id", "")),
+	})
+
 static func make_mark_notifications_read_body() -> String:
 	return JSON.stringify({
 		"read_at": Time.get_datetime_string_from_system(true),
@@ -331,7 +359,14 @@ static func parse_submit_result(body: PackedByteArray) -> Dictionary:
 	return {}
 
 static func parse_profile_sync_result(body: PackedByteArray) -> Dictionary:
-	return _parse_json_dictionary(body)
+	var parsed := _parse_json_dictionary(body)
+	var nested_summary = parsed.get("profile_summary", {})
+	if nested_summary is Dictionary:
+		for key in nested_summary.keys():
+			var resolved_key := str(key)
+			if not parsed.has(resolved_key):
+				parsed[resolved_key] = nested_summary[key]
+	return parsed
 
 static func parse_daily_mission_sync_result(body: PackedByteArray) -> Dictionary:
 	return _parse_json_dictionary(body)

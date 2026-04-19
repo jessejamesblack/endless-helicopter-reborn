@@ -238,6 +238,8 @@ func _assert_within_panel(screen: Control, mode_name: String, viewport_size: Vec
 	for control in _collect_visible_controls(panel):
 		if control == panel or not _should_check_control(control):
 			continue
+		if _has_scroll_container_ancestor(control, panel):
+			continue
 		var rect := control.get_global_rect()
 		if rect.size.x <= 0.0 or rect.size.y <= 0.0:
 			continue
@@ -293,6 +295,14 @@ func _should_check_control(control: Control) -> bool:
 		and control is not VBoxContainer \
 		and control is not HBoxContainer \
 		and control is not GridContainer
+
+func _has_scroll_container_ancestor(control: Control, panel: Control) -> bool:
+	var current := control.get_parent()
+	while current != null and current != panel:
+		if current is ScrollContainer:
+			return true
+		current = current.get_parent()
+	return false
 
 func _format_viewport_size(viewport_size: Vector2i) -> String:
 	return "%dx%d" % [viewport_size.x, viewport_size.y]

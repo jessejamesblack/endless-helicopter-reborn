@@ -166,6 +166,10 @@ func fetch_leaderboard(reset: bool = false) -> void:
 	)
 
 func fetch_notifications() -> void:
+	if OS.get_name() == "Android" and not OnlineLeaderboardScript.is_remote_identity_ready():
+		alert_label.text = ""
+		_apply_screen_mode()
+		return
 	$NotificationRequest.request(
 		OnlineLeaderboardScript.get_notifications_url(5),
 		OnlineLeaderboardScript.get_headers(),

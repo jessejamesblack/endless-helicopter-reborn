@@ -32,8 +32,8 @@ func _run_validation() -> void:
 		var settings_menu := settings_scene.instantiate() as Control
 		get_root().add_child(settings_menu)
 		await process_frame
-		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsToggle") != null, "Settings menu should include the haptics toggle.")
-		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow/HapticsIntensityValueRow/HapticsIntensitySlider") != null, "Settings menu should include the haptics intensity slider.")
+		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/HapticsToggle") != null, "Settings menu should include the haptics toggle.")
+		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow/HapticsIntensityValueRow/HapticsIntensitySlider") != null, "Settings menu should include the haptics intensity slider.")
 		settings_menu.free()
 		await process_frame
 

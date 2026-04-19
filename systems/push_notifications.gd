@@ -123,6 +123,11 @@ func register_device_for_push() -> void:
 		_last_registration_message = get_diagnostics_text()
 		_emit_diagnostics()
 		return
+	if not _is_remote_identity_ready_for_registration():
+		_last_registration_message = _remote_identity_block_reason()
+		_schedule_registration_retries()
+		_emit_diagnostics()
+		return
 	_consume_cached_token()
 	var latest_token := _get_latest_token()
 	if not latest_token.is_empty():
@@ -169,7 +174,9 @@ func get_diagnostics() -> Dictionary:
 		"plugin_loaded": _plugin != null or _compat_bridge != null,
 		"compat_bridge_available": _compat_bridge != null,
 		"player_identity_source": OnlineLeaderboardScript.get_player_identity_source(),
-		"device_identity_source": AndroidIdentityScript.get_device_identity_source(),
+		"device_identity_source": OnlineLeaderboardScript.get_device_identity_source(),
+		"remote_identity_ready": OnlineLeaderboardScript.is_remote_identity_ready(),
+		"identity_migration_pending": OnlineLeaderboardScript.has_pending_remote_identity_migration(),
 		"android_runtime_available": _android_runtime != null,
 		"bridge_supports_firebase_status": bridge_supports_firebase_status,
 		"plugin_method_names": plugin_method_names,
@@ -200,6 +207,8 @@ func get_diagnostics_text() -> String:
 		return "Push unavailable: Android FCM plugin is not loaded in this APK."
 	if not bool(status["bridge_supports_firebase_status"]):
 		return "Push unavailable: this APK is using an outdated Android push bridge. Rebuild the plugin AARs and export a fresh APK."
+	if not bool(status.get("remote_identity_ready", true)):
+		return _remote_identity_block_reason()
 	if not bool(status["firebase_ready"]):
 		var firebase_detail := str(status.get("firebase_status", "")).strip_edges()
 		if firebase_detail.is_empty():
@@ -228,6 +237,8 @@ func get_debug_report() -> String:
 		"Android runtime available: %s" % _yes_no(bool(status["android_runtime_available"])),
 		"Player identity source: %s" % str(status["player_identity_source"]),
 		"Device identity source: %s" % str(status["device_identity_source"]),
+		"Remote identity ready: %s" % _yes_no(bool(status.get("remote_identity_ready", false))),
+		"Identity migration pending: %s" % _yes_no(bool(status.get("identity_migration_pending", false))),
 		"Bridge diagnostics available: %s" % _yes_no(bool(status["bridge_supports_firebase_status"])),
 		"Firebase ready: %s" % _yes_no(bool(status["firebase_ready"])),
 		"Firebase status: %s" % str(status["firebase_status"]),
@@ -655,6 +666,14 @@ func _get_effective_release_channel() -> String:
 		if not override.is_empty():
 			return override
 	return str(BuildInfoScript.RELEASE_CHANNEL)
+
+func _is_remote_identity_ready_for_registration() -> bool:
+	return OnlineLeaderboardScript.is_remote_identity_ready() and not OnlineLeaderboardScript.has_pending_remote_identity_migration()
+
+func _remote_identity_block_reason() -> String:
+	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
+		return "Push waiting for Android identity migration to finish before registering this device."
+	return "Push waiting for a stable Android identity before registering this device."
 
 func _report_registration_issue(category: String, message: String, context: Dictionary = {}) -> void:
 	var reporter = get_node_or_null("/root/ErrorReporter")

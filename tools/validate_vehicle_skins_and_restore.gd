@@ -1,5 +1,7 @@
 extends SceneTree
 
+const Helper = preload("res://tools/validate_sprint6_helpers.gd")
+
 var _failures: Array[String] = []
 
 func _initialize() -> void:
@@ -140,6 +142,24 @@ func _run_validation() -> void:
 	_assert(not helicopter_skins.get_vehicle_skin_ids("pottercar").has("gold"), "Pottercar should stay out of the standard skin progression ladder.")
 	_assert(not helicopter_skins.get_vehicle_skin_ids("pottercar").has("arctic"), "Pottercar should stay out of the standard mission skin ladder.")
 	_assert(not helicopter_skins.get_vehicle_skin_ids("crazytaxi").has("gold"), "Crazy Taxi should stay out of the standard skin progression ladder.")
+
+	var identity_text := Helper.read_text("res://systems/android_identity.gd")
+	_assert(identity_text.contains("has_pending_remote_identity_migration"), "AndroidIdentity should expose pending remote migration checks.")
+	_assert(identity_text.contains("finalize_remote_identity_migration"), "AndroidIdentity should persist canonical Android identities after migration.")
+	_assert(identity_text.contains("\"remote_ready\""), "AndroidIdentity should track when remote identities are safe to use.")
+
+	var leaderboard_text := Helper.read_text("res://systems/online_leaderboard.gd")
+	_assert(leaderboard_text.contains("migrate_player_identity"), "OnlineLeaderboard should expose the identity migration RPC.")
+	_assert(leaderboard_text.contains("profile_summary"), "OnlineLeaderboard should still parse profile summaries.")
+	_assert(leaderboard_text.contains("if not parsed.has(resolved_key)"), "OnlineLeaderboard should flatten nested profile_summary fields for restore merges.")
+
+	var queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")
+	_assert(queue_text.contains("_ensure_remote_identity_ready"), "SupabaseSyncQueue should wait for a stable remote identity before syncing.")
+
+	var sql_text := Helper.read_text("res://backend/supabase_vehicle_skins_setup.sql")
+	_assert(sql_text.contains("create or replace function public.migrate_player_identity"), "Supabase restore SQL should define migrate_player_identity.")
+	_assert(sql_text.contains("family_push_devices"), "Identity migration should update push device ownership.")
+	_assert(sql_text.contains("family_daily_mission_progress"), "Identity migration should merge daily mission progress.")
 
 	_finish()
 

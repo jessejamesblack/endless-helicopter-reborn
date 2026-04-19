@@ -6,6 +6,8 @@ const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const QUEUE_PATH := "user://supabase_sync_queue.cfg"
 const QUEUE_SECTION := "supabase_sync_queue"
 const MAX_QUEUE_SIZE := 50
+const IDENTITY_RETRY_SECONDS := 1.5
+const IDENTITY_RETRY_ATTEMPTS := 8
 
 const JOB_SUBMIT_SCORE_V2 := "submit_score_v2"
 const JOB_SYNC_PLAYER_PROFILE := "sync_player_profile"
@@ -14,13 +16,17 @@ const JOB_SYNC_DAILY_MISSION_PROGRESS := "sync_daily_mission_progress"
 var _jobs: Array[Dictionary] = []
 var _flush_request: HTTPRequest
 var _pull_request: HTTPRequest
+var _identity_retry_timer: Timer
 var _is_flushing: bool = false
-var _startup_pull_attempted: bool = false
+var _startup_sync_in_progress: bool = false
+var _startup_sync_completed: bool = false
+var _identity_retry_attempts_remaining: int = 0
 var _submit_v2_available: bool = true
 var _sync_profile_available: bool = true
 var _sync_daily_available: bool = true
 var _get_profile_available: bool = true
 var _get_daily_available: bool = true
+var _migrate_identity_available: bool = true
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -28,6 +34,10 @@ func _ready() -> void:
 	add_child(_flush_request)
 	_pull_request = HTTPRequest.new()
 	add_child(_pull_request)
+	_identity_retry_timer = Timer.new()
+	_identity_retry_timer.one_shot = true
+	_identity_retry_timer.timeout.connect(_on_identity_retry_timeout)
+	add_child(_identity_retry_timer)
 	_load_queue()
 	call_deferred("_startup_sync")
 
@@ -68,14 +78,32 @@ func get_pending_count() -> int:
 	return _jobs.size()
 
 func _startup_sync() -> void:
-	if _startup_pull_attempted:
+	if _startup_sync_completed or _startup_sync_in_progress:
 		return
-	_startup_pull_attempted = true
-	await _pull_remote_state()
-	await _flush_async()
+	_identity_retry_attempts_remaining = max(_identity_retry_attempts_remaining, IDENTITY_RETRY_ATTEMPTS)
+	call_deferred("_run_startup_sync")
+
+func _run_startup_sync() -> void:
+	if _startup_sync_completed or _startup_sync_in_progress:
+		return
+	_startup_sync_in_progress = true
+	var identity_ready := await _ensure_remote_identity_ready()
+	if identity_ready:
+		await _pull_remote_state()
+		await _flush_async()
+		_startup_sync_completed = true
+		_identity_retry_attempts_remaining = 0
+		if _identity_retry_timer != null:
+			_identity_retry_timer.stop()
+	else:
+		_schedule_identity_retry()
+	_startup_sync_in_progress = false
 
 func _pull_remote_state() -> void:
 	if not OnlineLeaderboardScript.is_configured():
+		return
+	if not await _ensure_remote_identity_ready():
+		_schedule_identity_retry()
 		return
 
 	var profile_body := OnlineLeaderboardScript.make_get_player_profile_body()
@@ -104,6 +132,9 @@ func _pull_remote_state() -> void:
 func _flush_async() -> void:
 	if _is_flushing or not OnlineLeaderboardScript.is_configured():
 		return
+	if not await _ensure_remote_identity_ready():
+		_schedule_identity_retry()
+		return
 	_is_flushing = true
 
 	while not _jobs.is_empty():
@@ -117,6 +148,65 @@ func _flush_async() -> void:
 		break
 
 	_is_flushing = false
+
+func _ensure_remote_identity_ready() -> bool:
+	if not OnlineLeaderboardScript.is_configured():
+		return false
+	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
+		if not _migrate_identity_available:
+			return false
+		var migration := OnlineLeaderboardScript.get_pending_remote_identity_migration()
+		var old_player_id := str(migration.get("old_player_id", "")).strip_edges()
+		var new_player_id := str(migration.get("new_player_id", "")).strip_edges()
+		var old_device_id := str(migration.get("old_device_id", "")).strip_edges()
+		var new_device_id := str(migration.get("new_device_id", "")).strip_edges()
+		if new_player_id.is_empty() or new_device_id.is_empty():
+			return false
+		if old_player_id.is_empty() and old_device_id.is_empty():
+			OnlineLeaderboardScript.finalize_remote_identity_migration()
+			return OnlineLeaderboardScript.is_remote_identity_ready()
+		var response := await _request_json(
+			_pull_request,
+			OnlineLeaderboardScript.get_migrate_player_identity_url(),
+			HTTPClient.METHOD_POST,
+			OnlineLeaderboardScript.make_migrate_player_identity_body()
+		)
+		if _is_success_response(response):
+			OnlineLeaderboardScript.finalize_remote_identity_migration()
+			return OnlineLeaderboardScript.is_remote_identity_ready()
+		if _should_disable_rpc(response, "migrate_player_identity"):
+			_migrate_identity_available = false
+		_report_identity_issue("identity_migration", "Remote identity migration did not complete.", {
+			"old_player_id_present": not old_player_id.is_empty(),
+			"new_player_id_present": not new_player_id.is_empty(),
+			"old_device_id_present": not old_device_id.is_empty(),
+			"new_device_id_present": not new_device_id.is_empty(),
+			"response_code": int(response.get("response_code", 0)),
+			"result": int(response.get("result", HTTPRequest.RESULT_CANT_CONNECT)),
+		})
+		return false
+	if not OnlineLeaderboardScript.is_remote_identity_ready():
+		return false
+	OnlineLeaderboardScript.finalize_remote_identity_migration()
+	return true
+
+func _schedule_identity_retry() -> void:
+	if _identity_retry_timer == null:
+		return
+	if _identity_retry_attempts_remaining <= 0:
+		_identity_retry_attempts_remaining = IDENTITY_RETRY_ATTEMPTS
+	if _identity_retry_attempts_remaining <= 0:
+		return
+	if _identity_retry_timer.is_stopped():
+		_identity_retry_timer.start(IDENTITY_RETRY_SECONDS)
+
+func _on_identity_retry_timeout() -> void:
+	if _identity_retry_attempts_remaining <= 0:
+		return
+	_identity_retry_attempts_remaining -= 1
+	if _startup_sync_completed:
+		return
+	call_deferred("_run_startup_sync")
 
 func _process_job(job: Dictionary) -> String:
 	match str(job.get("type", "")):
@@ -303,3 +393,8 @@ func _refresh_bonus_skin_access() -> void:
 	var player_profile := get_node_or_null("/root/PlayerProfile")
 	if player_profile != null and player_profile.has_method("refresh_top_player_skin_access"):
 		player_profile.refresh_top_player_skin_access()
+
+func _report_identity_issue(category: String, message: String, context: Dictionary = {}) -> void:
+	var reporter := get_node_or_null("/root/ErrorReporter")
+	if reporter != null and reporter.has_method("report_warning"):
+		reporter.report_warning(category, message, context)

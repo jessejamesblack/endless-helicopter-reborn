@@ -112,12 +112,14 @@ func _validate_screen_assets() -> void:
 		var settings_menu := settings_menu_scene.instantiate() as Control
 		get_root().add_child(settings_menu)
 		await process_frame
-		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/EnablePushButton") != null, "Settings menu should include the notifications toggle button.")
-		var push_status_label := settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/PushStatusLabel") as Label
+		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/PushSection/EnablePushButton") != null, "Settings menu should include the notifications toggle button.")
+		var push_status_label := settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/PushSection/PushStatusLabel") as Label
 		_assert(push_status_label != null, "Settings menu should include the push status label.")
 		if push_status_label != null:
 			_assert(push_status_label.text.contains("Daily reminders:"), "Settings push status should show the local reminder preference.")
 			_assert(push_status_label.text.contains("Push permission:"), "Settings push status should distinguish push permission from the reminder preference.")
+		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/BuildInfoSection") == null, "Settings menu should keep build info out of the player-facing panel.")
+		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/FeedbackSection") == null, "Settings menu should keep feedback actions out of the player-facing panel.")
 		settings_menu.free()
 		await process_frame
 
