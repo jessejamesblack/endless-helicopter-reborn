@@ -4,6 +4,8 @@ signal audio_settings_changed(master_volume: float, music_volume: float, sfx_vol
 signal layout_settings_changed(fire_button_side: String, hud_side: String)
 signal haptics_settings_changed(haptics_enabled: bool, haptics_intensity: float)
 signal performance_settings_changed(frame_rate_setting: String, max_fps: int)
+signal screenshot_settings_changed(achievement_screenshot_sharing_enabled: bool)
+signal release_channel_override_changed(channel_override: String)
 
 const SETTINGS_PATH := "user://game_settings.cfg"
 const SETTINGS_SECTION := "settings"
@@ -25,6 +27,8 @@ var hud_side: String = SIDE_LEFT
 var haptics_enabled: bool = true
 var haptics_intensity: float = 0.75
 var frame_rate_setting: String = FRAME_RATE_DEVICE_DEFAULT
+var achievement_screenshot_sharing_enabled: bool = true
+var debug_release_channel_override: String = ""
 
 func _ready() -> void:
 	load_settings()
@@ -45,6 +49,8 @@ func load_settings() -> void:
 	haptics_enabled = bool(config.get_value(SETTINGS_SECTION, "haptics_enabled", true))
 	haptics_intensity = clampf(float(config.get_value(SETTINGS_SECTION, "haptics_intensity", 0.75)), 0.0, 1.0)
 	frame_rate_setting = _sanitize_frame_rate_setting(str(config.get_value(SETTINGS_SECTION, "frame_rate_setting", FRAME_RATE_DEVICE_DEFAULT)))
+	achievement_screenshot_sharing_enabled = bool(config.get_value(SETTINGS_SECTION, "achievement_screenshot_sharing_enabled", true))
+	debug_release_channel_override = _sanitize_release_channel_override(str(config.get_value(SETTINGS_SECTION, "debug_release_channel_override", "")))
 
 func save_settings() -> void:
 	var config := ConfigFile.new()
@@ -56,6 +62,8 @@ func save_settings() -> void:
 	config.set_value(SETTINGS_SECTION, "haptics_enabled", haptics_enabled)
 	config.set_value(SETTINGS_SECTION, "haptics_intensity", haptics_intensity)
 	config.set_value(SETTINGS_SECTION, "frame_rate_setting", frame_rate_setting)
+	config.set_value(SETTINGS_SECTION, "achievement_screenshot_sharing_enabled", achievement_screenshot_sharing_enabled)
+	config.set_value(SETTINGS_SECTION, "debug_release_channel_override", debug_release_channel_override)
 	config.save(SETTINGS_PATH)
 
 func apply_settings(emit_signals: bool = true) -> void:
@@ -68,6 +76,8 @@ func apply_settings(emit_signals: bool = true) -> void:
 		layout_settings_changed.emit(fire_button_side, hud_side)
 		haptics_settings_changed.emit(haptics_enabled, haptics_intensity)
 		performance_settings_changed.emit(frame_rate_setting, get_target_max_fps())
+		screenshot_settings_changed.emit(achievement_screenshot_sharing_enabled)
+		release_channel_override_changed.emit(debug_release_channel_override)
 
 func set_master_volume(value: float) -> void:
 	master_volume = clampf(value, 0.0, 1.0)
@@ -112,6 +122,16 @@ func set_frame_rate_setting(value: String) -> void:
 	_apply_frame_rate_cap()
 	performance_settings_changed.emit(frame_rate_setting, get_target_max_fps())
 
+func set_achievement_screenshot_sharing_enabled(enabled: bool) -> void:
+	achievement_screenshot_sharing_enabled = enabled
+	save_settings()
+	screenshot_settings_changed.emit(achievement_screenshot_sharing_enabled)
+
+func set_debug_release_channel_override(value: String) -> void:
+	debug_release_channel_override = _sanitize_release_channel_override(value)
+	save_settings()
+	release_channel_override_changed.emit(debug_release_channel_override)
+
 func get_master_volume() -> float:
 	return master_volume
 
@@ -135,6 +155,12 @@ func get_haptics_intensity() -> float:
 
 func get_frame_rate_setting() -> String:
 	return frame_rate_setting
+
+func is_achievement_screenshot_sharing_enabled() -> bool:
+	return achievement_screenshot_sharing_enabled
+
+func get_debug_release_channel_override() -> String:
+	return debug_release_channel_override
 
 func get_target_max_fps() -> int:
 	match frame_rate_setting:
@@ -169,6 +195,8 @@ func _apply_defaults() -> void:
 	haptics_enabled = true
 	haptics_intensity = 0.75
 	frame_rate_setting = FRAME_RATE_DEVICE_DEFAULT
+	achievement_screenshot_sharing_enabled = true
+	debug_release_channel_override = ""
 
 func _ensure_audio_buses() -> void:
 	_ensure_bus(MUSIC_BUS_NAME)
@@ -219,3 +247,9 @@ func _sanitize_frame_rate_setting(value: String) -> String:
 		FRAME_RATE_BATTERY_SAVER, FRAME_RATE_SMOOTH, FRAME_RATE_ULTRA, FRAME_RATE_DEVICE_DEFAULT:
 			return value
 	return FRAME_RATE_DEVICE_DEFAULT
+
+func _sanitize_release_channel_override(value: String) -> String:
+	match value:
+		"", "stable", "beta", "dev":
+			return value
+	return ""

@@ -1,10 +1,12 @@
 class_name AndroidIdentity
 extends RefCounted
 
+const BuildInfoScript = preload("res://systems/build_info.gd")
 const PLUGIN_SINGLETON := "FCMPushBridge"
 const ANDROID_RUNTIME_SINGLETON := "AndroidRuntime"
 const JAVA_CLASS_WRAPPER_SINGLETON := "JavaClassWrapper"
 const COMPAT_BRIDGE_CLASS := "com.endlesshelicopter.push.FcmPushBridgeCompat"
+const SETTINGS_SECURE_CLASS := "android.provider.Settings$Secure"
 
 const PLAYER_ID_CACHE_PATH := "user://player_id.save"
 const PLAYER_ID_SOURCE_CACHE_PATH := "user://player_id_source.save"
@@ -17,95 +19,183 @@ const IDENTITY_SOURCE_LOCAL_FALLBACK := "local_fallback"
 
 const PLAYER_ID_PREFIX := "android-player-"
 const DEVICE_ID_PREFIX := "android-device-"
+const INVALID_ANDROID_ID := "9774d56d682e549c"
 
 static func load_or_create_player_id() -> String:
-	var resolved := _load_or_create_identity(
-		PLAYER_ID_CACHE_PATH,
-		PLAYER_ID_SOURCE_CACHE_PATH,
-		PLAYER_ID_PREFIX,
-		PackedStringArray(["getStablePlayerId", "get_stable_player_id"])
-	)
-	return str(resolved["value"])
+	var resolved := get_player_identity_info()
+	_persist_resolved_identity_if_needed(resolved, PLAYER_ID_CACHE_PATH, PLAYER_ID_SOURCE_CACHE_PATH)
+	return str(resolved.get("value", ""))
 
 static func load_or_create_device_id() -> String:
-	var resolved := _load_or_create_identity(
-		DEVICE_ID_CACHE_PATH,
-		DEVICE_ID_SOURCE_CACHE_PATH,
-		DEVICE_ID_PREFIX,
-		PackedStringArray(["getStableDeviceId", "get_stable_device_id"])
-	)
-	return str(resolved["value"])
+	var resolved := get_device_identity_info()
+	_persist_resolved_identity_if_needed(resolved, DEVICE_ID_CACHE_PATH, DEVICE_ID_SOURCE_CACHE_PATH)
+	return str(resolved.get("value", ""))
 
 static func get_player_identity_source() -> String:
-	return _peek_identity_source(
+	return str(get_player_identity_info().get("source", IDENTITY_SOURCE_LOCAL_FALLBACK))
+
+static func get_device_identity_source() -> String:
+	return str(get_device_identity_info().get("source", IDENTITY_SOURCE_LOCAL_FALLBACK))
+
+static func get_player_identity_info() -> Dictionary:
+	return _build_identity_info(
 		PLAYER_ID_CACHE_PATH,
 		PLAYER_ID_SOURCE_CACHE_PATH,
 		PLAYER_ID_PREFIX,
-		PackedStringArray(["getStablePlayerId", "get_stable_player_id"])
+		PackedStringArray(["getStablePlayerId", "get_stable_player_id"]),
+		"player"
 	)
 
-static func get_device_identity_source() -> String:
-	return _peek_identity_source(
+static func get_device_identity_info() -> Dictionary:
+	return _build_identity_info(
 		DEVICE_ID_CACHE_PATH,
 		DEVICE_ID_SOURCE_CACHE_PATH,
 		DEVICE_ID_PREFIX,
-		PackedStringArray(["getStableDeviceId", "get_stable_device_id"])
+		PackedStringArray(["getStableDeviceId", "get_stable_device_id"]),
+		"device"
 	)
 
-static func get_cached_device_id_for_debug() -> String:
-	if not FileAccess.file_exists(DEVICE_ID_CACHE_PATH):
-		return "(not created yet)"
+static func is_remote_identity_ready() -> bool:
+	if OS.get_name() != "Android":
+		return true
+	var player_info := get_player_identity_info()
+	var device_info := get_device_identity_info()
+	return bool(player_info.get("remote_ready", false)) and bool(device_info.get("remote_ready", false))
 
-	var file := FileAccess.open(DEVICE_ID_CACHE_PATH, FileAccess.READ)
-	if file == null:
-		return "(unreadable)"
+static func has_pending_remote_identity_migration() -> bool:
+	if OS.get_name() != "Android":
+		return false
+	var player_info := get_player_identity_info()
+	var device_info := get_device_identity_info()
+	return bool(player_info.get("needs_migration", false)) or bool(device_info.get("needs_migration", false))
 
-	var device_id := file.get_as_text().strip_edges()
-	if device_id.is_empty():
-		return "(empty)"
-	return device_id
-
-static func _load_or_create_identity(cache_path: String, source_path: String, stable_prefix: String, stable_method_names: PackedStringArray) -> Dictionary:
-	var cached_value := _read_cached_value(cache_path)
-	if not cached_value.is_empty():
-		var existing_source := _read_cached_value(source_path)
-		if existing_source.is_empty():
-			existing_source = _infer_cached_source(cached_value, stable_prefix)
-			_write_cached_value(source_path, existing_source)
-		return {
-			"value": cached_value,
-			"source": existing_source,
-		}
-
-	var stable_value := _resolve_android_stable_id(stable_method_names)
-	if not stable_value.is_empty():
-		_write_cached_value(cache_path, stable_value)
-		_write_cached_value(source_path, IDENTITY_SOURCE_ANDROID_STABLE)
-		return {
-			"value": stable_value,
-			"source": IDENTITY_SOURCE_ANDROID_STABLE,
-		}
-
-	var fallback_value := _generate_random_id()
-	_write_cached_value(cache_path, fallback_value)
-	_write_cached_value(source_path, IDENTITY_SOURCE_LOCAL_FALLBACK)
+static func get_pending_remote_identity_migration() -> Dictionary:
+	var player_info := get_player_identity_info()
+	var device_info := get_device_identity_info()
 	return {
-		"value": fallback_value,
-		"source": IDENTITY_SOURCE_LOCAL_FALLBACK,
+		"old_player_id": str(player_info.get("cached_value", "")),
+		"new_player_id": str(player_info.get("stable_value", player_info.get("value", ""))),
+		"old_device_id": str(device_info.get("cached_value", "")),
+		"new_device_id": str(device_info.get("stable_value", device_info.get("value", ""))),
+		"player_needs_migration": bool(player_info.get("needs_migration", false)),
+		"device_needs_migration": bool(device_info.get("needs_migration", false)),
 	}
 
-static func _peek_identity_source(cache_path: String, source_path: String, stable_prefix: String, stable_method_names: PackedStringArray) -> String:
-	var cached_value := _read_cached_value(cache_path)
-	if not cached_value.is_empty():
-		var existing_source := _read_cached_value(source_path)
-		if not existing_source.is_empty():
-			return existing_source
-		return _infer_cached_source(cached_value, stable_prefix)
+static func finalize_remote_identity_migration() -> void:
+	if OS.get_name() != "Android":
+		return
+	var player_info := get_player_identity_info()
+	var device_info := get_device_identity_info()
+	_persist_canonical_identity(player_info, PLAYER_ID_CACHE_PATH, PLAYER_ID_SOURCE_CACHE_PATH)
+	_persist_canonical_identity(device_info, DEVICE_ID_CACHE_PATH, DEVICE_ID_SOURCE_CACHE_PATH)
 
-	var stable_value := _resolve_android_stable_id(stable_method_names)
+static func get_cached_device_id_for_debug() -> String:
+	var device_id := _read_cached_value(DEVICE_ID_CACHE_PATH)
+	if device_id.is_empty():
+		device_id = str(get_device_identity_info().get("value", "")).strip_edges()
+	if device_id.is_empty():
+		return "(not created yet)"
+	return device_id
+
+static func _build_identity_info(cache_path: String, source_path: String, stable_prefix: String, stable_method_names: PackedStringArray, identity_purpose: String) -> Dictionary:
+	var cached_value := _read_cached_value(cache_path)
+	var existing_source := _read_cached_value(source_path)
+	if existing_source.is_empty() and not cached_value.is_empty():
+		existing_source = _infer_cached_source(cached_value, stable_prefix)
+
+	if OS.get_name() != "Android":
+		if cached_value.is_empty():
+			cached_value = _generate_random_id()
+			existing_source = IDENTITY_SOURCE_LOCAL_FALLBACK
+			return {
+				"value": cached_value,
+				"cached_value": cached_value,
+				"stable_value": "",
+				"source": existing_source,
+				"remote_ready": true,
+				"needs_migration": false,
+				"should_persist": true,
+			}
+		if existing_source.is_empty():
+			existing_source = IDENTITY_SOURCE_LOCAL_FALLBACK
+		return {
+			"value": cached_value,
+			"cached_value": cached_value,
+			"stable_value": "",
+			"source": existing_source,
+			"remote_ready": true,
+			"needs_migration": false,
+			"should_persist": _read_cached_value(source_path).is_empty(),
+		}
+
+	var stable_value := _resolve_android_stable_id(stable_method_names, identity_purpose, stable_prefix)
 	if not stable_value.is_empty():
-		return IDENTITY_SOURCE_ANDROID_STABLE
-	return IDENTITY_SOURCE_LOCAL_FALLBACK
+		if cached_value.is_empty():
+			return {
+				"value": stable_value,
+				"cached_value": "",
+				"stable_value": stable_value,
+				"source": IDENTITY_SOURCE_ANDROID_STABLE,
+				"remote_ready": true,
+				"needs_migration": false,
+				"should_persist": true,
+			}
+		if cached_value == stable_value:
+			return {
+				"value": stable_value,
+				"cached_value": cached_value,
+				"stable_value": stable_value,
+				"source": IDENTITY_SOURCE_ANDROID_STABLE,
+				"remote_ready": true,
+				"needs_migration": false,
+				"should_persist": existing_source != IDENTITY_SOURCE_ANDROID_STABLE,
+			}
+		return {
+			"value": stable_value,
+			"cached_value": cached_value,
+			"stable_value": stable_value,
+			"source": existing_source if not existing_source.is_empty() else _infer_cached_source(cached_value, stable_prefix),
+			"remote_ready": false,
+			"needs_migration": true,
+			"should_persist": false,
+		}
+
+	if not cached_value.is_empty() and existing_source == IDENTITY_SOURCE_ANDROID_STABLE:
+		return {
+			"value": cached_value,
+			"cached_value": cached_value,
+			"stable_value": cached_value,
+			"source": existing_source,
+			"remote_ready": true,
+			"needs_migration": false,
+			"should_persist": false,
+		}
+	return {
+		"value": "",
+		"cached_value": cached_value,
+		"stable_value": "",
+		"source": existing_source if not existing_source.is_empty() else IDENTITY_SOURCE_LOCAL_FALLBACK,
+		"remote_ready": false,
+		"needs_migration": false,
+		"should_persist": false,
+	}
+
+static func _persist_resolved_identity_if_needed(info: Dictionary, cache_path: String, source_path: String) -> void:
+	if not bool(info.get("should_persist", false)):
+		return
+	var value := str(info.get("value", "")).strip_edges()
+	var source := str(info.get("source", "")).strip_edges()
+	if value.is_empty() or source.is_empty():
+		return
+	_write_cached_value(cache_path, value)
+	_write_cached_value(source_path, source)
+
+static func _persist_canonical_identity(info: Dictionary, cache_path: String, source_path: String) -> void:
+	var value := str(info.get("stable_value", info.get("value", ""))).strip_edges()
+	if value.is_empty():
+		return
+	_write_cached_value(cache_path, value)
+	_write_cached_value(source_path, IDENTITY_SOURCE_ANDROID_STABLE)
 
 static func _infer_cached_source(cached_value: String, stable_prefix: String) -> String:
 	if cached_value.begins_with(stable_prefix):
@@ -114,30 +204,102 @@ static func _infer_cached_source(cached_value: String, stable_prefix: String) ->
 		return IDENTITY_SOURCE_LOCAL_FALLBACK
 	return IDENTITY_SOURCE_LEGACY_CACHE
 
-static func _resolve_android_stable_id(method_names: PackedStringArray) -> String:
+static func _resolve_android_stable_id(method_names: PackedStringArray, identity_purpose: String, stable_prefix: String) -> String:
 	if OS.get_name() != "Android":
 		return ""
 
 	var compat_bridge = _get_compat_bridge()
 	if compat_bridge != null:
 		var context = _get_android_context()
-		for method_name in method_names:
-			if compat_bridge.has_method(method_name):
-				var compat_value = str(
-					compat_bridge.callv(method_name, [context]) if context != null else compat_bridge.callv(method_name, [])
-				).strip_edges()
-				if not compat_value.is_empty():
-					return compat_value
+		var compat_value := _resolve_stable_id_from_compat_bridge(compat_bridge, method_names, context)
+		if not compat_value.is_empty():
+			return compat_value
 
 	var plugin = _get_plugin_singleton()
 	if plugin != null:
-		for method_name in method_names:
-			if plugin.has_method(method_name):
-				var plugin_value := str(plugin.callv(method_name, [])).strip_edges()
-				if not plugin_value.is_empty():
-					return plugin_value
+		var plugin_value := _resolve_stable_id_from_plugin(plugin, method_names)
+		if not plugin_value.is_empty():
+			return plugin_value
+
+	return _build_gdscript_stable_id(identity_purpose, stable_prefix)
+
+static func _resolve_stable_id_from_compat_bridge(compat_bridge, method_names: PackedStringArray, context) -> String:
+	for method_name in method_names:
+		if not compat_bridge.has_method(method_name):
+			continue
+		if context != null:
+			var context_value := str(compat_bridge.callv(method_name, [context])).strip_edges()
+			if not context_value.is_empty():
+				return context_value
+		var plain_value := str(compat_bridge.callv(method_name, [])).strip_edges()
+		if not plain_value.is_empty():
+			return plain_value
 
 	return ""
+
+static func _resolve_stable_id_from_plugin(plugin, method_names: PackedStringArray) -> String:
+	for method_name in method_names:
+		if not plugin.has_method(method_name):
+			continue
+		var plugin_value := str(plugin.callv(method_name, [])).strip_edges()
+		if not plugin_value.is_empty():
+			return plugin_value
+
+	return ""
+
+static func _build_gdscript_stable_id(identity_purpose: String, stable_prefix: String) -> String:
+	var android_id := _resolve_android_id_via_gdscript()
+	if android_id.is_empty():
+		return ""
+
+	var package_name := _get_canonical_android_package_name()
+	if package_name.is_empty():
+		var context = _get_android_context()
+		if context != null and context.has_method("getPackageName"):
+			package_name = str(context.getPackageName()).strip_edges()
+	if package_name.is_empty():
+		return ""
+
+	var hashing_context := HashingContext.new()
+	if hashing_context.start(HashingContext.HASH_SHA256) != OK:
+		return ""
+	if hashing_context.update(("%s:%s:%s" % [identity_purpose, package_name, android_id]).to_utf8_buffer()) != OK:
+		return ""
+
+	return stable_prefix + hashing_context.finish().hex_encode().substr(0, 24)
+
+static func _resolve_android_id_via_gdscript() -> String:
+	var context = _get_android_context()
+	if context == null or not context.has_method("getContentResolver"):
+		return ""
+
+	var content_resolver = context.getContentResolver()
+	if content_resolver == null:
+		return ""
+
+	var java_class_wrapper = _get_java_class_wrapper()
+	if java_class_wrapper == null or not java_class_wrapper.has_method("wrap"):
+		return ""
+
+	var settings_secure = java_class_wrapper.wrap(SETTINGS_SECURE_CLASS)
+	if settings_secure == null or not settings_secure.has_method("getString"):
+		return ""
+
+	return _sanitize_android_id(str(settings_secure.getString(content_resolver, "android_id")).strip_edges())
+
+static func _sanitize_android_id(android_id: String) -> String:
+	if android_id.is_empty():
+		return ""
+	if android_id == "0000000000000000":
+		return ""
+	if android_id.to_lower() == "unknown":
+		return ""
+	if android_id == INVALID_ANDROID_ID:
+		return ""
+	return android_id
+
+static func _get_canonical_android_package_name() -> String:
+	return str(BuildInfoScript.APP_PACKAGE_NAME).strip_edges()
 
 static func _get_plugin_singleton():
 	if Engine.has_singleton(PLUGIN_SINGLETON):

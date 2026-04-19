@@ -205,6 +205,9 @@ func has_last_run_summary() -> bool:
 func get_local_best_score() -> int:
 	return _local_best_score
 
+func get_last_run_summary() -> Dictionary:
+	return _last_run_summary.duplicate(true)
+
 func _reset_live_stats() -> void:
 	_time_survived_seconds = 0.0
 	_survival_score = 0

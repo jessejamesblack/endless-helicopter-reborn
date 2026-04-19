@@ -1,5 +1,11 @@
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import { GoogleAuth } from "npm:google-auth-library@9";
+import {
+  createAdminClient,
+  jsonResponse,
+  requireEnv,
+  truncate,
+} from "../_shared/common.ts";
+import { postDiscordWebhook } from "../_shared/discord_webhook.ts";
 
 type DailyMissionPayload = {
   type: string;
@@ -44,13 +50,29 @@ Deno.serve(async (request: Request) => {
 
   const familyId = payload.family_id ?? "global";
   const missionDate = payload.mission_date ?? new Date().toISOString().slice(0, 10);
-  const supabaseUrl = requireEnv("SUPABASE_URL");
-  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
   const fcmProjectId = requireEnv("FCM_PROJECT_ID");
   const serviceAccountJson = requireEnv("FCM_SERVICE_ACCOUNT_JSON");
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabase = createAdminClient();
+
+  const dispatchResponse = await supabase
+    .from("family_daily_dispatch_log")
+    .upsert({
+      family_id: familyId,
+      mission_date: missionDate,
+      notification_type: "daily_missions",
+    }, {
+      onConflict: "family_id,mission_date,notification_type",
+      ignoreDuplicates: true,
+    })
+    .select("id");
+
+  if (dispatchResponse.error) {
+    return jsonResponse({ error: dispatchResponse.error.message }, 500);
+  }
+
+  if ((dispatchResponse.data ?? []).length === 0) {
+    return jsonResponse({ delivered: 0, skipped: true, reason: "Daily missions already dispatched." });
+  }
 
   const devicesResponse = await supabase
     .from("family_push_devices")
@@ -143,11 +165,10 @@ Deno.serve(async (request: Request) => {
       family_id: device.family_id,
       target_player_id: device.player_id,
       device_id: device.device_id,
-      fcm_token: device.fcm_token,
       notification_type: "daily_missions",
       status,
       response_code: fcmResponse.status,
-      response_body: responseText,
+      response_body: truncate(responseText, 2000),
     });
 
     if (status === "invalid_token") {
@@ -162,6 +183,17 @@ Deno.serve(async (request: Request) => {
   if (invalidTokenIds.length > 0) {
     await supabase.from("family_push_devices").delete().in("id", invalidTokenIds);
   }
+
+  await postDiscordWebhook({
+    webhookUrl: Deno.env.get("DISCORD_GAME_EVENTS_WEBHOOK_URL") ?? "",
+    content: "Daily missions are live!",
+    description: "New missions are ready. Complete them to unlock vehicles and paint styles.",
+    color: 0xe3ad40,
+    fields: [
+      { name: "Mission day", value: missionDate, inline: true },
+      { name: "Eligible devices", value: String(eligibleDevices.length), inline: true },
+    ],
+  });
 
   return jsonResponse({
     delivered: sentLogRows.filter((row) => row.status === "sent").length,
@@ -195,19 +227,4 @@ function classifyFcmStatus(statusCode: number, responseText: string): string {
   }
 
   return "failed";
-}
-
-function requireEnv(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
-function jsonResponse(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 }

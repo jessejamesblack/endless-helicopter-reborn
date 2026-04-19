@@ -5,10 +5,17 @@ const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn
 const PANEL_MARGIN := 4.0
 const PANEL_DEFAULT_RECT := Rect2(-360.0, -300.0, 720.0, 600.0)
 const PANEL_COMPACT_RECT := Rect2(-336.0, -268.0, 672.0, 536.0)
-const TOUCH_SCROLL_DEADZONE := 6
+const TOUCH_SCROLL_DEADZONE := 10.0
+const TOUCH_SCROLL_AXIS_BIAS := 1.2
+const MOUSE_POINTER_ID := -1000
 
 var validation_mode_enabled: bool = false
 var _validation_summary: Dictionary = {}
+var _scroll_pointer_active: bool = false
+var _scroll_dragging: bool = false
+var _scroll_pointer_id: int = -1
+var _scroll_press_position: Vector2 = Vector2.ZERO
+var _scroll_origin: float = 0.0
 
 @onready var panel: Panel = $Panel
 @onready var margin_container: MarginContainer = $Panel/MarginContainer
@@ -60,10 +67,10 @@ func _ready() -> void:
 
 func _refresh_view() -> void:
 	var summary: Dictionary = {}
+	var mission_manager: Node = _get_mission_manager()
 	if validation_mode_enabled and not _validation_summary.is_empty():
 		summary = _validation_summary.duplicate(true)
 	else:
-		var mission_manager: Node = _get_mission_manager()
 		if mission_manager == null:
 			return
 		if mission_manager.has_method("refresh_daily_missions"):
@@ -71,7 +78,7 @@ func _refresh_view() -> void:
 		summary = mission_manager.get_daily_progress_summary() if mission_manager.has_method("get_daily_progress_summary") else {}
 	progress_label.text = "%d / %d complete" % [int(summary.get("completed", 0)), int(summary.get("total", 3))]
 	subtitle_label.text = str(summary.get("time_until_reset", "New missions daily"))
-	reset_label.text = "New missions daily"
+	reset_label.text = mission_manager.get_reset_label() if mission_manager != null and mission_manager.has_method("get_reset_label") else "Resets daily at 8:00 AM ET"
 	streak_label.text = "Daily Streak: %d" % int(summary.get("daily_streak", 0))
 
 	var next_unlock: Dictionary = summary.get("next_unlock", {})
@@ -251,5 +258,62 @@ func _get_mission_manager() -> Node:
 	return get_node_or_null("/root/MissionManager")
 
 func _configure_touch_scroll() -> void:
-	mission_scroll.scroll_deadzone = TOUCH_SCROLL_DEADZONE
+	mission_scroll.scroll_deadzone = int(TOUCH_SCROLL_DEADZONE)
 	mission_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_handle_scroll_touch(event.position, event.index, event.pressed)
+		return
+	if event is InputEventScreenDrag:
+		_handle_scroll_drag(event.position, event.index)
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_scroll_touch(event.position, MOUSE_POINTER_ID, event.pressed)
+		return
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_handle_scroll_drag(event.position, MOUSE_POINTER_ID)
+
+func _handle_scroll_touch(position: Vector2, pointer_id: int, pressed: bool) -> void:
+	if pressed:
+		if not _is_touch_inside_scroll(position) or not _can_scroll_content():
+			return
+		_scroll_pointer_active = true
+		_scroll_dragging = false
+		_scroll_pointer_id = pointer_id
+		_scroll_press_position = position
+		_scroll_origin = float(mission_scroll.scroll_vertical)
+		return
+	if _scroll_pointer_active and _scroll_pointer_id == pointer_id:
+		if _scroll_dragging:
+			get_viewport().set_input_as_handled()
+		_reset_touch_scroll_state()
+
+func _handle_scroll_drag(position: Vector2, pointer_id: int) -> void:
+	if not _scroll_pointer_active or _scroll_pointer_id != pointer_id:
+		return
+	var drag_delta := position - _scroll_press_position
+	if not _scroll_dragging:
+		if abs(drag_delta.y) < TOUCH_SCROLL_DEADZONE:
+			return
+		if abs(drag_delta.y) < abs(drag_delta.x) * TOUCH_SCROLL_AXIS_BIAS:
+			return
+		_scroll_dragging = true
+	if _scroll_dragging:
+		var next_scroll := _scroll_origin - drag_delta.y
+		mission_scroll.scroll_vertical = int(round(next_scroll))
+		get_viewport().set_input_as_handled()
+
+func _is_touch_inside_scroll(position: Vector2) -> bool:
+	return mission_scroll.get_global_rect().has_point(position)
+
+func _can_scroll_content() -> bool:
+	var scroll_bar := mission_scroll.get_v_scroll_bar()
+	return scroll_bar != null and scroll_bar.max_value > 0.0
+
+func _reset_touch_scroll_state() -> void:
+	_scroll_pointer_active = false
+	_scroll_dragging = false
+	_scroll_pointer_id = -1
+	_scroll_press_position = Vector2.ZERO
+	_scroll_origin = 0.0

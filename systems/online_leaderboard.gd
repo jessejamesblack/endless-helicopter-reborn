@@ -2,6 +2,7 @@ class_name OnlineLeaderboard
 extends RefCounted
 
 const AndroidIdentityScript = preload("res://systems/android_identity.gd")
+const BuildInfoScript = preload("res://systems/build_info.gd")
 
 # Fill these in after creating your Supabase project.
 const SUPABASE_URL := "https://lxvniafwjlwatbiblwyi.supabase.co"
@@ -13,7 +14,10 @@ const PLAYER_PROFILE_TABLE_NAME := "family_player_profiles"
 const DAILY_MISSION_PROGRESS_TABLE_NAME := "family_daily_mission_progress"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
+const PLAYER_ID_OVERRIDE_CACHE_PATH := "user://player_id_override.save"
 const MAX_NAME_LENGTH := 12
+const MAX_PLAYER_ID_LENGTH := 96
+const PLAYER_ID_SOURCE_MANUAL_OVERRIDE := "manual_override"
 const BLOCKED_TERMS := [
 	"asshole",
 	"bastard",
@@ -118,6 +122,9 @@ static func get_push_device_update_by_token_url(fcm_token: String) -> String:
 		PUSH_DEVICE_TABLE_NAME,
 		fcm_token.uri_encode(),
 	]
+
+static func get_edge_function_url(function_name: String) -> String:
+	return "%s/functions/v1/%s" % [SUPABASE_URL, function_name.uri_encode()]
 
 static func parse_entries(body: PackedByteArray) -> Array[Dictionary]:
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
@@ -226,6 +233,33 @@ static func save_cached_name(name: String) -> void:
 	if file != null:
 		file.store_string(sanitize_name(name))
 
+static func save_manual_player_id_override(player_id: String) -> void:
+	var validation := validate_player_id(player_id)
+	if not bool(validation.get("ok", false)):
+		return
+	var file := FileAccess.open(PLAYER_ID_OVERRIDE_CACHE_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(str(validation.get("player_id", "")))
+
+static func clear_manual_player_id_override() -> void:
+	if FileAccess.file_exists(PLAYER_ID_OVERRIDE_CACHE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(PLAYER_ID_OVERRIDE_CACHE_PATH))
+
+static func load_manual_player_id_override() -> String:
+	if not FileAccess.file_exists(PLAYER_ID_OVERRIDE_CACHE_PATH):
+		return ""
+	var file := FileAccess.open(PLAYER_ID_OVERRIDE_CACHE_PATH, FileAccess.READ)
+	if file == null:
+		return ""
+	return str(file.get_as_text()).strip_edges()
+
+static func has_manual_player_id_override() -> bool:
+	return not load_manual_player_id_override().is_empty()
+
+static func clear_cached_name() -> void:
+	if FileAccess.file_exists(NAME_CACHE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(NAME_CACHE_PATH))
+
 static func load_cached_name() -> String:
 	if not FileAccess.file_exists(NAME_CACHE_PATH):
 		return ""
@@ -240,18 +274,88 @@ static func has_saved_profile() -> bool:
 	return not load_cached_name().is_empty()
 
 static func load_or_create_player_id() -> String:
+	var manual_override := load_manual_player_id_override()
+	if not manual_override.is_empty():
+		return manual_override
 	return AndroidIdentityScript.load_or_create_player_id()
 
 static func get_player_identity_source() -> String:
+	if has_manual_player_id_override():
+		return PLAYER_ID_SOURCE_MANUAL_OVERRIDE
 	return AndroidIdentityScript.get_player_identity_source()
+
+static func get_device_identity_source() -> String:
+	return AndroidIdentityScript.get_device_identity_source()
+
+static func is_remote_identity_ready() -> bool:
+	return AndroidIdentityScript.is_remote_identity_ready()
+
+static func is_remote_profile_identity_ready() -> bool:
+	if has_manual_player_id_override():
+		return true
+	if OS.get_name() != "Android":
+		return not load_or_create_player_id().is_empty()
+	return bool(AndroidIdentityScript.get_player_identity_info().get("remote_ready", false))
+
+static func has_pending_remote_identity_migration() -> bool:
+	if has_manual_player_id_override():
+		return false
+	return AndroidIdentityScript.has_pending_remote_identity_migration()
+
+static func get_pending_remote_identity_migration() -> Dictionary:
+	return AndroidIdentityScript.get_pending_remote_identity_migration()
+
+static func finalize_remote_identity_migration() -> void:
+	if has_manual_player_id_override():
+		return
+	AndroidIdentityScript.finalize_remote_identity_migration()
+
+static func get_player_id_for_display() -> String:
+	var player_id := load_or_create_player_id().strip_edges()
+	if player_id.is_empty():
+		return "(not ready yet)"
+	return player_id
+
+static func validate_player_id(player_id: String) -> Dictionary:
+	var trimmed := player_id.strip_edges()
+	if trimmed.is_empty():
+		return {"ok": false, "error": "Enter a player ID."}
+	if trimmed.length() > MAX_PLAYER_ID_LENGTH:
+		return {"ok": false, "error": "Player ID is too long."}
+	for i in range(trimmed.length()):
+		var character := trimmed.substr(i, 1)
+		var code := character.unicode_at(0)
+		var is_upper := code >= 65 and code <= 90
+		var is_lower := code >= 97 and code <= 122
+		var is_number := code >= 48 and code <= 57
+		if is_upper or is_lower or is_number or character == "-" or character == "_" or character == "." or character == ":":
+			continue
+		return {"ok": false, "error": "Player ID can use letters, numbers, dashes, underscores, dots, and colons only."}
+	return {"ok": true, "player_id": trimmed}
+
+static func get_migrate_player_identity_url() -> String:
+	return "%s/rest/v1/rpc/migrate_player_identity" % SUPABASE_URL
+
+static func make_migrate_player_identity_body() -> String:
+	var migration := get_pending_remote_identity_migration()
+	return JSON.stringify({
+		"p_family_id": FAMILY_ID,
+		"p_old_player_id": str(migration.get("old_player_id", "")),
+		"p_new_player_id": str(migration.get("new_player_id", "")),
+		"p_old_device_id": str(migration.get("old_device_id", "")),
+		"p_new_device_id": str(migration.get("new_device_id", "")),
+	})
 
 static func make_mark_notifications_read_body() -> String:
 	return JSON.stringify({
 		"read_at": Time.get_datetime_string_from_system(true),
 	})
 
-static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "", daily_missions_enabled: bool = true) -> String:
+static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "", daily_missions_enabled: bool = true, app_metadata: Dictionary = {}) -> String:
 	var timestamp := Time.get_datetime_string_from_system(true)
+	var resolved_metadata := BuildInfoScript.get_summary()
+	for key in app_metadata.keys():
+		resolved_metadata[str(key)] = app_metadata[key]
 	return JSON.stringify({
 		"family_id": FAMILY_ID,
 		"player_id": load_or_create_player_id(),
@@ -262,6 +366,10 @@ static func make_push_device_body(fcm_token: String, device_id: String, notifica
 		"notifications_enabled": notifications_enabled,
 		"daily_missions_enabled": daily_missions_enabled,
 		"last_seen_at": timestamp,
+		"app_version_code": int(resolved_metadata.get("version_code", BuildInfoScript.VERSION_CODE)),
+		"app_version_name": str(resolved_metadata.get("version_name", BuildInfoScript.VERSION_NAME)),
+		"build_sha": str(resolved_metadata.get("build_sha", BuildInfoScript.BUILD_SHA)),
+		"release_channel": str(resolved_metadata.get("release_channel", BuildInfoScript.RELEASE_CHANNEL)),
 	})
 
 static func make_sync_player_profile_body(profile_summary: Dictionary) -> String:
@@ -320,7 +428,14 @@ static func parse_submit_result(body: PackedByteArray) -> Dictionary:
 	return {}
 
 static func parse_profile_sync_result(body: PackedByteArray) -> Dictionary:
-	return _parse_json_dictionary(body)
+	var parsed := _parse_json_dictionary(body)
+	var nested_summary = parsed.get("profile_summary", {})
+	if nested_summary is Dictionary:
+		for key in nested_summary.keys():
+			var resolved_key := str(key)
+			if not parsed.has(resolved_key):
+				parsed[resolved_key] = nested_summary[key]
+	return parsed
 
 static func parse_daily_mission_sync_result(body: PackedByteArray) -> Dictionary:
 	return _parse_json_dictionary(body)

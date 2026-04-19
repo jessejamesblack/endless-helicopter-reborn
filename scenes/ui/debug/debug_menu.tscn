@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/debug/debug_menu.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/feedback/feedback_screen.tscn" id="2_feedback"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_debug_panel"]
 bg_color = Color(0.0352941, 0.054902, 0.117647, 0.94)
@@ -130,31 +131,161 @@ horizontal_alignment = 1
 [node name="SubtitleLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 17
-text = "Debug-only push notification diagnostics."
+text = "Debug-only build, update, feedback, screenshot, and push diagnostics."
 horizontal_alignment = 1
 
-[node name="DebugColumns" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+[node name="ContentScroll" type="ScrollContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 3
+follow_focus = true
+horizontal_scroll_mode = 3
+
+[node name="DebugColumns" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll"]
+custom_minimum_size = Vector2(860, 0)
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 18
 
-[node name="SummaryCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns"]
+[node name="SummaryCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_debug_card")
 
-[node name="SummaryColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/SummaryCard"]
+[node name="SummaryColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard"]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="SummaryHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/SummaryCard/SummaryColumn"]
+[node name="SummaryHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 22
+text = "Support & Build"
+
+[node name="BuildInfoSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BuildInfoHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/BuildInfoSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Build Info"
+
+[node name="UpdateStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/BuildInfoSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Update Status: Checking..."
+
+[node name="BuildInfoLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/BuildInfoSection"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Version: 1.6.0 (154)\nBuild: dev\nChannel: dev"
+autowrap_mode = 2
+
+[node name="ScreenshotToggle" type="CheckButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 18
+text = "Share achievement screenshots to Discord"
+button_pressed = true
+
+[node name="DebugReleaseChannelRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DebugReleaseChannelLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/DebugReleaseChannelRow"]
+custom_minimum_size = Vector2(156, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 18
+text = "Debug Channel"
+
+[node name="DebugReleaseChannelOption" type="OptionButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/DebugReleaseChannelRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LocalNameSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LocalNameHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Local Leaderboard Name"
+
+[node name="CachedNameLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Cached leaderboard name: (not set)"
+autowrap_mode = 2
+
+[node name="NameButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="UseQaNameButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/NameButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Use QATesting"
+
+[node name="ClearNameButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/NameButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Clear Saved Name"
+
+[node name="FeedbackSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FeedbackSectionHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/FeedbackSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Support Tools"
+
+[node name="FeedbackButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/FeedbackSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SendFeedbackButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/FeedbackSection/FeedbackButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Send Feedback"
+
+[node name="CopyBugReportButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/FeedbackSection/FeedbackButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Copy Bug Report"
+
+[node name="PushSummaryHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
 text = "Push Summary"
 
-[node name="PushStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/SummaryCard/SummaryColumn"]
+[node name="PushStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
 custom_minimum_size = Vector2(0, 132)
 layout_mode = 2
 size_flags_vertical = 3
@@ -162,11 +293,11 @@ theme_override_font_sizes/font_size = 16
 text = "Push diagnostics loading..."
 autowrap_mode = 2
 
-[node name="ButtonRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/SummaryCard/SummaryColumn"]
+[node name="ButtonRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="EnablePushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/SummaryCard/SummaryColumn/ButtonRow"]
+[node name="EnablePushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/ButtonRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -181,7 +312,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Enable Notifications"
 
-[node name="RetryPushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/SummaryCard/SummaryColumn/ButtonRow"]
+[node name="RetryPushButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/ButtonRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
@@ -196,168 +327,192 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Retry Push Registration"
 
-[node name="DetailsCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns"]
+[node name="DetailsCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_debug_card")
 
-[node name="DetailsColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard"]
+[node name="DetailsColumn" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PushDebugHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn"]
+[node name="PushDebugHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 22
 text = "Registration Details"
 
-[node name="StatusGrid" type="GridContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn"]
+[node name="StatusGrid" type="GridContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn"]
 layout_mode = 2
 columns = 2
 theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 8
 
-[node name="PlatformLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PlatformLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Platform"
 
-[node name="PlatformValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PlatformValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="PluginLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PluginLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Plugin Loaded"
 
-[node name="PluginValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PluginValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="CompatLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="CompatLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Compat Bridge"
 
-[node name="CompatValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="CompatValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="FirebaseLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="FirebaseLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Firebase Ready"
 
-[node name="FirebaseValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="FirebaseValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="PermissionLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PermissionLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Permission"
 
-[node name="PermissionValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PermissionValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="PlayerIdentityLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PlayerIdentityLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Player ID Source"
 
-[node name="PlayerIdentityValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="PlayerIdentityValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="DeviceIdentityLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="DeviceIdentityLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Device ID Source"
 
-[node name="DeviceIdentityValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="DeviceIdentityValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="DeviceIdLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="RemoteIdentityLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 15
+text = "Remote Identity Ready"
+
+[node name="RemoteIdentityValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 2
+text = "-"
+
+[node name="IdentityMigrationLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
+theme_override_font_sizes/font_size = 15
+text = "Migration Pending"
+
+[node name="IdentityMigrationValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 2
+text = "-"
+
+[node name="DeviceIdLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Device ID"
 
-[node name="DeviceIdValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="DeviceIdValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="TokenLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="TokenLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Token"
 
-[node name="TokenValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="TokenValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="ResponseLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="ResponseLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "HTTP Response"
 
-[node name="ResponseValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="ResponseValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="RegisteringLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="RegisteringLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.588235, 0.784314, 0.964706, 1)
 theme_override_font_sizes/font_size = 15
 text = "Registering Now"
 
-[node name="RegisteringValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
+[node name="RegisteringValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn/StatusGrid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 horizontal_alignment = 2
 text = "-"
 
-[node name="LastMessageHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn"]
+[node name="LastMessageHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 18
 text = "Last Message"
 
-[node name="LastMessageValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/DebugColumns/DetailsCard/DetailsColumn"]
+[node name="LastMessageValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/DetailsCard/DetailsColumn"]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
@@ -382,3 +537,5 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Close"
+
+[node name="FeedbackScreen" parent="." instance=ExtResource("2_feedback")]

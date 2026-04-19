@@ -139,7 +139,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 10
+theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 28
 theme_override_constants/margin_bottom = 10
 
@@ -171,6 +171,15 @@ theme_override_font_sizes/font_size = 14
 text = "Loading..."
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="PlayerIdSummaryLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Player ID: (not ready yet)"
+horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="ResultsCard" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer"]
@@ -493,7 +502,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="SetupVBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/SetupCard"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="NameHelpLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox"]
 custom_minimum_size = Vector2(0, 42)
@@ -509,6 +518,40 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 placeholder_text = "Player name"
 max_length = 12
+
+[node name="PlayerIdHelpLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Paste an existing player ID to restore your unlocks on this device."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PlayerIdEntry" type="LineEdit" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+placeholder_text = "Existing player ID (optional)"
+max_length = 96
+
+[node name="SetupActionRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox"]
+layout_mode = 2
+
+[node name="SetupBackButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Back To Menu"
 
 [node name="SaveButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox"]
 custom_minimum_size = Vector2(0, 52)

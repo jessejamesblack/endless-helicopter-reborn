@@ -8,6 +8,16 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      release_channel:
+        description: Release channel for manual builds
+        required: false
+        default: stable
+        type: choice
+        options:
+          - stable
+          - beta
+          - dev
 
 permissions:
   contents: write
@@ -37,6 +47,42 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: 8.10.2
+
+      - name: Resolve release metadata
+        shell: bash
+        run: |
+          set -euxo pipefail
+          VERSION_CODE=$(grep -m1 '^version/code=' export_presets.cfg | cut -d= -f2 | tr -d '"')
+          VERSION_NAME=$(grep -m1 '^version/name=' export_presets.cfg | cut -d= -f2- | sed 's/^"//;s/"$//')
+          RELEASE_CHANNEL="${{ github.event.inputs.release_channel }}"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            RELEASE_CHANNEL="stable"
+          fi
+          if [[ -z "$RELEASE_CHANNEL" ]]; then
+            RELEASE_CHANNEL="dev"
+          fi
+          BUILD_SHA_SHORT="${GITHUB_SHA::7}"
+          BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          RELEASE_TAG="v${VERSION_NAME}-build.${VERSION_CODE}"
+          RELEASE_NOTES_FILE="$RUNNER_TEMP/release_notes.md"
+          DISCORD_SUMMARY_FILE="$RUNNER_TEMP/discord_summary.md"
+          STANDARD_APK_PATH="$RUNNER_TEMP/${APP_NAME}.apk"
+          {
+            echo "VERSION_CODE=$VERSION_CODE"
+            echo "VERSION_NAME=$VERSION_NAME"
+            echo "RELEASE_CHANNEL=$RELEASE_CHANNEL"
+            echo "BUILD_SHA_SHORT=$BUILD_SHA_SHORT"
+            echo "BUILD_DATE=$BUILD_DATE"
+            echo "RELEASE_TAG=$RELEASE_TAG"
+            echo "RELEASE_NOTES_FILE=$RELEASE_NOTES_FILE"
+            echo "DISCORD_SUMMARY_FILE=$DISCORD_SUMMARY_FILE"
+            echo "STANDARD_APK_PATH=$STANDARD_APK_PATH"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate runtime build info
+        shell: pwsh
+        run: |
+          & ./tools/generate_build_info.ps1 -BuildSha "$env:BUILD_SHA_SHORT" -BuildDate "$env:BUILD_DATE" -ReleaseChannel "$env:RELEASE_CHANNEL"
 
       - name: Prepare Firebase Android config
         shell: bash
@@ -148,11 +194,61 @@ jobs:
           "APK_OUTPUT=$output" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           if ($env:BUILD_KIND -eq "release") {
-            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -Release
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -Release -BuildSha $env:BUILD_SHA_SHORT -BuildDate $env:BUILD_DATE -ReleaseChannel $env:RELEASE_CHANNEL
           }
           else {
-            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -BuildSha $env:BUILD_SHA_SHORT -BuildDate $env:BUILD_DATE -ReleaseChannel $env:RELEASE_CHANNEL
           }
+
+      - name: Compute release artifacts
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cp "$APK_OUTPUT" "$STANDARD_APK_PATH"
+          APK_SIZE_BYTES=$(stat -c%s "$STANDARD_APK_PATH")
+          APK_SHA256=$(sha256sum "$STANDARD_APK_PATH" | awk '{print $1}')
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
+          VERSIONED_APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${APP_NAME}.apk"
+          LATEST_APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${APP_NAME}.apk"
+          {
+            echo "APK_SIZE_BYTES=$APK_SIZE_BYTES"
+            echo "APK_SHA256=$APK_SHA256"
+            echo "RELEASE_URL=$RELEASE_URL"
+            echo "VERSIONED_APK_URL=$VERSIONED_APK_URL"
+            echo "LATEST_APK_URL=$LATEST_APK_URL"
+          } >> "$GITHUB_ENV"
+
+          if [[ -f docs/release_notes/latest.md ]]; then
+            cp docs/release_notes/latest.md "$RELEASE_NOTES_FILE"
+          else
+            {
+              echo "# ${APP_NAME} ${VERSION_NAME}"
+              echo
+              echo "Automated Android release for ${GITHUB_SHA}."
+            } > "$RELEASE_NOTES_FILE"
+          fi
+
+          if [[ -f docs/release_notes/discord_summary.md ]]; then
+            cp docs/release_notes/discord_summary.md "$DISCORD_SUMMARY_FILE"
+          else
+            {
+              echo "- Automated Android build"
+              echo "- Version ${VERSION_NAME} (${VERSION_CODE})"
+              echo "- Channel ${RELEASE_CHANNEL}"
+            } > "$DISCORD_SUMMARY_FILE"
+          fi
+
+          {
+            echo
+            echo "## Integrity"
+            echo
+            echo "- SHA-256: \`${APK_SHA256}\`"
+            echo "- APK size: ${APK_SIZE_BYTES} bytes"
+            echo "- Version: ${VERSION_NAME} (${VERSION_CODE})"
+            echo "- Build SHA: ${BUILD_SHA_SHORT}"
+            echo "- Channel: ${RELEASE_CHANNEL}"
+            echo "- Release page: ${RELEASE_URL}"
+          } >> "$RELEASE_NOTES_FILE"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -161,23 +257,161 @@ jobs:
           path: build/android/*.apk
           retention-days: 14
 
-      - name: Publish rolling GitHub release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Publish GitHub releases
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
 
-          if gh release view android-latest >/dev/null 2>&1; then
-            gh release edit android-latest \
-              --title "Endless-Helicopter-Reborn Latest APK" \
-              --notes "Latest automated Android build from commit $GITHUB_SHA"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "${APP_NAME} ${VERSION_NAME} (${VERSION_CODE})" --notes-file "$RELEASE_NOTES_FILE"
           else
-            gh release create android-latest \
-              --title "Endless-Helicopter-Reborn Latest APK" \
-              --notes "Latest automated Android build from commit $GITHUB_SHA" \
-              --prerelease
+            gh release create "$RELEASE_TAG" "$STANDARD_APK_PATH" --title "${APP_NAME} ${VERSION_NAME} (${VERSION_CODE})" --notes-file "$RELEASE_NOTES_FILE"
+          fi
+          gh release upload "$RELEASE_TAG" "$STANDARD_APK_PATH" --clobber
+
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release edit android-latest --title "${APP_NAME} Latest APK" --notes "Rolling latest Android build.\n\nVersioned release: ${RELEASE_URL}" --prerelease
+          else
+            gh release create android-latest --title "${APP_NAME} Latest APK" --notes "Rolling latest Android build.\n\nVersioned release: ${RELEASE_URL}" --prerelease
+          fi
+          gh release upload android-latest "$STANDARD_APK_PATH" --clobber
+
+      - name: Publish release metadata to Supabase
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          RELEASE_WEBHOOK_SECRET: ${{ secrets.RELEASE_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_URL:-}" || -z "${RELEASE_WEBHOOK_SECRET:-}" ]]; then
+            echo "Skipping Supabase release publish because SUPABASE_URL or RELEASE_WEBHOOK_SECRET is missing."
+            exit 0
+          fi
+          RELEASE_SUMMARY=$(python - <<'PY'
+          import json, os, pathlib
+          path = pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"])
+          text = path.read_text(encoding="utf-8").strip().replace("\n", " ")
+          print(json.dumps(text[:280]))
+          PY
+          )
+          curl -fsS "${SUPABASE_URL}/functions/v1/publish-app-release-info" \
+            -H "Content-Type: application/json" \
+            -H "x-release-webhook-secret: ${RELEASE_WEBHOOK_SECRET}" \
+            -d @- <<JSON
+          {
+            "latest_version_code": ${VERSION_CODE},
+            "latest_version_name": "${VERSION_NAME}",
+            "minimum_supported_version_code": ${VERSION_CODE},
+            "apk_download_url": "${LATEST_APK_URL}",
+            "release_page_url": "${RELEASE_URL}",
+            "release_notes_url": "${RELEASE_URL}",
+            "release_summary": ${RELEASE_SUMMARY},
+            "checksum_sha256": "${APK_SHA256}",
+            "apk_size_bytes": ${APK_SIZE_BYTES},
+            "build_sha": "${BUILD_SHA_SHORT}",
+            "channel": "${RELEASE_CHANNEL}",
+            "release_metadata": {
+              "release_tag": "${RELEASE_TAG}",
+              "build_date": "${BUILD_DATE}",
+              "apk_size_bytes": ${APK_SIZE_BYTES}
+            }
+          }
+          JSON
+
+      - name: Send app update push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          RELEASE_WEBHOOK_SECRET: ${{ secrets.RELEASE_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_CHANNEL}" != "stable" ]]; then
+            echo "Skipping app update push because release channel is ${RELEASE_CHANNEL}."
+            exit 0
+          fi
+          if [[ -z "${SUPABASE_URL:-}" || -z "${RELEASE_WEBHOOK_SECRET:-}" ]]; then
+            echo "Skipping app update push because SUPABASE_URL or RELEASE_WEBHOOK_SECRET is missing."
+            exit 0
+          fi
+          RELEASE_SUMMARY=$(python - <<'PY'
+          import json, os, pathlib
+          path = pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"])
+          text = path.read_text(encoding="utf-8").strip().replace("\n", " ")
+          print(json.dumps(text[:280]))
+          PY
+          )
+          curl -fsS "${SUPABASE_URL}/functions/v1/send-app-update-push" \
+            -H "Content-Type: application/json" \
+            -H "x-release-webhook-secret: ${RELEASE_WEBHOOK_SECRET}" \
+            -d @- <<JSON
+          {
+            "latest_version_code": ${VERSION_CODE},
+            "latest_version_name": "${VERSION_NAME}",
+            "minimum_supported_version_code": ${VERSION_CODE},
+            "apk_download_url": "${LATEST_APK_URL}",
+            "release_page_url": "${RELEASE_URL}",
+            "release_notes_url": "${RELEASE_URL}",
+            "release_summary": ${RELEASE_SUMMARY},
+            "channel": "${RELEASE_CHANNEL}"
+          }
+          JSON
+
+      - name: Post Discord release message
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DISCORD_RELEASE_WEBHOOK_URL:-}" ]]; then
+            echo "Skipping Discord release post because DISCORD_RELEASE_WEBHOOK_URL is missing."
+            exit 0
+          fi
+          PAYLOAD_FILE="$RUNNER_TEMP/discord_release_payload.json"
+          python - <<'PY' > "$PAYLOAD_FILE"
+          import json, os, pathlib
+          summary_lines = [line.strip() for line in pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"]).read_text(encoding="utf-8").splitlines() if line.strip()]
+          summary_lines = summary_lines[:6]
+          embed = {
+              "title": f"{os.environ['APP_NAME']} {os.environ['VERSION_NAME']} ({os.environ['VERSION_CODE']})",
+              "description": "\n".join(summary_lines) if summary_lines else "New Android build is ready.",
+              "color": 7196927,
+              "fields": [
+                  {"name": "Release", "value": os.environ["RELEASE_URL"], "inline": False},
+                  {"name": "SHA-256", "value": os.environ["APK_SHA256"], "inline": False},
+                  {"name": "Channel", "value": os.environ["RELEASE_CHANNEL"], "inline": True},
+                  {"name": "APK Size", "value": f"{os.environ['APK_SIZE_BYTES']} bytes", "inline": True},
+                  {"name": "Build", "value": os.environ["BUILD_SHA_SHORT"], "inline": True},
+              ],
+              "footer": {"text": "APK attachment is best-effort. The release link always works."},
+          }
+          payload = {
+              "content": f"Android build ready. Release: {os.environ['RELEASE_URL']}",
+              "allowed_mentions": {"parse": []},
+              "embeds": [embed],
+          }
+          print(json.dumps(payload))
+          PY
+
+          ATTACH_RESULT=1
+          if [[ "${APK_SIZE_BYTES}" -le 8000000 ]]; then
+            set +e
+            curl -fsS "${DISCORD_RELEASE_WEBHOOK_URL}" \
+              -F "payload_json=$(cat "$PAYLOAD_FILE")" \
+              -F "files[0]=@${STANDARD_APK_PATH};type=application/vnd.android.package-archive"
+            ATTACH_RESULT=$?
+            set -e
           fi
 
-          gh release upload android-latest "$APK_OUTPUT" --clobber
+          if [[ "${ATTACH_RESULT}" -ne 0 || "${APK_SIZE_BYTES}" -gt 8000000 ]]; then
+            set +e
+            curl -fsS "${DISCORD_RELEASE_WEBHOOK_URL}" \
+              -H "Content-Type: application/json" \
+              --data @"$PAYLOAD_FILE"
+            set -e
+          fi

@@ -1,6 +1,6 @@
 # Android Push Notifications Setup
 
-This project supports Android push notifications for both `score_beaten` and `daily_missions`.
+This project supports Android push notifications for `score_beaten`, `daily_missions`, and `app_update`.
 
 The delivery path is:
 
@@ -8,7 +8,7 @@ The delivery path is:
 2. Supabase inserts a row into `family_notifications`.
 3. A database trigger calls the `send-score-beaten-push` Edge Function.
 4. The Edge Function sends Firebase Cloud Messaging notifications to registered Android devices.
-5. Tapping the notification opens the game and routes the player to the leaderboard screen or the mission screen, depending on the payload type.
+5. Tapping the notification opens the game and routes the player to the leaderboard screen, the mission screen, or the update prompt, depending on the payload type.
 
 This works with sideloaded APKs. You do not need Play Store publishing, but the device must have Google Play Services.
 
@@ -17,7 +17,10 @@ This works with sideloaded APKs. You do not need Play Store publishing, but the 
 - SQL bootstrap: [backend/supabase_leaderboard_setup.sql](../backend/supabase_leaderboard_setup.sql)
 - Supabase Edge Function: [backend/supabase/functions/send-score-beaten-push/index.ts](../backend/supabase/functions/send-score-beaten-push/index.ts)
 - Daily mission Edge Function: [backend/supabase/functions/send-daily-mission-push/index.ts](../backend/supabase/functions/send-daily-mission-push/index.ts)
+- App update Edge Function: [backend/supabase/functions/send-app-update-push/index.ts](../backend/supabase/functions/send-app-update-push/index.ts)
+- App release metadata setup: [backend/supabase_app_release_setup.sql](../backend/supabase_app_release_setup.sql)
 - Godot runtime service: [systems/push_notifications.gd](../systems/push_notifications.gd)
+- Update manager: [systems/app_update_manager.gd](../systems/app_update_manager.gd)
 - Android plugin project: [android/plugins/fcm_push_bridge](../android/plugins/fcm_push_bridge)
 - Godot export plugin: [addons/fcm_push_bridge](../addons/fcm_push_bridge)
 
@@ -162,6 +165,23 @@ The daily mission push uses:
 
 to skip devices that opted out locally or already finished today's synced missions.
 
+## 5c. App Update Push
+
+Sprint 6 adds a release-driven `app_update` push path.
+
+- Function: `send-app-update-push`
+- Secret header: `x-release-webhook-secret`
+- Secret: `RELEASE_WEBHOOK_SECRET`
+
+The release workflow publishes release metadata first, then sends update pushes only for successful release builds on the matching channel.
+
+Rules:
+
+- `stable` devices do not receive `beta` or `dev` update pushes.
+- Devices already on the same or newer `app_version_code` are skipped.
+- Devices with `notifications_enabled = false` are skipped.
+- The client still checks release metadata on launch even if no push was received.
+
 ## 6. Build The Android Plugin AAR
 
 The Godot export packages a custom Android plugin AAR. Build it before local Android exports:
@@ -278,3 +298,4 @@ Common causes:
 - Push delivery is additive. If permission is denied, the leaderboard still works.
 - Device registrations are stored in `family_push_devices`.
 - Delivery attempts are stored in `family_push_delivery_log`.
+- Delivery logs no longer write raw push tokens into Sprint 6 operational rows.

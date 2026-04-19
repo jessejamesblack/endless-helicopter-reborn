@@ -1,0 +1,5 @@
+- Android releases now post clean Discord build notes with release links and SHA-256 checksums.
+- New builds can prompt updates in-app, enforce required updates, and send channel-aware update pushes.
+- Family support is stronger with error reporting, email alerts, in-app feedback, and safer bug-report tools.
+- Daily missions now reset at 8:00 AM ET.
+- Background motion is stronger, biome music support is in place, and long runs ramp much harder.
