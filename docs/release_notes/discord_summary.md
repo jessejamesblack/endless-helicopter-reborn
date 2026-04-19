@@ -1,5 +1,5 @@
-- Android releases now post clean Discord build notes with release links and SHA-256 checksums.
-- New builds can prompt updates in-app, enforce required updates, and send channel-aware update pushes.
-- Family support is stronger with error reporting, email alerts, in-app feedback, and safer bug-report tools.
-- Daily missions now reset at 8:00 AM ET.
-- Background motion is stronger, biome music support is in place, and long runs ramp much harder.
+- Score saves and cloud profile sync are back on the live backend path.
+- Fresh devices no longer get stuck forever checking cloud progress before entering a name.
+- The HUD once again shows clear SCORE and MISSILES labels with non-padded numbers.
+- Hangar and menu flows are faster now that NEW badges no longer require extra taps.
+- Stable 1.6.1 rolls up the recent Sprint 6 and Sprint 7 polish into a cleaner Android release.
