@@ -8,12 +8,15 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $scripts = @(
     'res://systems/game_settings.gd',
+    'res://systems/haptics_manager.gd',
+    'res://systems/background_catalog.gd',
     'res://systems/helicopter_skins.gd',
     'res://systems/online_leaderboard.gd',
     'res://systems/player_profile.gd',
     'res://systems/run_stats.gd',
     'res://systems/mission_manager.gd',
     'res://systems/supabase_sync_queue.gd',
+    'res://scenes/background/background_manager.gd',
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
@@ -68,6 +71,48 @@ Write-Host 'Validating encounter director'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_encounter_director.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot encounter director validation failed'
+}
+
+Write-Host 'Validating vehicle skins and restore'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_vehicle_skins_and_restore.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot vehicle skins and restore validation failed'
+}
+
+Write-Host 'Validating vehicle lore'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_vehicle_lore.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot vehicle lore validation failed'
+}
+
+Write-Host 'Validating art quality'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_art_quality.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot art quality validation failed'
+}
+
+Write-Host 'Validating background quality'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_background_quality.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot background quality validation failed'
+}
+
+Write-Host 'Validating frame-rate independence'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_frame_rate_independence.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot frame-rate independence validation failed'
+}
+
+Write-Host 'Validating haptics'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_haptics.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot haptics validation failed'
+}
+
+Write-Host 'Validating push notification icons'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_push_notification_icons.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot push notification icon validation failed'
 }
 
 Write-Host 'Godot validation completed successfully.'

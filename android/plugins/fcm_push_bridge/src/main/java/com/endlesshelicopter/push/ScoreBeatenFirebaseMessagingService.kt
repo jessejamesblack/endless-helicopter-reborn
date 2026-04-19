@@ -47,8 +47,13 @@ class ScoreBeatenFirebaseMessagingService : FirebaseMessagingService() {
 
         val title = payload["title"] ?: "Score Beaten"
         val body = payload["body"] ?: buildFallbackBody(payload)
+        val notificationIcon = when (payload["type"]) {
+            "daily_missions" -> R.drawable.ic_stat_daily_missions
+            "score_beaten" -> R.drawable.ic_stat_helicopter
+            else -> R.drawable.ic_stat_helicopter
+        }
         val notification = NotificationCompat.Builder(this, getString(R.string.fcm_push_channel_id))
-            .setSmallIcon(R.drawable.ic_stat_score_beaten)
+            .setSmallIcon(notificationIcon)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

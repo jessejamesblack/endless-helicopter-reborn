@@ -61,6 +61,9 @@ func flush() -> void:
 		return
 	call_deferred("_flush_async")
 
+func pull_remote_profile_state() -> void:
+	call_deferred("_pull_remote_state")
+
 func get_pending_count() -> int:
 	return _jobs.size()
 

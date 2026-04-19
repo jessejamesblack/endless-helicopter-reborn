@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cxxd6gdfoi5ys"]
 
-[ext_resource type="PackedScene" uid="uid://ujcjgieuwlc6" path="res://scenes/game/background/background.tscn" id="1_ig7tw"]
+[ext_resource type="PackedScene" path="res://scenes/background/background_manager.tscn" id="1_ig7tw"]
 [ext_resource type="PackedScene" uid="uid://bcvr4g5g56dsm" path="res://scenes/player/player.tscn" id="2_0xm2m"]
 [ext_resource type="Script" uid="uid://6k4rffkut2wb" path="res://scenes/game/main/spawner.gd" id="3_spawner"]
 [ext_resource type="PackedScene" uid="uid://dnsp6dsvcwb5w" path="res://scenes/enemies/obstacle.tscn" id="4_obstacle"]

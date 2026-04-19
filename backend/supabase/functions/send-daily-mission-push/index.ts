@@ -128,7 +128,7 @@ Deno.serve(async (request: Request) => {
             family_id: familyId,
             mission_date: missionDate,
             title: "Daily Missions Ready",
-            body: "New missions are live. Complete them to unlock helicopter skins.",
+            body: "New missions are live. Complete them to unlock vehicles and finishes.",
           },
           android: {
             priority: "high",

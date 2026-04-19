@@ -284,6 +284,50 @@ theme_override_font_sizes/font_size = 20
 text = "Enable Haptics"
 button_pressed = true
 
+[node name="HapticsIntensityRow" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HapticsIntensityLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Haptics Intensity"
+
+[node name="HapticsIntensityValueRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HapticsIntensitySlider" type="HSlider" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow/HapticsIntensityValueRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.75
+
+[node name="HapticsIntensityValueLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow/HapticsIntensityValueRow"]
+custom_minimum_size = Vector2(68, 0)
+layout_mode = 2
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 18
+text = "75%"
+
+[node name="FrameRateRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="FrameRateLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FrameRateRow"]
+custom_minimum_size = Vector2(156, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Frame Rate"
+vertical_alignment = 1
+
+[node name="FrameRateOption" type="OptionButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FrameRateRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="PushSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
 layout_mode = 2
 theme_override_constants/separation = 10

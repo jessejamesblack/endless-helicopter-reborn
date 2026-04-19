@@ -107,7 +107,7 @@ func get_daily_sync_summary() -> Dictionary:
 func apply_run_summary(summary: Dictionary) -> Dictionary:
 	refresh_daily_missions()
 	var missions_completed_this_run: Array[String] = []
-	var newly_unlocked_skins: Array[String] = []
+	var newly_unlocked_vehicles: Array[String] = []
 	var had_completion_before_run := get_completed_count_today() > 0
 	var profile: Node = _get_player_profile()
 	var helicopter_skins: Node = _get_helicopter_skins()
@@ -125,10 +125,14 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 			missions_completed_this_run.append(str(mission.get("title", "Mission Complete")))
 			if profile != null:
 				profile.increment_total_daily_missions_completed(1)
-				if helicopter_skins != null and helicopter_skins.has_method("get_unlocks_for_completed_missions"):
-					for skin_id in helicopter_skins.get_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
-						if profile.unlock_skin(skin_id):
-							newly_unlocked_skins.append(skin_id)
+				if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
+					for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
+						if profile.unlock_vehicle(vehicle_id):
+							newly_unlocked_vehicles.append(vehicle_id)
+				elif helicopter_skins != null and helicopter_skins.has_method("get_unlocks_for_completed_missions"):
+					for legacy_vehicle_id in helicopter_skins.get_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
+						if profile.unlock_vehicle(legacy_vehicle_id):
+							newly_unlocked_vehicles.append(legacy_vehicle_id)
 
 	if not missions_completed_this_run.is_empty() and not had_completion_before_run and profile != null:
 		profile.update_daily_streak(_today_key)
@@ -137,7 +141,8 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 	_queue_daily_sync()
 	_recent_run_result = {
 		"missions_completed_this_run": missions_completed_this_run,
-		"newly_unlocked_skins": newly_unlocked_skins,
+		"newly_unlocked_skins": newly_unlocked_vehicles,
+		"newly_unlocked_vehicles": newly_unlocked_vehicles,
 		"total_completed_today": get_completed_count_today(),
 		"total_missions_today": get_total_count_today(),
 		"next_unlock": get_next_unlock_progress(),
@@ -199,22 +204,30 @@ func get_next_unlock_progress() -> Dictionary:
 	if helicopter_skins == null:
 		return {}
 
-	var next_skin: Dictionary = helicopter_skins.get_next_locked_skin(total_completed)
-	if next_skin.is_empty():
+	var next_vehicle: Dictionary = {}
+	if helicopter_skins.has_method("get_next_locked_vehicle"):
+		next_vehicle = helicopter_skins.get_next_locked_vehicle(total_completed)
+	elif helicopter_skins.has_method("get_next_locked_skin"):
+		next_vehicle = helicopter_skins.get_next_locked_skin(total_completed)
+	if next_vehicle.is_empty():
 		return {
-			"display_name": "All Skins Unlocked",
+			"display_name": "All Vehicles Unlocked",
 			"completed": total_completed,
 			"required": total_completed,
-			"progress_text": "Collection complete",
+			"progress_text": "Vehicle collection complete",
 		}
 
 	return {
-		"skin_id": str(next_skin.get("skin_id", "")),
-		"display_name": str(next_skin.get("display_name", "Next Unlock")),
+		"vehicle_id": str(next_vehicle.get("vehicle_id", next_vehicle.get("skin_id", ""))),
+		"display_name": str(next_vehicle.get("display_name", "Next Unlock")),
 		"completed": total_completed,
-		"required": int(next_skin.get("required_completed_missions", total_completed)),
-		"progress_text": "%d / %d" % [total_completed, int(next_skin.get("required_completed_missions", total_completed))],
+		"required": int(next_vehicle.get("required_completed_missions", total_completed)),
+		"progress_text": "%d / %d" % [total_completed, int(next_vehicle.get("required_completed_missions", total_completed))],
 	}
+
+func merge_recent_run_details(extra: Dictionary) -> void:
+	for key in extra.keys():
+		_recent_run_result[str(key)] = extra[key]
 
 func get_time_until_next_reset_text() -> String:
 	var current_time := Time.get_time_dict_from_system(true)

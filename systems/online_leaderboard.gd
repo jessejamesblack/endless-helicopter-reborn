@@ -50,7 +50,7 @@ static func get_fetch_url_with_mode(limit: int = 10, offset: int = 0, include_ex
 	var encoded_family := FAMILY_ID.uri_encode()
 	var select_fields := "player_id,name,score,created_at,updated_at"
 	if include_expanded_fields:
-		select_fields += ",equipped_skin_id,skill_score,near_misses,max_combo_multiplier,projectile_intercepts"
+		select_fields += ",equipped_skin_id,equipped_vehicle_id,equipped_vehicle_skin_id,skill_score,near_misses,max_combo_multiplier,projectile_intercepts"
 	return "%s/rest/v1/%s?select=%s&family_id=eq.%s&order=score.desc,created_at.asc&limit=%d&offset=%d" % [
 		SUPABASE_URL,
 		TABLE_NAME,
@@ -133,6 +133,8 @@ static func parse_entries(body: PackedByteArray) -> Array[Dictionary]:
 				"created_at": str(item.get("created_at", "")),
 				"updated_at": str(item.get("updated_at", "")),
 				"equipped_skin_id": str(item.get("equipped_skin_id", "")),
+				"equipped_vehicle_id": str(item.get("equipped_vehicle_id", item.get("equipped_skin_id", ""))),
+				"equipped_vehicle_skin_id": str(item.get("equipped_vehicle_skin_id", "factory")),
 				"skill_score": int(item.get("skill_score", 0)),
 				"near_misses": int(item.get("near_misses", 0)),
 				"max_combo_multiplier": float(item.get("max_combo_multiplier", 1.0)),
@@ -267,8 +269,8 @@ static func make_sync_player_profile_body(profile_summary: Dictionary) -> String
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_name": load_cached_name(),
-		"p_equipped_skin_id": str(profile_summary.get("equipped_skin_id", "default_scout")),
-		"p_unlocked_skins": profile_summary.get("unlocked_skins", ["default_scout"]),
+		"p_equipped_skin_id": str(profile_summary.get("equipped_vehicle_id", profile_summary.get("equipped_skin_id", "default_scout"))),
+		"p_unlocked_skins": profile_summary.get("unlocked_vehicles", profile_summary.get("unlocked_skins", ["default_scout"])),
 		"p_total_daily_missions_completed": int(profile_summary.get("total_daily_missions_completed", 0)),
 		"p_daily_streak": int(profile_summary.get("daily_streak", 0)),
 		"p_last_completed_daily_date": str(profile_summary.get("last_completed_daily_date", "")),
@@ -312,6 +314,8 @@ static func parse_submit_result(body: PackedByteArray) -> Dictionary:
 			"score_improved": bool(parsed.get("score_improved", true)),
 			"run_summary": parsed.get("run_summary", {}),
 			"equipped_skin_id": str(parsed.get("equipped_skin_id", "")),
+			"equipped_vehicle_id": str(parsed.get("equipped_vehicle_id", parsed.get("equipped_skin_id", ""))),
+			"equipped_vehicle_skin_id": str(parsed.get("equipped_vehicle_skin_id", "factory")),
 		}
 	return {}
 
@@ -366,7 +370,7 @@ static func should_fallback_to_legacy_fetch(error_text: String) -> bool:
 	var normalized := error_text.to_lower()
 	if not normalized.contains("family_leaderboard"):
 		return false
-	if normalized.contains("equipped_skin_id") or normalized.contains("skill_score") or normalized.contains("near_misses") or normalized.contains("max_combo_multiplier") or normalized.contains("projectile_intercepts"):
+	if normalized.contains("equipped_skin_id") or normalized.contains("equipped_vehicle_id") or normalized.contains("equipped_vehicle_skin_id") or normalized.contains("skill_score") or normalized.contains("near_misses") or normalized.contains("max_combo_multiplier") or normalized.contains("projectile_intercepts"):
 		return true
 	return normalized.contains("column") and normalized.contains("does not exist")
 
