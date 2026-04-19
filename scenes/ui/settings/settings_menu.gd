@@ -28,6 +28,7 @@ const MOUSE_POINTER_ID := -1000
 @onready var restore_progress_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/ProgressActionRow/RestoreProgressButton
 @onready var clear_restore_player_id_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/ProgressActionRow/ClearRestorePlayerIdButton
 @onready var restore_progress_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/RestoreProgressStatusLabel
+@onready var replay_tips_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/ReplayTipsButton
 @onready var system_card: PanelContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard
 @onready var system_column: VBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn
 @onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/FireSideRow/FireSideOption
@@ -66,6 +67,7 @@ func _ready() -> void:
 	restore_progress_button.pressed.connect(_on_restore_progress_pressed)
 	clear_restore_player_id_button.pressed.connect(_on_clear_restore_player_id_pressed)
 	restore_player_id_entry.text_submitted.connect(_on_restore_player_id_text_submitted)
+	replay_tips_button.pressed.connect(_on_replay_tips_pressed)
 	enable_push_button.pressed.connect(_on_enable_push_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
@@ -276,6 +278,12 @@ func _on_enable_push_pressed() -> void:
 	if push_notifications != null and push_notifications.has_method("register_device_for_push"):
 		push_notifications.register_device_for_push()
 	_update_push_status()
+
+func _on_replay_tips_pressed() -> void:
+	var discovery_manager := get_node_or_null("/root/FeatureDiscoveryManager")
+	if discovery_manager != null and discovery_manager.has_method("replay_all_tips"):
+		discovery_manager.replay_all_tips()
+	_refresh_restore_progress_section("Progress tips will show again on the main menu.")
 
 func _on_push_diagnostics_changed(_status: Dictionary) -> void:
 	_update_push_status()

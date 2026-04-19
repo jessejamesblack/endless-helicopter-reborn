@@ -1,6 +1,6 @@
 extends Control
 
-const MISSION_SCREEN_SCENE_PATH := "res://scenes/ui/missions/mission_screen.tscn"
+const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const TouchScrollButtonScript = preload("res://systems/touch_scroll_button.gd")
 const PREVIEW_CENTER := Vector2(152, 94)
 const PREVIEW_SCALE_MULTIPLIER := 2.55
@@ -57,6 +57,17 @@ func _ready() -> void:
 		_selected_vehicle_id = str(player_profile.get_equipped_vehicle_id())
 	if player_profile != null and player_profile.has_method("get_equipped_vehicle_skin_id"):
 		_selected_skin_id = str(player_profile.get_equipped_vehicle_skin_id(_selected_vehicle_id))
+	var hangar_navigation_state := get_node_or_null("/root/HangarNavigationState")
+	if hangar_navigation_state != null and hangar_navigation_state.has_method("consume_focus"):
+		var focus: Dictionary = hangar_navigation_state.consume_focus()
+		var focus_vehicle_id := str(focus.get("vehicle_id", "")).strip_edges()
+		var focus_skin_id := str(focus.get("skin_id", "")).strip_edges()
+		if player_profile != null and not focus_vehicle_id.is_empty() and player_profile.has_method("has_vehicle_access") and player_profile.has_vehicle_access(focus_vehicle_id):
+			_selected_vehicle_id = focus_vehicle_id
+			_selected_skin_id = focus_skin_id if not focus_skin_id.is_empty() and player_profile.has_method("is_vehicle_skin_unlocked") and player_profile.is_vehicle_skin_unlocked(_selected_vehicle_id, focus_skin_id) else _get_selected_vehicle_skin(player_profile, _selected_vehicle_id)
+	var discovery_manager := get_node_or_null("/root/FeatureDiscoveryManager")
+	if discovery_manager != null and discovery_manager.has_method("mark_tip_seen"):
+		discovery_manager.mark_tip_seen("hangar")
 
 	_configure_touch_scroll()
 	_mark_lore_seen()
@@ -128,11 +139,11 @@ func _build_vehicle_button_text(vehicle_id: String, player_profile: Node, helico
 	if player_profile.has_method("has_seen_vehicle_lore") and not player_profile.has_seen_vehicle_lore(vehicle_id):
 		label = "NEW  " + label
 	var has_access: bool = player_profile.is_vehicle_unlocked(vehicle_id) if player_profile.has_method("is_vehicle_unlocked") else player_profile.has_skin_access(vehicle_id)
-	if has_access:
-		if player_profile.get_equipped_vehicle_id() == vehicle_id:
-			return "%s  -  Equipped" % label
-		return "%s  -  Unlocked" % label
-	return "%s  -  Locked" % label
+	if not has_access:
+		return "%s  -  Locked" % label
+	if player_profile.get_equipped_vehicle_id() == vehicle_id:
+		return "%s  -  Equipped" % label
+	return "%s  -  Unlocked" % label
 
 func _build_skin_button_text(vehicle_id: String, skin_id: String, player_profile: Node, helicopter_skins: Node) -> String:
 	var skin_data: Dictionary = helicopter_skins.get_vehicle_skin_data(vehicle_id, skin_id)
@@ -142,12 +153,12 @@ func _build_skin_button_text(vehicle_id: String, skin_id: String, player_profile
 	if skin_id == "original_icon" and not bool(skin_data.get("available", false)):
 		return "%s  -  Unavailable" % label
 	var unlocked: bool = player_profile.is_vehicle_skin_unlocked(vehicle_id, skin_id)
+	if not unlocked:
+		return "%s  -  Locked" % label
 	var equipped: bool = player_profile.get_equipped_vehicle_skin_id(vehicle_id) == skin_id
-	if unlocked:
-		if equipped:
-			return "%s  -  Equipped" % label
-		return "%s  -  Unlocked" % label
-	return "%s  -  Locked" % label
+	if equipped:
+		return "%s  -  Equipped" % label
+	return "%s  -  Unlocked" % label
 
 func _update_preview() -> void:
 	var helicopter_skins := _get_helicopter_skins()
@@ -259,7 +270,7 @@ func _mark_lore_seen() -> void:
 
 func _on_back_pressed() -> void:
 	_play_ui_tap()
-	get_tree().change_scene_to_file(MISSION_SCREEN_SCENE_PATH)
+	get_tree().change_scene_to_file(START_SCREEN_SCENE_PATH)
 
 func _on_equip_vehicle_pressed() -> void:
 	var player_profile := _get_player_profile()

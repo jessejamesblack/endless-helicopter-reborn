@@ -3,8 +3,18 @@ import {
   safeChannel,
   truncate,
 } from "../_shared/common.ts";
+import {
+  getCurrentVersionCode,
+  getReleaseChannel,
+  getReleaseConfig,
+  isVersionSupported,
+  versionGateResponse,
+} from "../_shared/version_gate.ts";
+import { createAdminClient } from "../_shared/common.ts";
 
 type ScreenshotPayload = {
+  current_version_code?: number | string;
+  release_channel?: string;
   event_id?: string;
   title?: string;
   description?: string;
@@ -33,6 +43,16 @@ Deno.serve(async (request: Request) => {
   const imageBase64 = String(payload.image_base64 ?? "").trim();
   if (eventId === "" || title === "" || imageBase64 === "") {
     return jsonResponse({ error: "Missing required screenshot fields." }, 400);
+  }
+
+  const supabase = createAdminClient();
+  const releaseConfig = await getReleaseConfig(
+    supabase,
+    getReleaseChannel(payload as Record<string, unknown>, request),
+  );
+  const currentVersionCode = getCurrentVersionCode(payload as Record<string, unknown>, request);
+  if (!isVersionSupported(currentVersionCode, Number(releaseConfig.minimum_supported_version_code ?? 0))) {
+    return versionGateResponse(releaseConfig);
   }
 
   const webhookUrl = Deno.env.get("DISCORD_GAME_EVENTS_WEBHOOK_URL") ?? "";

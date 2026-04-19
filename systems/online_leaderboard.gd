@@ -76,52 +76,37 @@ static func get_top_entry_url() -> String:
 	]
 
 static func get_submit_v2_url() -> String:
-	return "%s/rest/v1/rpc/submit_family_score_v2" % SUPABASE_URL
+	return get_edge_function_url("submit-score")
 
 static func get_submit_url() -> String:
-	return "%s/rest/v1/rpc/submit_family_score" % SUPABASE_URL
+	return get_edge_function_url("submit-score")
 
 static func get_legacy_submit_url() -> String:
 	return "%s/rest/v1/%s" % [SUPABASE_URL, TABLE_NAME]
 
 static func get_sync_player_profile_url() -> String:
-	return "%s/rest/v1/rpc/sync_player_profile" % SUPABASE_URL
+	return get_edge_function_url("sync-player-profile")
 
 static func get_sync_daily_mission_progress_url() -> String:
-	return "%s/rest/v1/rpc/sync_daily_mission_progress" % SUPABASE_URL
+	return get_edge_function_url("sync-daily-mission-progress")
 
 static func get_get_player_profile_url() -> String:
-	return "%s/rest/v1/rpc/get_player_profile" % SUPABASE_URL
+	return get_edge_function_url("get-player-profile")
 
 static func get_get_daily_mission_progress_url() -> String:
-	return "%s/rest/v1/rpc/get_daily_mission_progress" % SUPABASE_URL
+	return get_edge_function_url("get-daily-mission-progress")
 
-static func get_notifications_url(limit: int = 10) -> String:
-	var encoded_family := FAMILY_ID.uri_encode()
-	var encoded_player := load_or_create_player_id().uri_encode()
-	return "%s/rest/v1/%s?select=id,challenger_name,challenger_score,beaten_score,created_at&family_id=eq.%s&target_player_id=eq.%s&read_at=is.null&order=created_at.desc&limit=%d" % [
-		SUPABASE_URL,
-		NOTIFICATION_TABLE_NAME,
-		encoded_family,
-		encoded_player,
-		limit,
-	]
+static func get_notifications_url(_limit: int = 10) -> String:
+	return get_edge_function_url("get-notifications")
 
-static func get_mark_notifications_read_url(ids: Array[int]) -> String:
-	var id_parts: Array[String] = []
-	for id in ids:
-		id_parts.append(str(id))
-	return "%s/rest/v1/%s?id=in.(%s)" % [SUPABASE_URL, NOTIFICATION_TABLE_NAME, ",".join(id_parts)]
+static func get_mark_notifications_read_url(_ids: Array[int]) -> String:
+	return get_edge_function_url("mark-notifications-read")
 
 static func get_push_device_upsert_url() -> String:
-	return "%s/rest/v1/%s?on_conflict=family_id,player_id,device_id" % [SUPABASE_URL, PUSH_DEVICE_TABLE_NAME]
+	return get_edge_function_url("register-push-device")
 
 static func get_push_device_update_by_token_url(fcm_token: String) -> String:
-	return "%s/rest/v1/%s?fcm_token=eq.%s" % [
-		SUPABASE_URL,
-		PUSH_DEVICE_TABLE_NAME,
-		fcm_token.uri_encode(),
-	]
+	return get_edge_function_url("register-push-device")
 
 static func get_edge_function_url(function_name: String) -> String:
 	return "%s/functions/v1/%s" % [SUPABASE_URL, function_name.uri_encode()]
@@ -181,23 +166,29 @@ static func format_entries(entries: Array[Dictionary], limit: int = 5) -> String
 
 static func make_submit_body(name: String, score: int) -> String:
 	var safe_name := sanitize_name(name)
-	return JSON.stringify({
+	var payload := {
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_name": safe_name,
 		"p_score": score,
-	})
+	}
+	return JSON.stringify(payload)
 
 static func make_submit_v2_body(name: String, score: int, run_summary: Dictionary, equipped_skin_id: String) -> String:
 	var safe_name := sanitize_name(name)
-	return JSON.stringify({
+	var payload := {
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_name": safe_name,
 		"p_score": score,
 		"p_run_summary": run_summary,
 		"p_equipped_skin_id": equipped_skin_id,
-	})
+	}
+	return JSON.stringify(payload)
 
 static func make_legacy_submit_body(name: String, score: int) -> String:
 	var safe_name := sanitize_name(name)
@@ -334,11 +325,13 @@ static func validate_player_id(player_id: String) -> Dictionary:
 	return {"ok": true, "player_id": trimmed}
 
 static func get_migrate_player_identity_url() -> String:
-	return "%s/rest/v1/rpc/migrate_player_identity" % SUPABASE_URL
+	return get_edge_function_url("migrate-player-identity")
 
 static func make_migrate_player_identity_body() -> String:
 	var migration := get_pending_remote_identity_migration()
 	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_old_player_id": str(migration.get("old_player_id", "")),
 		"p_new_player_id": str(migration.get("new_player_id", "")),
@@ -347,8 +340,23 @@ static func make_migrate_player_identity_body() -> String:
 	})
 
 static func make_mark_notifications_read_body() -> String:
+	return make_mark_notifications_read_body_for_ids([])
+
+static func make_mark_notifications_read_body_for_ids(ids: Array[int]) -> String:
 	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
+		"ids": ids.duplicate(),
 		"read_at": Time.get_datetime_string_from_system(true),
+	})
+
+static func make_get_notifications_body(limit: int = 5) -> String:
+	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
+		"family_id": FAMILY_ID,
+		"player_id": load_or_create_player_id(),
+		"limit": limit,
 	})
 
 static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "", daily_missions_enabled: bool = true, app_metadata: Dictionary = {}) -> String:
@@ -374,6 +382,8 @@ static func make_push_device_body(fcm_token: String, device_id: String, notifica
 
 static func make_sync_player_profile_body(profile_summary: Dictionary) -> String:
 	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_name": load_cached_name(),
@@ -388,6 +398,8 @@ static func make_sync_player_profile_body(profile_summary: Dictionary) -> String
 
 static func make_sync_daily_mission_progress_body(mission_summary: Dictionary) -> String:
 	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_mission_date": str(mission_summary.get("mission_date", "")),
@@ -398,12 +410,16 @@ static func make_sync_daily_mission_progress_body(mission_summary: Dictionary) -
 
 static func make_get_player_profile_body() -> String:
 	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 	})
 
 static func make_get_daily_mission_progress_body(mission_date: String) -> String:
 	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_mission_date": mission_date,
@@ -464,6 +480,32 @@ static func parse_api_error(body: PackedByteArray, fallback: String = "Request f
 			return error_text
 
 	return text
+
+static func is_upgrade_required_response(response_code: int, body: PackedByteArray) -> bool:
+	if response_code != 426:
+		return false
+	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	return parsed is Dictionary and str(parsed.get("error", "")).strip_edges() == "upgrade_required"
+
+static func handle_upgrade_required(operation: String, body: PackedByteArray = PackedByteArray(), extra_context: Dictionary = {}) -> void:
+	var message := parse_api_error(body, "This build is too old. Please update to continue.")
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null:
+		var app_update_manager := tree.root.get_node_or_null("AppUpdateManager")
+		if app_update_manager != null:
+			if app_update_manager.has_method("request_open_prompt"):
+				app_update_manager.request_open_prompt()
+			if app_update_manager.has_method("refresh_release_info"):
+				app_update_manager.refresh_release_info(true)
+		var reporter := tree.root.get_node_or_null("ErrorReporter")
+		if reporter != null and reporter.has_method("report_warning"):
+			var context := {
+				"operation": operation,
+				"response_code": 426,
+			}
+			for key in extra_context.keys():
+				context[str(key)] = extra_context[key]
+			reporter.report_warning("upgrade_required", message, context)
 
 static func should_fallback_to_legacy_submit(error_text: String) -> bool:
 	var normalized := error_text.to_lower()

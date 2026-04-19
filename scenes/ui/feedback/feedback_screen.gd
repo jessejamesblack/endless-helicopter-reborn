@@ -75,6 +75,8 @@ func _on_send_pressed() -> void:
 		OnlineLeaderboardScript.get_headers(),
 		HTTPClient.METHOD_POST,
 		JSON.stringify({
+			"current_version_code": int(BuildInfoScript.VERSION_CODE),
+			"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 			"category": get_selected_category(),
 			"message": message,
 			"bug_report": _build_bug_report_text(),
@@ -87,6 +89,12 @@ func _on_send_pressed() -> void:
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
 	send_button.disabled = false
+	if OnlineLeaderboardScript.is_upgrade_required_response(response_code, _body):
+		OnlineLeaderboardScript.handle_upgrade_required("report_feedback", _body, {
+			"screen": "feedback",
+		})
+		status_label.text = "This build is too old to send feedback. Please update to continue."
+		return
 	if result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300:
 		status_label.text = "Feedback sent. Thanks for helping tune the game."
 		feedback_submitted.emit()

@@ -74,6 +74,8 @@ func _process_queue() -> void:
 		OnlineLeaderboardScript.get_headers(),
 		HTTPClient.METHOD_POST,
 		JSON.stringify({
+			"current_version_code": int(BuildInfoScript.VERSION_CODE),
+			"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 			"event_id": str(item.get("event_id", "")),
 			"title": str(item.get("title", "")),
 			"description": str(item.get("description", "")),
@@ -90,6 +92,16 @@ func _process_queue() -> void:
 	request.queue_free()
 	var result := int(completed[0])
 	var response_code := int(completed[1])
+	var body := completed[3] as PackedByteArray
+	if OnlineLeaderboardScript.is_upgrade_required_response(response_code, body):
+		OnlineLeaderboardScript.handle_upgrade_required("post_achievement_screenshot", body, {
+			"queue_size": _queue.size(),
+			"event_id": str(item.get("event_id", "")),
+		})
+		_queue.clear()
+		_save_state()
+		_is_processing = false
+		return
 	if result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300:
 		_last_posted_unix = int(Time.get_unix_time_from_system())
 		if bool(item.get("one_time", false)) and not _posted_one_time_ids.has(str(item.get("event_id", ""))):

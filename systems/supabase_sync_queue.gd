@@ -1,6 +1,7 @@
 extends Node
 
 signal queue_changed(pending_count: int)
+signal startup_sync_state_changed()
 
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const QUEUE_PATH := "user://supabase_sync_queue.cfg"
@@ -21,12 +22,7 @@ var _is_flushing: bool = false
 var _startup_sync_in_progress: bool = false
 var _startup_sync_completed: bool = false
 var _identity_retry_attempts_remaining: int = 0
-var _submit_v2_available: bool = true
-var _sync_profile_available: bool = true
-var _sync_daily_available: bool = true
-var _get_profile_available: bool = true
-var _get_daily_available: bool = true
-var _migrate_identity_available: bool = true
+var _cloud_access_blocked_reason: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -80,6 +76,12 @@ func pull_remote_profile_state_async(replace_existing_state: bool = false) -> Di
 func get_pending_count() -> int:
 	return _jobs.size()
 
+func has_completed_startup_sync() -> bool:
+	return _startup_sync_completed
+
+func is_startup_sync_in_progress() -> bool:
+	return _startup_sync_in_progress
+
 func _startup_sync() -> void:
 	if _startup_sync_completed or _startup_sync_in_progress:
 		return
@@ -90,6 +92,12 @@ func _run_startup_sync() -> void:
 	if _startup_sync_completed or _startup_sync_in_progress:
 		return
 	_startup_sync_in_progress = true
+	startup_sync_state_changed.emit()
+	if _is_cloud_access_blocked():
+		_startup_sync_completed = true
+		_startup_sync_in_progress = false
+		startup_sync_state_changed.emit()
+		return
 	var identity_ready := await _ensure_remote_identity_ready()
 	if identity_ready:
 		await _pull_remote_state()
@@ -101,6 +109,7 @@ func _run_startup_sync() -> void:
 	else:
 		_schedule_identity_retry()
 	_startup_sync_in_progress = false
+	startup_sync_state_changed.emit()
 
 func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 	var outcome := {
@@ -112,7 +121,13 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 	if not OnlineLeaderboardScript.is_configured():
 		outcome["error_message"] = "Online profile sync is not configured."
 		return outcome
+	if _is_cloud_access_blocked():
+		outcome["error_message"] = _cloud_access_blocked_reason
+		return outcome
 	if not await _ensure_remote_identity_ready():
+		if _is_cloud_access_blocked():
+			outcome["error_message"] = _cloud_access_blocked_reason
+			return outcome
 		_schedule_identity_retry()
 		outcome["error_message"] = "A player ID is still required before cloud restore can run."
 		return outcome
@@ -120,36 +135,60 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 
 	var profile_body := OnlineLeaderboardScript.make_get_player_profile_body()
 	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(Time.get_date_string_from_system(true))
+	var request_failures: Array[String] = []
 
-	if _get_profile_available:
-		var profile_response := await _request_json(_pull_request, OnlineLeaderboardScript.get_get_player_profile_url(), HTTPClient.METHOD_POST, profile_body)
-		if _is_success_response(profile_response):
-			var remote_profile := OnlineLeaderboardScript.parse_profile_sync_result(profile_response.body)
-			var player_profile := get_node_or_null("/root/PlayerProfile")
-			outcome["profile_restored"] = not remote_profile.is_empty()
-			if outcome["profile_restored"]:
-				if replace_existing_state and player_profile != null and player_profile.has_method("replace_remote_profile"):
-					player_profile.replace_remote_profile(remote_profile)
-				elif player_profile != null and player_profile.has_method("merge_remote_profile"):
-					player_profile.merge_remote_profile(remote_profile)
-		else:
-			_get_profile_available = not _should_disable_rpc(profile_response, "get_player_profile")
+	var profile_response := await _request_json(
+		_pull_request,
+		OnlineLeaderboardScript.get_get_player_profile_url(),
+		HTTPClient.METHOD_POST,
+		profile_body
+	)
+	if _handle_upgrade_required_response("get_player_profile", profile_response):
+		outcome["ok"] = false
+		outcome["error_message"] = _cloud_access_blocked_reason
+		return outcome
+	if _is_success_response(profile_response):
+		var remote_profile := OnlineLeaderboardScript.parse_profile_sync_result(profile_response.body)
+		var player_profile := get_node_or_null("/root/PlayerProfile")
+		outcome["profile_restored"] = not remote_profile.is_empty()
+		if outcome["profile_restored"]:
+			var remote_name := str(remote_profile.get("name", "")).strip_edges()
+			if not remote_name.is_empty():
+				OnlineLeaderboardScript.save_cached_name(remote_name)
+			if replace_existing_state and player_profile != null and player_profile.has_method("replace_remote_profile"):
+				player_profile.replace_remote_profile(remote_profile)
+			elif player_profile != null and player_profile.has_method("merge_remote_profile"):
+				player_profile.merge_remote_profile(remote_profile)
+	else:
+		request_failures.append(_response_error_text(profile_response))
 
-	if _get_daily_available:
-		var mission_response := await _request_json(_pull_request, OnlineLeaderboardScript.get_get_daily_mission_progress_url(), HTTPClient.METHOD_POST, mission_body)
-		if _is_success_response(mission_response):
-			var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
-			var mission_manager := get_node_or_null("/root/MissionManager")
-			outcome["mission_restored"] = not remote_progress.is_empty()
-			if replace_existing_state and bool(outcome.get("profile_restored", false)):
-				if outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
-					mission_manager.replace_remote_daily_progress(remote_progress)
-				elif not outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
-					mission_manager.reset_current_daily_progress()
-			elif mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
-				mission_manager.merge_remote_daily_progress(remote_progress)
-		else:
-			_get_daily_available = not _should_disable_rpc(mission_response, "get_daily_mission_progress")
+	var mission_response := await _request_json(
+		_pull_request,
+		OnlineLeaderboardScript.get_get_daily_mission_progress_url(),
+		HTTPClient.METHOD_POST,
+		mission_body
+	)
+	if _handle_upgrade_required_response("get_daily_mission_progress", mission_response):
+		outcome["ok"] = false
+		outcome["error_message"] = _cloud_access_blocked_reason
+		return outcome
+	if _is_success_response(mission_response):
+		var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
+		var mission_manager := get_node_or_null("/root/MissionManager")
+		outcome["mission_restored"] = not remote_progress.is_empty()
+		if replace_existing_state and bool(outcome.get("profile_restored", false)):
+			if outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
+				mission_manager.replace_remote_daily_progress(remote_progress)
+			elif not outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
+				mission_manager.reset_current_daily_progress()
+		elif mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
+			mission_manager.merge_remote_daily_progress(remote_progress)
+	else:
+		request_failures.append(_response_error_text(mission_response))
+
+	if not request_failures.is_empty() and not bool(outcome.get("profile_restored", false)) and not bool(outcome.get("mission_restored", false)):
+		outcome["ok"] = false
+		outcome["error_message"] = request_failures[0]
 	return outcome
 
 func clear_pending_jobs() -> void:
@@ -162,7 +201,13 @@ func clear_pending_jobs() -> void:
 func _flush_async() -> void:
 	if _is_flushing or not OnlineLeaderboardScript.is_configured():
 		return
+	if _is_cloud_access_blocked():
+		_drop_all_jobs_for_upgrade_required()
+		return
 	if not await _ensure_remote_identity_ready():
+		if _is_cloud_access_blocked():
+			_drop_all_jobs_for_upgrade_required()
+			return
 		_schedule_identity_retry()
 		return
 	_is_flushing = true
@@ -182,9 +227,9 @@ func _flush_async() -> void:
 func _ensure_remote_identity_ready() -> bool:
 	if not OnlineLeaderboardScript.is_configured():
 		return false
+	if _is_cloud_access_blocked():
+		return false
 	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
-		if not _migrate_identity_available:
-			return false
 		var migration := OnlineLeaderboardScript.get_pending_remote_identity_migration()
 		var old_player_id := str(migration.get("old_player_id", "")).strip_edges()
 		var new_player_id := str(migration.get("new_player_id", "")).strip_edges()
@@ -201,11 +246,11 @@ func _ensure_remote_identity_ready() -> bool:
 			HTTPClient.METHOD_POST,
 			OnlineLeaderboardScript.make_migrate_player_identity_body()
 		)
+		if _handle_upgrade_required_response("migrate_player_identity", response):
+			return false
 		if _is_success_response(response):
 			OnlineLeaderboardScript.finalize_remote_identity_migration()
 			return OnlineLeaderboardScript.is_remote_profile_identity_ready()
-		if _should_disable_rpc(response, "migrate_player_identity"):
-			_migrate_identity_available = false
 		_report_identity_issue("identity_migration", "Remote identity migration did not complete.", {
 			"old_player_id_present": not old_player_id.is_empty(),
 			"new_player_id_present": not new_player_id.is_empty(),
@@ -253,56 +298,25 @@ func _process_submit_score_job(job: Dictionary) -> String:
 	var player_name := str(payload.get("name", ""))
 	if player_name.is_empty():
 		return "drop"
-
-	if _submit_v2_available:
-		var response := await _request_json(
-			_flush_request,
-			OnlineLeaderboardScript.get_submit_v2_url(),
-			HTTPClient.METHOD_POST,
-			OnlineLeaderboardScript.make_submit_v2_body(
-				player_name,
-				int(payload.get("score", 0)),
-				payload.get("run_summary", {}) as Dictionary,
-				str(payload.get("equipped_skin_id", "default_scout"))
-			),
-			OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"])
-		)
-		if _is_success_response(response):
-			_refresh_bonus_skin_access()
-			return "success"
-		if _should_disable_rpc(response, "submit_family_score_v2"):
-			_submit_v2_available = false
-		elif _is_retryable_response(response):
-			return "retry"
-
-	var legacy_response := await _request_json(
+	var response := await _request_json(
 		_flush_request,
-		OnlineLeaderboardScript.get_submit_url(),
+		OnlineLeaderboardScript.get_submit_v2_url(),
 		HTTPClient.METHOD_POST,
-		OnlineLeaderboardScript.make_submit_body(player_name, int(payload.get("score", 0))),
-		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"])
+		OnlineLeaderboardScript.make_submit_v2_body(
+			player_name,
+			int(payload.get("score", 0)),
+			payload.get("run_summary", {}) as Dictionary,
+			str(payload.get("equipped_skin_id", "default_scout"))
+		)
 	)
-	if _is_success_response(legacy_response):
+	if _handle_upgrade_required_response("submit_score", response):
+		return "drop"
+	if _is_success_response(response):
 		_refresh_bonus_skin_access()
 		return "success"
-	if OnlineLeaderboardScript.should_fallback_to_legacy_submit(_response_error_text(legacy_response)):
-		var table_response := await _request_json(
-			_flush_request,
-			OnlineLeaderboardScript.get_legacy_submit_url(),
-			HTTPClient.METHOD_POST,
-			OnlineLeaderboardScript.make_legacy_submit_body(player_name, int(payload.get("score", 0))),
-			OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"])
-		)
-		if _is_success_response(table_response):
-			_refresh_bonus_skin_access()
-			return "success"
-		return "retry" if _is_retryable_response(table_response) else "drop"
-	return "retry" if _is_retryable_response(legacy_response) else "drop"
+	return "retry" if _is_retryable_response(response) else "drop"
 
 func _process_profile_sync_job(job: Dictionary) -> String:
-	if not _sync_profile_available:
-		return "drop"
-
 	var payload := job.get("payload", {}) as Dictionary
 	var response := await _request_json(
 		_flush_request,
@@ -310,17 +324,13 @@ func _process_profile_sync_job(job: Dictionary) -> String:
 		HTTPClient.METHOD_POST,
 		OnlineLeaderboardScript.make_sync_player_profile_body(payload)
 	)
+	if _handle_upgrade_required_response("sync_player_profile", response):
+		return "drop"
 	if _is_success_response(response):
 		return "success"
-	if _should_disable_rpc(response, "sync_player_profile"):
-		_sync_profile_available = false
-		return "drop"
 	return "retry" if _is_retryable_response(response) else "drop"
 
 func _process_daily_sync_job(job: Dictionary) -> String:
-	if not _sync_daily_available:
-		return "drop"
-
 	var payload := job.get("payload", {}) as Dictionary
 	var response := await _request_json(
 		_flush_request,
@@ -328,11 +338,10 @@ func _process_daily_sync_job(job: Dictionary) -> String:
 		HTTPClient.METHOD_POST,
 		OnlineLeaderboardScript.make_sync_daily_mission_progress_body(payload)
 	)
+	if _handle_upgrade_required_response("sync_daily_mission_progress", response):
+		return "drop"
 	if _is_success_response(response):
 		return "success"
-	if _should_disable_rpc(response, "sync_daily_mission_progress"):
-		_sync_daily_available = false
-		return "drop"
 	return "retry" if _is_retryable_response(response) else "drop"
 
 func _request_json(request: HTTPRequest, url: String, method: int, body: String = "", headers: PackedStringArray = PackedStringArray()) -> Dictionary:
@@ -411,14 +420,6 @@ func _is_retryable_response(response: Dictionary) -> bool:
 func _response_error_text(response: Dictionary) -> String:
 	return OnlineLeaderboardScript.parse_api_error(response.get("body", PackedByteArray()) as PackedByteArray, "")
 
-func _should_disable_rpc(response: Dictionary, rpc_name: String) -> bool:
-	var error_text := _response_error_text(response).to_lower()
-	return error_text.contains(rpc_name.to_lower()) and (
-		error_text.contains("could not find the function")
-		or error_text.contains("schema cache")
-		or error_text.contains("function")
-	)
-
 func _refresh_bonus_skin_access() -> void:
 	var player_profile := get_node_or_null("/root/PlayerProfile")
 	if player_profile != null and player_profile.has_method("refresh_top_player_skin_access"):
@@ -428,3 +429,32 @@ func _report_identity_issue(category: String, message: String, context: Dictiona
 	var reporter := get_node_or_null("/root/ErrorReporter")
 	if reporter != null and reporter.has_method("report_warning"):
 		reporter.report_warning(category, message, context)
+
+func _handle_upgrade_required_response(operation: String, response: Dictionary) -> bool:
+	var response_code := int(response.get("response_code", 0))
+	var body := response.get("body", PackedByteArray()) as PackedByteArray
+	if not OnlineLeaderboardScript.is_upgrade_required_response(response_code, body):
+		return false
+	var message := OnlineLeaderboardScript.parse_api_error(body, "This build is too old. Please update to continue.")
+	_block_cloud_access(message)
+	OnlineLeaderboardScript.handle_upgrade_required(operation, body, {
+		"queue_pending_count": _jobs.size(),
+	})
+	return true
+
+func _block_cloud_access(reason: String) -> void:
+	_cloud_access_blocked_reason = reason
+	_startup_sync_completed = true
+	if _identity_retry_timer != null:
+		_identity_retry_timer.stop()
+	startup_sync_state_changed.emit()
+
+func _is_cloud_access_blocked() -> bool:
+	return not _cloud_access_blocked_reason.is_empty()
+
+func _drop_all_jobs_for_upgrade_required() -> void:
+	if _jobs.is_empty():
+		return
+	_jobs.clear()
+	_save_queue()
+	_emit_queue_changed()
