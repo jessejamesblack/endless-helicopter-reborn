@@ -5,7 +5,7 @@ const LEADERBOARD_PAGE_SIZE := 25
 const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 const RESULTS_PANEL_RECT := Rect2(-340.0, -354.0, 680.0, 708.0)
 const BOARD_PANEL_RECT := Rect2(-320.0, -310.0, 640.0, 620.0)
-const SETUP_PANEL_RECT := Rect2(-280.0, -210.0, 560.0, 420.0)
+const SETUP_PANEL_RECT := Rect2(-300.0, -270.0, 600.0, 540.0)
 const PANEL_MARGIN := 4.0
 const TOUCH_SCROLL_DEADZONE := 10.0
 const TOUCH_SCROLL_AXIS_BIAS := 1.2
@@ -26,6 +26,7 @@ var has_pending_score: bool = false
 var needs_profile_setup: bool = false
 var pending_player_name: String = ""
 var is_submitting: bool = false
+var is_restoring_profile: bool = false
 var validation_mode_enabled: bool = false
 var _use_v2_submit_api: bool = true
 var _use_v1_submit_api: bool = false
@@ -48,6 +49,7 @@ var _scroll_origin: float = 0.0
 @onready var panel: Panel = $Panel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
 @onready var status_label: Label = $Panel/MarginContainer/VBoxContainer/StatusLabel
+@onready var player_id_summary_label: Label = $Panel/MarginContainer/VBoxContainer/PlayerIdSummaryLabel
 @onready var results_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/ResultsCard
 @onready var best_score_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/BestScoreLabel
 @onready var delta_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/DeltaLabel
@@ -74,6 +76,9 @@ var _scroll_origin: float = 0.0
 @onready var setup_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/SetupCard
 @onready var name_help_label: Label = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/NameHelpLabel
 @onready var name_entry: LineEdit = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/NameEntry
+@onready var player_id_entry: LineEdit = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/PlayerIdEntry
+@onready var restore_unlocks_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow/RestoreUnlocksButton
+@onready var setup_back_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow/SetupBackButton
 @onready var save_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SaveButton
 @onready var alert_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/AlertCard
 @onready var alert_label: Label = $Panel/MarginContainer/VBoxContainer/AlertCard/AlertLabel
@@ -110,8 +115,10 @@ func _ready() -> void:
 		current_mode = ScreenMode.LEADERBOARD
 
 	name_entry.text = OnlineLeaderboardScript.load_cached_name()
-	name_help_label.text = "Choose a public name once. This device will remember it."
+	player_id_entry.text = OnlineLeaderboardScript.load_manual_player_id_override()
+	name_help_label.text = "Choose a public name once. This device will remember it.\nPaste an existing player ID below if you want to restore unlocks on this device."
 	alert_label.text = ""
+	_refresh_player_id_ui()
 	_populate_results_summary()
 	_apply_screen_mode()
 	_configure_touch_scroll()
@@ -123,6 +130,8 @@ func _ready() -> void:
 	missions_button.pressed.connect(_on_missions_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)
 	save_button.pressed.connect(_on_save_pressed)
+	restore_unlocks_button.pressed.connect(_on_restore_unlocks_pressed)
+	setup_back_button.pressed.connect(_on_back_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	refresh_button.pressed.connect(_on_refresh_pressed)
 	name_entry.text_submitted.connect(_on_name_submitted)
@@ -174,7 +183,7 @@ func fetch_leaderboard(reset: bool = false) -> void:
 	)
 
 func fetch_notifications() -> void:
-	if OS.get_name() == "Android" and not OnlineLeaderboardScript.is_remote_identity_ready():
+	if OS.get_name() == "Android" and not OnlineLeaderboardScript.is_remote_profile_identity_ready():
 		alert_label.text = ""
 		_apply_screen_mode()
 		return
@@ -185,6 +194,9 @@ func fetch_notifications() -> void:
 	)
 
 func submit_score() -> void:
+	if is_restoring_profile:
+		set_status("Finish restoring unlocks before submitting a score.")
+		return
 	if not has_pending_score:
 		set_status("Open this screen after a run to save a score.")
 		return
@@ -200,10 +212,13 @@ func submit_score() -> void:
 
 	var player_name := str(validation.get("name", "Player"))
 	name_entry.text = player_name
+	if not _prepare_player_id_for_online_actions(true):
+		return
 	pending_player_name = player_name
 	is_submitting = true
 	set_status("Saving your score to the leaderboard..." if current_mode == ScreenMode.RESULTS else "Saving your score...")
 	save_button.disabled = true
+	restore_unlocks_button.disabled = true
 	$SubmitRequest.request(
 		_get_submit_url(),
 		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
@@ -248,7 +263,7 @@ func _prepare_leaderboard_mode(force_refresh: bool = false) -> void:
 		return
 
 	if needs_profile_setup:
-		set_status("Enter your name to save this run.")
+		set_status("Enter your name to save this run. Paste a player ID first if you want to restore unlocks.")
 		name_entry.grab_focus()
 		return
 
@@ -278,6 +293,7 @@ func _apply_screen_mode() -> void:
 	button_row.visible = current_mode == ScreenMode.LEADERBOARD and not needs_profile_setup
 	refresh_button.disabled = current_mode != ScreenMode.LEADERBOARD or needs_profile_setup or not _is_online_configured()
 	back_button.disabled = current_mode != ScreenMode.LEADERBOARD or needs_profile_setup
+	player_id_summary_label.visible = current_mode == ScreenMode.LEADERBOARD
 	title_label.text = _get_title_text()
 	score_label.text = _get_score_text()
 	title_label.add_theme_font_size_override("font_size", 22 if showing_results else 34)
@@ -405,6 +421,9 @@ func _on_menu_pressed() -> void:
 func _on_save_pressed() -> void:
 	submit_score()
 
+func _on_restore_unlocks_pressed() -> void:
+	call_deferred("_restore_unlocks_async")
+
 func _on_name_submitted(_text: String) -> void:
 	submit_score()
 
@@ -477,6 +496,7 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 			return
 
 		save_button.disabled = false
+		restore_unlocks_button.disabled = false
 		if current_mode == ScreenMode.RESULTS:
 			set_status("Online save unavailable. Local results saved.")
 		else:
@@ -497,6 +517,7 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 	needs_profile_setup = false
 	_apply_screen_mode()
 	save_button.disabled = true
+	restore_unlocks_button.disabled = false
 	var sync_queue := _get_sync_queue()
 	if sync_queue != null and sync_queue.has_method("flush"):
 		sync_queue.flush()
@@ -576,9 +597,11 @@ func _update_status_after_fetch() -> void:
 		return
 
 	if needs_profile_setup:
-		set_status("Enter your name to save this run.")
+		set_status("Enter your name to save this run. Paste a player ID first if you want to restore unlocks.")
 	elif is_submitting:
 		set_status("Saving your score...")
+	elif is_restoring_profile:
+		set_status("Pulling saved unlocks...")
 	elif has_submitted:
 		set_status("Score submitted!")
 	elif has_pending_score:
@@ -753,6 +776,79 @@ func _get_empty_board_text() -> String:
 		return "No global scores yet"
 	return "No family scores yet"
 
+func _refresh_player_id_ui() -> void:
+	var player_id_text := OnlineLeaderboardScript.get_player_id_for_display()
+	var source := OnlineLeaderboardScript.get_player_identity_source()
+	var source_suffix := ""
+	if source == OnlineLeaderboardScript.PLAYER_ID_SOURCE_MANUAL_OVERRIDE:
+		source_suffix = " (manual)"
+	player_id_summary_label.text = "Player ID: %s%s" % [player_id_text, source_suffix]
+	if OnlineLeaderboardScript.has_manual_player_id_override() and not player_id_entry.has_focus():
+		player_id_entry.text = OnlineLeaderboardScript.load_manual_player_id_override()
+
+func _prepare_player_id_for_online_actions(allow_current_player_id: bool) -> bool:
+	var entered_player_id := player_id_entry.text.strip_edges()
+	if not entered_player_id.is_empty():
+		var validation := OnlineLeaderboardScript.validate_player_id(entered_player_id)
+		if not bool(validation.get("ok", false)):
+			set_status(str(validation.get("error", "Enter a valid player ID.")))
+			return false
+		var validated_player_id := str(validation.get("player_id", ""))
+		var previous_player_id := OnlineLeaderboardScript.load_manual_player_id_override()
+		player_id_entry.text = validated_player_id
+		OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
+		if validated_player_id != previous_player_id:
+			var sync_queue := _get_sync_queue()
+			if sync_queue != null and sync_queue.has_method("pull_remote_profile_state"):
+				sync_queue.pull_remote_profile_state()
+		_refresh_player_id_ui()
+		return true
+	if allow_current_player_id and not OnlineLeaderboardScript.load_or_create_player_id().strip_edges().is_empty():
+		_refresh_player_id_ui()
+		return true
+	set_status("Player ID is required. Paste an existing player ID or try again once this device has one.")
+	_refresh_player_id_ui()
+	return false
+
+func _restore_unlocks_async() -> void:
+	if is_restoring_profile or is_submitting:
+		return
+	if not _is_online_configured():
+		set_status("Leaderboard is not configured yet.")
+		return
+	if not _prepare_player_id_for_online_actions(true):
+		return
+	var sync_queue := _get_sync_queue()
+	if sync_queue == null:
+		set_status("Restore service is not available right now.")
+		return
+	is_restoring_profile = true
+	restore_unlocks_button.disabled = true
+	save_button.disabled = true
+	set_status("Pulling saved unlocks...")
+	var restore_result := {
+		"ok": false,
+		"profile_restored": false,
+		"mission_restored": false,
+		"error_message": "Could not restore unlocks right now.",
+	}
+	if sync_queue.has_method("pull_remote_profile_state_async"):
+		restore_result = await sync_queue.pull_remote_profile_state_async()
+	elif sync_queue.has_method("pull_remote_profile_state"):
+		sync_queue.pull_remote_profile_state()
+		restore_result["ok"] = true
+	is_restoring_profile = false
+	restore_unlocks_button.disabled = false
+	save_button.disabled = has_submitted
+	_refresh_player_id_ui()
+	if not bool(restore_result.get("ok", false)):
+		set_status(str(restore_result.get("error_message", "Could not restore unlocks right now.")))
+		return
+	if bool(restore_result.get("profile_restored", false)) or bool(restore_result.get("mission_restored", false)):
+		set_status("Unlocks restored from that player ID.")
+	else:
+		set_status("No saved unlocks were found for that player ID.")
+
 func _apply_responsive_panel_rect(rect: Rect2) -> void:
 	if not is_instance_valid(panel):
 		return
@@ -797,7 +893,10 @@ func apply_validation_state(mode: int, summary: Dictionary = {}, online_configur
 	leaderboard_fetch_in_flight = false
 	alert_label.text = "Validation alert" if show_alert else ""
 	name_entry.text = "Pilot"
+	player_id_entry.text = ""
 	save_button.disabled = false
+	restore_unlocks_button.disabled = false
+	_refresh_player_id_ui()
 	_populate_results_summary()
 
 	if current_mode == ScreenMode.RESULTS:

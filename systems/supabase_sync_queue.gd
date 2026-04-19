@@ -74,6 +74,9 @@ func flush() -> void:
 func pull_remote_profile_state() -> void:
 	call_deferred("_pull_remote_state")
 
+func pull_remote_profile_state_async() -> Dictionary:
+	return await _pull_remote_state()
+
 func get_pending_count() -> int:
 	return _jobs.size()
 
@@ -99,12 +102,21 @@ func _run_startup_sync() -> void:
 		_schedule_identity_retry()
 	_startup_sync_in_progress = false
 
-func _pull_remote_state() -> void:
+func _pull_remote_state() -> Dictionary:
+	var outcome := {
+		"ok": false,
+		"profile_restored": false,
+		"mission_restored": false,
+		"error_message": "",
+	}
 	if not OnlineLeaderboardScript.is_configured():
-		return
+		outcome["error_message"] = "Online profile sync is not configured."
+		return outcome
 	if not await _ensure_remote_identity_ready():
 		_schedule_identity_retry()
-		return
+		outcome["error_message"] = "A player ID is still required before cloud restore can run."
+		return outcome
+	outcome["ok"] = true
 
 	var profile_body := OnlineLeaderboardScript.make_get_player_profile_body()
 	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(Time.get_date_string_from_system(true))
@@ -114,6 +126,7 @@ func _pull_remote_state() -> void:
 		if _is_success_response(profile_response):
 			var remote_profile := OnlineLeaderboardScript.parse_profile_sync_result(profile_response.body)
 			var player_profile := get_node_or_null("/root/PlayerProfile")
+			outcome["profile_restored"] = not remote_profile.is_empty()
 			if player_profile != null and player_profile.has_method("merge_remote_profile"):
 				player_profile.merge_remote_profile(remote_profile)
 		else:
@@ -124,10 +137,12 @@ func _pull_remote_state() -> void:
 		if _is_success_response(mission_response):
 			var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
 			var mission_manager := get_node_or_null("/root/MissionManager")
+			outcome["mission_restored"] = not remote_progress.is_empty()
 			if mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
 				mission_manager.merge_remote_daily_progress(remote_progress)
 		else:
 			_get_daily_available = not _should_disable_rpc(mission_response, "get_daily_mission_progress")
+	return outcome
 
 func _flush_async() -> void:
 	if _is_flushing or not OnlineLeaderboardScript.is_configured():
@@ -160,11 +175,11 @@ func _ensure_remote_identity_ready() -> bool:
 		var new_player_id := str(migration.get("new_player_id", "")).strip_edges()
 		var old_device_id := str(migration.get("old_device_id", "")).strip_edges()
 		var new_device_id := str(migration.get("new_device_id", "")).strip_edges()
-		if new_player_id.is_empty() or new_device_id.is_empty():
+		if new_player_id.is_empty():
 			return false
 		if old_player_id.is_empty() and old_device_id.is_empty():
 			OnlineLeaderboardScript.finalize_remote_identity_migration()
-			return OnlineLeaderboardScript.is_remote_identity_ready()
+			return OnlineLeaderboardScript.is_remote_profile_identity_ready()
 		var response := await _request_json(
 			_pull_request,
 			OnlineLeaderboardScript.get_migrate_player_identity_url(),
@@ -173,7 +188,7 @@ func _ensure_remote_identity_ready() -> bool:
 		)
 		if _is_success_response(response):
 			OnlineLeaderboardScript.finalize_remote_identity_migration()
-			return OnlineLeaderboardScript.is_remote_identity_ready()
+			return OnlineLeaderboardScript.is_remote_profile_identity_ready()
 		if _should_disable_rpc(response, "migrate_player_identity"):
 			_migrate_identity_available = false
 		_report_identity_issue("identity_migration", "Remote identity migration did not complete.", {
@@ -185,7 +200,7 @@ func _ensure_remote_identity_ready() -> bool:
 			"result": int(response.get("result", HTTPRequest.RESULT_CANT_CONNECT)),
 		})
 		return false
-	if not OnlineLeaderboardScript.is_remote_identity_ready():
+	if not OnlineLeaderboardScript.is_remote_profile_identity_ready():
 		return false
 	OnlineLeaderboardScript.finalize_remote_identity_migration()
 	return true
