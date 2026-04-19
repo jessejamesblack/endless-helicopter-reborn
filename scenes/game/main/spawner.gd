@@ -22,11 +22,11 @@ const SAFE_OPENING_SECONDS := 12.0
 const FIRST_TURRET_SECONDS := 60.0
 const FIRST_GLOWING_SECONDS := 30.0
 const MIN_GLOWING_INTERVAL_SECONDS := 35.0
-const MAX_AMMO_DROUGHT_SECONDS := 24.0
+const MAX_AMMO_DROUGHT_SECONDS := 28.0
 const MAX_ACTIVE_HOSTILES_OPENING := 1
 const MAX_ACTIVE_HOSTILES_WARMUP := 2
-const MAX_ACTIVE_HOSTILES_COMBAT_INTRO := 2
-const MAX_ACTIVE_HOSTILES_PRESSURE := 4
+const MAX_ACTIVE_HOSTILES_COMBAT_INTRO := 3
+const MAX_ACTIVE_HOSTILES_PRESSURE := 5
 const MAX_ACTIVE_PROJECTILES := 5
 const TURRET_BOTTOM_INSET := 34.0
 
@@ -104,7 +104,7 @@ func _reset_director() -> void:
 	_encounter_elapsed = 0.0
 	_encounter_cooldowns.clear()
 	_last_breather_elapsed = 0.0
-	_next_breather_after = 28.0
+	_next_breather_after = 24.0
 	_last_ammo_elapsed = -999.0
 	_last_glowing_elapsed = -999.0
 	_encounters_started = 0
@@ -196,7 +196,7 @@ func _start_next_encounter() -> void:
 	if _has_tag(_current_encounter, "breather"):
 		_breathers_seen += 1
 		_last_breather_elapsed = _elapsed
-		_next_breather_after = _rng.randf_range(25.0, 35.0)
+		_next_breather_after = _rng.randf_range(22.0, 30.0)
 		var run_stats := _get_run_stats()
 		if run_stats != null and run_stats.has_method("record_breather_seen"):
 			run_stats.record_breather_seen()
