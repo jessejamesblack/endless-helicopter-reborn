@@ -64,8 +64,12 @@ func _ready() -> void:
     skill_score = 0
 
     var music_player = get_node_or_null("/root/MusicPlayer")
-    if music_player != null and music_player.has_method("play_gameplay_music"):
-        music_player.play_gameplay_music()
+    var background_manager = get_node_or_null("Background")
+    if music_player != null:
+        if background_manager != null and background_manager.has_method("get_current_biome_id") and music_player.has_method("play_biome_music"):
+            music_player.play_biome_music(background_manager.get_current_biome_id())
+        elif music_player.has_method("play_gameplay_music"):
+            music_player.play_gameplay_music()
 
     pause_button.process_mode = Node.PROCESS_MODE_ALWAYS
     pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -330,6 +334,7 @@ func game_over() -> void:
         _play_haptic("unlock")
     if bool(summary.get("is_new_best", false)):
         _play_haptic("new_best")
+    _queue_achievement_screenshots(summary, unlock_entries)
     _queue_post_run_sync(summary)
     var error := get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
     if error != OK:
@@ -604,3 +609,56 @@ func _queue_post_run_sync(summary: Dictionary) -> void:
 
     if sync_queue.has_method("flush"):
         sync_queue.flush()
+
+func _queue_achievement_screenshots(summary: Dictionary, unlock_entries: Array[Dictionary]) -> void:
+    var screenshot_manager = get_node_or_null("/root/AchievementScreenshotManager")
+    if screenshot_manager == null or not screenshot_manager.has_method("queue_event"):
+        return
+
+    if bool(summary.get("is_new_best", false)):
+        screenshot_manager.queue_event(
+            "new_best_%d" % int(summary.get("score", 0)),
+            "New Personal Best",
+            "Reached %d points in a fresh run." % int(summary.get("score", 0)),
+            {
+                "score": int(summary.get("score", 0)),
+                "time_survived": float(summary.get("time_survived_seconds", 0.0)),
+            },
+            false
+        )
+
+    for unlock_entry in unlock_entries:
+        var unlock_type := str(unlock_entry.get("unlock_type", ""))
+        var vehicle_id := str(unlock_entry.get("vehicle_id", ""))
+        var skin_id := str(unlock_entry.get("skin_id", ""))
+        var title := str(unlock_entry.get("title", "")).strip_edges()
+
+        if unlock_type == "vehicle":
+            var vehicle_title := title if not title.is_empty() else vehicle_id.capitalize()
+            screenshot_manager.queue_event(
+                "unlock_vehicle_%s" % vehicle_id,
+                "%s unlocked" % vehicle_title,
+                "A new helicopter joined the hangar.",
+                {"vehicle_id": vehicle_id},
+                true
+            )
+            continue
+
+        if unlock_type == "vehicle_skin" and skin_id == "gold":
+            screenshot_manager.queue_event(
+                "unlock_gold_%s" % vehicle_id,
+                "Gold unlocked",
+                "Gold mastery is now available for %s." % (title if not title.is_empty() else vehicle_id),
+                {"vehicle_id": vehicle_id, "skin_id": skin_id},
+                true
+            )
+            continue
+
+        if unlock_type == "global_skin_set" and skin_id == "original_icon":
+            screenshot_manager.queue_event(
+                "unlock_original_icon",
+                "Original Icon unlocked",
+                "The classic look is now available on supported vehicles.",
+                {"skin_id": skin_id},
+                true
+            )

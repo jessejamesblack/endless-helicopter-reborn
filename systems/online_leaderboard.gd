@@ -2,6 +2,7 @@ class_name OnlineLeaderboard
 extends RefCounted
 
 const AndroidIdentityScript = preload("res://systems/android_identity.gd")
+const BuildInfoScript = preload("res://systems/build_info.gd")
 
 # Fill these in after creating your Supabase project.
 const SUPABASE_URL := "https://lxvniafwjlwatbiblwyi.supabase.co"
@@ -118,6 +119,9 @@ static func get_push_device_update_by_token_url(fcm_token: String) -> String:
 		PUSH_DEVICE_TABLE_NAME,
 		fcm_token.uri_encode(),
 	]
+
+static func get_edge_function_url(function_name: String) -> String:
+	return "%s/functions/v1/%s" % [SUPABASE_URL, function_name.uri_encode()]
 
 static func parse_entries(body: PackedByteArray) -> Array[Dictionary]:
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
@@ -250,8 +254,11 @@ static func make_mark_notifications_read_body() -> String:
 		"read_at": Time.get_datetime_string_from_system(true),
 	})
 
-static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "", daily_missions_enabled: bool = true) -> String:
+static func make_push_device_body(fcm_token: String, device_id: String, notifications_enabled: bool, device_label: String = "", daily_missions_enabled: bool = true, app_metadata: Dictionary = {}) -> String:
 	var timestamp := Time.get_datetime_string_from_system(true)
+	var resolved_metadata := BuildInfoScript.get_summary()
+	for key in app_metadata.keys():
+		resolved_metadata[str(key)] = app_metadata[key]
 	return JSON.stringify({
 		"family_id": FAMILY_ID,
 		"player_id": load_or_create_player_id(),
@@ -262,6 +269,10 @@ static func make_push_device_body(fcm_token: String, device_id: String, notifica
 		"notifications_enabled": notifications_enabled,
 		"daily_missions_enabled": daily_missions_enabled,
 		"last_seen_at": timestamp,
+		"app_version_code": int(resolved_metadata.get("version_code", BuildInfoScript.VERSION_CODE)),
+		"app_version_name": str(resolved_metadata.get("version_name", BuildInfoScript.VERSION_NAME)),
+		"build_sha": str(resolved_metadata.get("build_sha", BuildInfoScript.BUILD_SHA)),
+		"release_channel": str(resolved_metadata.get("release_channel", BuildInfoScript.RELEASE_CHANNEL)),
 	})
 
 static func make_sync_player_profile_body(profile_summary: Dictionary) -> String:

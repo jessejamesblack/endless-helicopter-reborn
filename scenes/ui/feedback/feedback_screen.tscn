@@ -1,0 +1,124 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/feedback/feedback_screen.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_feedback_panel"]
+bg_color = Color(0.0352941, 0.054902, 0.117647, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.380392, 0.639216, 0.87451, 0.95)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 10
+
+[node name="FeedbackScreen" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_script")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0117647, 0.0196078, 0.0470588, 0.72)
+
+[node name="Panel" type="Panel" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -220.0
+offset_right = 300.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_feedback_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="Overlay/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 22
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Overlay/Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Send Feedback"
+horizontal_alignment = 1
+
+[node name="CategoryRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CategoryLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/CategoryRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Category"
+
+[node name="CategoryOption" type="OptionButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/CategoryRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MessageEdit" type="TextEdit" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+placeholder_text = "Describe what happened, what felt off, or what you want changed."
+
+[node name="SummaryLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 2
+
+[node name="StatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+
+[node name="ButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="SendButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(130, 44)
+layout_mode = 2
+text = "Send"
+
+[node name="CopyButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+text = "Copy Bug Report"
+
+[node name="CloseButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "Close"

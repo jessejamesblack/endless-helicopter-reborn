@@ -463,6 +463,7 @@ func update_daily_streak(completed_date_key: String) -> void:
 	var normalized_date := completed_date_key.strip_edges()
 	if normalized_date.is_empty() or _last_completed_daily_date == normalized_date:
 		return
+	var previous_streak := _daily_streak
 	if _last_completed_daily_date.is_empty():
 		_daily_streak = 1
 	else:
@@ -472,6 +473,20 @@ func update_daily_streak(completed_date_key: String) -> void:
 		_daily_streak = _daily_streak + 1 if day_difference == 1 else 1
 	_last_completed_daily_date = normalized_date
 	_persist_and_signal(true)
+	if _daily_streak != previous_streak and (_daily_streak == 7 or _daily_streak == 14 or _daily_streak == 30):
+		_queue_streak_achievement_screenshot()
+
+func _queue_streak_achievement_screenshot() -> void:
+	var screenshot_manager = get_node_or_null("/root/AchievementScreenshotManager")
+	if screenshot_manager == null or not screenshot_manager.has_method("queue_event"):
+		return
+	screenshot_manager.queue_event(
+		"daily_streak_%d" % _daily_streak,
+		"Daily streak milestone",
+		"Reached a %d-day daily mission streak." % _daily_streak,
+		{"daily_streak": _daily_streak},
+		true
+	)
 
 func are_daily_reminders_enabled() -> bool:
 	return _daily_reminders_enabled

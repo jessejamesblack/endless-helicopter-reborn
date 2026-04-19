@@ -5,6 +5,7 @@ signal push_notification_opened(payload: Dictionary)
 signal diagnostics_changed(status: Dictionary)
 
 const AndroidIdentityScript = preload("res://systems/android_identity.gd")
+const BuildInfoScript = preload("res://systems/build_info.gd")
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const PLUGIN_SINGLETON := "FCMPushBridge"
 const ANDROID_RUNTIME_SINGLETON := "AndroidRuntime"
@@ -24,6 +25,7 @@ var _java_class_wrapper: Object = null
 var _compat_bridge = null
 var _pending_open_leaderboard: bool = false
 var _pending_open_missions: bool = false
+var _pending_open_update: bool = false
 var _pending_notification_payload: Dictionary = {}
 var _is_registering_device: bool = false
 var _pending_registration_token: String = ""
@@ -183,6 +185,9 @@ func get_diagnostics() -> Dictionary:
 		"last_message": _last_registration_message,
 		"last_attempt_at": _last_registration_attempt_at,
 		"last_registered_at": _last_registered_at,
+		"release_channel": _get_effective_release_channel(),
+		"app_version_code": BuildInfoScript.VERSION_CODE,
+		"app_version_name": BuildInfoScript.VERSION_NAME,
 	}
 
 func get_diagnostics_text() -> String:
@@ -252,6 +257,11 @@ func consume_open_missions_request() -> bool:
 	_pending_open_missions = false
 	return should_open
 
+func consume_open_update_request() -> bool:
+	var should_open := _pending_open_update
+	_pending_open_update = false
+	return should_open
+
 func _consume_launch_payload() -> void:
 	var payload_json := ""
 	if _compat_bridge != null:
@@ -295,7 +305,8 @@ func _register_device_token(token: String) -> void:
 		_load_or_create_device_id(),
 		notifications_enabled,
 		"Android",
-		_get_daily_reminders_enabled()
+		_get_daily_reminders_enabled(),
+		_build_app_metadata()
 	)
 	_is_registering_device = true
 	_pending_registration_token = token
@@ -310,6 +321,7 @@ func _register_device_token(token: String) -> void:
 		_is_registering_device = false
 		_pending_registration_token = ""
 		_last_registration_message = "Could not start Supabase registration request: %d" % error
+		_report_registration_issue("push_registration", _last_registration_message, {"phase": "request_start"})
 		_emit_diagnostics()
 
 func _on_plugin_push_token_received(token: String) -> void:
@@ -335,6 +347,12 @@ func _handle_notification_payload(payload_json: String) -> void:
 		"daily_missions":
 			_pending_open_missions = true
 			_route_to_missions_if_possible()
+		"app_update":
+			_pending_open_update = true
+			var update_manager = get_node_or_null("/root/AppUpdateManager")
+			if update_manager != null and update_manager.has_method("request_open_prompt"):
+				update_manager.request_open_prompt()
+			_route_to_update_if_possible()
 
 func _route_to_leaderboard_if_possible() -> void:
 	if not _pending_open_leaderboard:
@@ -371,6 +389,15 @@ func _route_to_missions_if_possible() -> void:
 	_pending_open_missions = false
 	tree.change_scene_to_file(MISSION_SCENE_PATH)
 
+func _route_to_update_if_possible() -> void:
+	if not _pending_open_update:
+		return
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return
+	if tree.current_scene.scene_file_path != START_SCENE_PATH:
+		tree.change_scene_to_file(START_SCENE_PATH)
+
 func _load_or_create_device_id() -> String:
 	return AndroidIdentityScript.load_or_create_device_id()
 
@@ -391,6 +418,7 @@ func _on_register_request_completed(result: int, response_code: int, _headers: P
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		_last_registration_message = "Supabase device registration failed."
 		push_warning("Push device registration failed with response code %d" % response_code)
+		_report_registration_issue("push_registration", _last_registration_message, {"response_code": response_code, "result": result})
 		_schedule_registration_retries(2)
 	else:
 		_last_registered_at = Time.get_datetime_string_from_system(false, true)
@@ -418,7 +446,8 @@ func _retry_register_device_by_token(token: String) -> void:
 		_load_or_create_device_id(),
 		notifications_enabled,
 		"Android",
-		_get_daily_reminders_enabled()
+		_get_daily_reminders_enabled(),
+		_build_app_metadata()
 	)
 	var error := _http_request.request(
 		OnlineLeaderboardScript.get_push_device_update_by_token_url(token),
@@ -431,6 +460,7 @@ func _retry_register_device_by_token(token: String) -> void:
 		_pending_registration_token = ""
 		_registration_retry_by_token = false
 		_last_registration_message = "Could not start token recovery request: %d" % error
+		_report_registration_issue("push_registration", _last_registration_message, {"phase": "token_recovery"})
 		_schedule_registration_retries(2)
 		_emit_diagnostics()
 
@@ -609,3 +639,24 @@ func _get_daily_reminders_enabled() -> bool:
 	if player_profile != null and player_profile.has_method("are_daily_reminders_enabled"):
 		return bool(player_profile.are_daily_reminders_enabled())
 	return true
+
+func _build_app_metadata() -> Dictionary:
+	return {
+		"version_code": BuildInfoScript.VERSION_CODE,
+		"version_name": BuildInfoScript.VERSION_NAME,
+		"build_sha": BuildInfoScript.BUILD_SHA,
+		"release_channel": _get_effective_release_channel(),
+	}
+
+func _get_effective_release_channel() -> String:
+	var game_settings = get_node_or_null("/root/GameSettings")
+	if OS.is_debug_build() and game_settings != null and game_settings.has_method("get_debug_release_channel_override"):
+		var override := str(game_settings.get_debug_release_channel_override()).strip_edges()
+		if not override.is_empty():
+			return override
+	return str(BuildInfoScript.RELEASE_CHANNEL)
+
+func _report_registration_issue(category: String, message: String, context: Dictionary = {}) -> void:
+	var reporter = get_node_or_null("/root/ErrorReporter")
+	if reporter != null and reporter.has_method("report_warning"):
+		reporter.report_warning(category, message, context)

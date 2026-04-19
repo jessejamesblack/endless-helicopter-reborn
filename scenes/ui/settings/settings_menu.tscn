@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/settings/settings_menu.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/feedback/feedback_screen.tscn" id="2_feedback"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_settings_panel"]
 bg_color = Color(0.0352941, 0.054902, 0.117647, 0.94)
@@ -130,7 +131,7 @@ horizontal_alignment = 1
 [node name="SubtitleLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 17
-text = "Adjust music, sound, control layout, and mobile feedback."
+text = "Adjust music, sound, support, update visibility, and family feedback."
 horizontal_alignment = 1
 
 [node name="ContentColumns" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
@@ -254,7 +255,7 @@ theme_override_constants/separation = 14
 layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 22
-text = "Controls & Push"
+text = "System & Support"
 
 [node name="FireSideRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
 layout_mode = 2
@@ -362,6 +363,83 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Notifications: On"
 
+[node name="ScreenshotToggle" type="CheckButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 18
+text = "Share achievement screenshots to Discord"
+button_pressed = true
+
+[node name="BuildInfoSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BuildInfoHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/BuildInfoSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Build Info"
+
+[node name="UpdateStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/BuildInfoSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Update Status: Checking..."
+
+[node name="BuildInfoLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/BuildInfoSection"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Version: 1.6.0 (154)\nBuild: dev\nChannel: dev"
+autowrap_mode = 2
+
+[node name="DebugReleaseChannelRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DebugReleaseChannelLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/DebugReleaseChannelRow"]
+custom_minimum_size = Vector2(156, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 18
+text = "Debug Channel"
+
+[node name="DebugReleaseChannelOption" type="OptionButton" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/DebugReleaseChannelRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FeedbackSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FeedbackSectionHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FeedbackSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Family Feedback"
+
+[node name="FeedbackButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FeedbackSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SendFeedbackButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FeedbackSection/FeedbackButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Send Feedback"
+
+[node name="CopyBugReportButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FeedbackSection/FeedbackButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Copy Bug Report"
+
 [node name="ButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 alignment = 1
@@ -380,3 +458,5 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Close"
+
+[node name="FeedbackScreen" parent="." instance=ExtResource("2_feedback")]

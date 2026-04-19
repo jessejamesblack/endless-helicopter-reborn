@@ -20,12 +20,15 @@ config/icon="res://assets/icons/icon.svg"
 GameSettings="*res://systems/game_settings.gd"
 HapticsManager="*res://systems/haptics_manager.gd"
 MusicPlayer="*res://systems/music_player.gd"
+AppUpdateManager="*res://systems/app_update_manager.gd"
 PushNotifications="*res://systems/push_notifications.gd"
+ErrorReporter="*res://systems/error_reporter.gd"
 RunStats="*res://systems/run_stats.gd"
 PlayerProfile="*res://systems/player_profile.gd"
 HelicopterSkins="*res://systems/helicopter_skins.gd"
 MissionManager="*res://systems/mission_manager.gd"
 SupabaseSyncQueue="*res://systems/supabase_sync_queue.gd"
+AchievementScreenshotManager="*res://systems/achievement_screenshot_manager.gd"
 
 [display]
 

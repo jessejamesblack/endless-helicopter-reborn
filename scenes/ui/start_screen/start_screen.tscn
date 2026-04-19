@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_menu.tscn" id="3_settings"]
 [ext_resource type="Texture2D" uid="uid://8e0asy8kv0hk" path="res://assets/art/sprites/pixel_art_sheet.svg" id="4_sheet"]
 [ext_resource type="PackedScene" path="res://scenes/ui/debug/debug_menu.tscn" id="5_debug"]
+[ext_resource type="PackedScene" path="res://scenes/ui/update/update_prompt.tscn" id="6_update"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_alien_drone_menu"]
 atlas = ExtResource("4_sheet")
@@ -217,4 +218,7 @@ text = "Play Game"
 layout_mode = 1
 
 [node name="DebugMenu" parent="." unique_id=1620292755 instance=ExtResource("5_debug")]
+layout_mode = 1
+
+[node name="UpdatePrompt" parent="." instance=ExtResource("6_update")]
 layout_mode = 1
