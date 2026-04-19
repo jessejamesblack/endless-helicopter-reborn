@@ -292,12 +292,12 @@ jobs:
             exit 0
           fi
           RELEASE_SUMMARY=$(python - <<'PY'
-import json, os, pathlib
-path = pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"])
-text = path.read_text(encoding="utf-8").strip().replace("\n", " ")
-print(json.dumps(text[:280]))
-PY
-)
+          import json, os, pathlib
+          path = pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"])
+          text = path.read_text(encoding="utf-8").strip().replace("\n", " ")
+          print(json.dumps(text[:280]))
+          PY
+          )
           curl -fsS "${SUPABASE_URL}/functions/v1/publish-app-release-info" \
             -H "Content-Type: application/json" \
             -H "x-release-webhook-secret: ${RELEASE_WEBHOOK_SECRET}" \
@@ -320,7 +320,7 @@ PY
               "apk_size_bytes": ${APK_SIZE_BYTES}
             }
           }
-JSON
+          JSON
 
       - name: Send app update push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -339,12 +339,12 @@ JSON
             exit 0
           fi
           RELEASE_SUMMARY=$(python - <<'PY'
-import json, os, pathlib
-path = pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"])
-text = path.read_text(encoding="utf-8").strip().replace("\n", " ")
-print(json.dumps(text[:280]))
-PY
-)
+          import json, os, pathlib
+          path = pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"])
+          text = path.read_text(encoding="utf-8").strip().replace("\n", " ")
+          print(json.dumps(text[:280]))
+          PY
+          )
           curl -fsS "${SUPABASE_URL}/functions/v1/send-app-update-push" \
             -H "Content-Type: application/json" \
             -H "x-release-webhook-secret: ${RELEASE_WEBHOOK_SECRET}" \
@@ -359,7 +359,7 @@ PY
             "release_summary": ${RELEASE_SUMMARY},
             "channel": "${RELEASE_CHANNEL}"
           }
-JSON
+          JSON
 
       - name: Post Discord release message
         if: github.event_name != 'pull_request'
@@ -374,29 +374,29 @@ JSON
           fi
           PAYLOAD_FILE="$RUNNER_TEMP/discord_release_payload.json"
           python - <<'PY' > "$PAYLOAD_FILE"
-import json, os, pathlib
-summary_lines = [line.strip() for line in pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"]).read_text(encoding="utf-8").splitlines() if line.strip()]
-summary_lines = summary_lines[:6]
-embed = {
-    "title": f"{os.environ['APP_NAME']} {os.environ['VERSION_NAME']} ({os.environ['VERSION_CODE']})",
-    "description": "\n".join(summary_lines) if summary_lines else "New Android build is ready.",
-    "color": 7196927,
-    "fields": [
-        {"name": "Release", "value": os.environ["RELEASE_URL"], "inline": False},
-        {"name": "SHA-256", "value": os.environ["APK_SHA256"], "inline": False},
-        {"name": "Channel", "value": os.environ["RELEASE_CHANNEL"], "inline": True},
-        {"name": "APK Size", "value": f"{os.environ['APK_SIZE_BYTES']} bytes", "inline": True},
-        {"name": "Build", "value": os.environ["BUILD_SHA_SHORT"], "inline": True},
-    ],
-    "footer": {"text": "APK attachment is best-effort. The release link always works."},
-}
-payload = {
-    "content": f"Android build ready. Release: {os.environ['RELEASE_URL']}",
-    "allowed_mentions": {"parse": []},
-    "embeds": [embed],
-}
-print(json.dumps(payload))
-PY
+          import json, os, pathlib
+          summary_lines = [line.strip() for line in pathlib.Path(os.environ["DISCORD_SUMMARY_FILE"]).read_text(encoding="utf-8").splitlines() if line.strip()]
+          summary_lines = summary_lines[:6]
+          embed = {
+              "title": f"{os.environ['APP_NAME']} {os.environ['VERSION_NAME']} ({os.environ['VERSION_CODE']})",
+              "description": "\n".join(summary_lines) if summary_lines else "New Android build is ready.",
+              "color": 7196927,
+              "fields": [
+                  {"name": "Release", "value": os.environ["RELEASE_URL"], "inline": False},
+                  {"name": "SHA-256", "value": os.environ["APK_SHA256"], "inline": False},
+                  {"name": "Channel", "value": os.environ["RELEASE_CHANNEL"], "inline": True},
+                  {"name": "APK Size", "value": f"{os.environ['APK_SIZE_BYTES']} bytes", "inline": True},
+                  {"name": "Build", "value": os.environ["BUILD_SHA_SHORT"], "inline": True},
+              ],
+              "footer": {"text": "APK attachment is best-effort. The release link always works."},
+          }
+          payload = {
+              "content": f"Android build ready. Release: {os.environ['RELEASE_URL']}",
+              "allowed_mentions": {"parse": []},
+              "embeds": [embed],
+          }
+          print(json.dumps(payload))
+          PY
 
           ATTACH_RESULT=1
           if [[ "${APK_SIZE_BYTES}" -le 8000000 ]]; then
