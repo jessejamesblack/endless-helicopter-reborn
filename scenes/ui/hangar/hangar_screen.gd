@@ -1,8 +1,8 @@
 extends Control
 
 const MISSION_SCREEN_SCENE_PATH := "res://scenes/ui/missions/mission_screen.tscn"
-const PREVIEW_CENTER := Vector2(146, 96)
-const PREVIEW_SCALE_MULTIPLIER := 1.6
+const PREVIEW_CENTER := Vector2(146, 92)
+const PREVIEW_SCALE_MULTIPLIER := 2.25
 
 var _selected_skin_id: String = "default_scout"
 
@@ -85,11 +85,9 @@ func _update_preview() -> void:
 	preview_sprite.rotation = 0.0
 	preview_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	helicopter_skins.apply_skin_to_sprite(preview_sprite, _selected_skin_id)
-	var data: Dictionary = helicopter_skins.get_skin_data(_selected_skin_id)
 	var base_scale := preview_sprite.scale
-	var offset: Vector2 = data.get("offset", Vector2.ZERO)
 	preview_sprite.scale = base_scale * PREVIEW_SCALE_MULTIPLIER
-	preview_sprite.position = PREVIEW_CENTER + offset * 4.0
+	preview_sprite.position = PREVIEW_CENTER
 
 func _update_selection_details() -> void:
 	var helicopter_skins: Node = _get_helicopter_skins()
