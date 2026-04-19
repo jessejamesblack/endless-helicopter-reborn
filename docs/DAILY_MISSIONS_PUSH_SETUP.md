@@ -47,14 +47,15 @@ Run:
 Before running it, replace:
 
 - `YOUR_PROJECT_REF`
-- `YOUR_PUSH_WEBHOOK_SECRET`
 
-The recommended cron schedule is:
+The recommended setup is an hourly cron job with an America/New_York gate inside the SQL helper.
 
-- `12:00 UTC` during Eastern Daylight Time
-- `13:00 UTC` during Eastern Standard Time
+That means:
 
-That keeps the family-facing reset locked to `8:00 AM America/New_York`.
+- the cron worker wakes up every hour
+- the SQL only calls the Edge Function during the `8:00 AM ET` hour
+- the mission date is computed with the same `America/New_York` business-day rule the client uses
+- you do not need to manually flip the schedule between EDT and EST
 
 The payload shape is:
 

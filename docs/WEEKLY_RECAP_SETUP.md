@@ -36,6 +36,8 @@ and include:
 
 - `x-release-webhook-secret: YOUR_RELEASE_WEBHOOK_SECRET`
 
+For the most reliable setup, prefer an hourly cron job with an `America/New_York` gate in SQL instead of a single fixed UTC schedule. That avoids manual DST updates between EDT and EST.
+
 ## Behavior
 
 - Posts the top score from the last 7 days.
