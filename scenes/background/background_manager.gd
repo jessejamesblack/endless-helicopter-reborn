@@ -3,14 +3,15 @@ class_name BackgroundManager
 
 const BackgroundCatalogScript = preload("res://systems/background_catalog.gd")
 
-const LAYER_FAR_SPEED := 0.005
-const LAYER_MID_SPEED := 0.010
-const LAYER_NEAR_SPEED := 0.018
-const LAYER_STAR_SPEED := 0.04
 const SKY_ZOOM := 1.0
 const FAR_LAYER_ZOOM := 1.08
 const MID_LAYER_ZOOM := 1.18
 const NEAR_LAYER_ZOOM := 1.32
+const DEFAULT_FAR_SPEED_FACTOR := 0.12
+const DEFAULT_MID_SPEED_FACTOR := 0.32
+const DEFAULT_NEAR_SPEED_FACTOR := 0.68
+const DEFAULT_STAR_SPEED_FACTOR := 0.18
+const DEFAULT_ACCENT_SPEED_FACTOR := 1.05
 
 @export var base_scroll_speed: float = 150.0
 @export var allow_long_run_transitions: bool = true
@@ -20,12 +21,14 @@ var _rng := RandomNumberGenerator.new()
 var _elapsed: float = 0.0
 var _next_transition_elapsed: float = 9999.0
 var _current_biome_id: String = ""
+var _current_biome: Dictionary = {}
 var _biome_rotation: Array[String] = []
 var _current_biome_index: int = 0
 var _transition_in_progress: bool = false
 
 var _sky_sprite: Sprite2D
 var _star_layer: Node2D
+var _accent_layer: Node2D
 var _far_layer: Node2D
 var _mid_layer: Node2D
 var _near_layer: Node2D
@@ -45,10 +48,12 @@ func _process(delta: float) -> void:
 		return
 
 	_elapsed += delta
-	_scroll_repeating_layer(_star_layer, base_scroll_speed * LAYER_STAR_SPEED * delta)
-	_pan_static_layer(_far_layer, base_scroll_speed * LAYER_FAR_SPEED * delta)
-	_pan_static_layer(_mid_layer, base_scroll_speed * LAYER_MID_SPEED * delta)
-	_pan_static_layer(_near_layer, base_scroll_speed * LAYER_NEAR_SPEED * delta)
+	var intensity_scale := _get_intensity_scale(main)
+	_scroll_repeating_layer(_star_layer, base_scroll_speed * _get_speed_factor("star_speed_factor", DEFAULT_STAR_SPEED_FACTOR) * delta)
+	_scroll_repeating_layer(_accent_layer, base_scroll_speed * _get_speed_factor("accent_speed_factor", DEFAULT_ACCENT_SPEED_FACTOR) * delta * intensity_scale)
+	_pan_dynamic_layer(_far_layer, base_scroll_speed * _get_speed_factor("far_speed_factor", DEFAULT_FAR_SPEED_FACTOR) * delta)
+	_pan_dynamic_layer(_mid_layer, base_scroll_speed * _get_speed_factor("mid_speed_factor", DEFAULT_MID_SPEED_FACTOR) * delta * intensity_scale)
+	_pan_dynamic_layer(_near_layer, base_scroll_speed * _get_speed_factor("near_speed_factor", DEFAULT_NEAR_SPEED_FACTOR) * delta * intensity_scale)
 
 	if allow_long_run_transitions and not _transition_in_progress and _elapsed >= _next_transition_elapsed and _biome_rotation.size() > 1:
 		_transition_to_next_biome()
@@ -64,6 +69,9 @@ func _create_runtime_nodes() -> void:
 
 	_star_layer = Node2D.new()
 	add_child(_star_layer)
+
+	_accent_layer = Node2D.new()
+	add_child(_accent_layer)
 
 	_far_layer = Node2D.new()
 	add_child(_far_layer)
@@ -92,11 +100,16 @@ func _build_biome_rotation() -> void:
 func _apply_biome(biome_id: String, reset_timer: bool = false) -> void:
 	var biome := BackgroundCatalogScript.get_biome_data(biome_id)
 	_current_biome_id = str(biome.get("id", biome_id))
+	_current_biome = biome.duplicate(true)
 	_rebuild_sky(biome)
 	_rebuild_star_layer(biome)
+	_rebuild_accent_layer(biome)
 	_rebuild_textured_layer(_far_layer, biome, "far")
 	_rebuild_textured_layer(_mid_layer, biome, "mid")
 	_rebuild_textured_layer(_near_layer, biome, "near")
+	var music_player = get_node_or_null("/root/MusicPlayer")
+	if music_player != null and music_player.has_method("play_biome_music"):
+		music_player.play_biome_music(_current_biome_id)
 	if reset_timer:
 		_elapsed = 0.0
 	_next_transition_elapsed = _elapsed + transition_interval_seconds + _rng.randf_range(8.0, 18.0)
@@ -129,6 +142,18 @@ func _rebuild_star_layer(biome: Dictionary) -> void:
 		_populate_star_chunk(chunk, biome, chunk_index, chunk_width)
 		_star_layer.add_child(chunk)
 
+func _rebuild_accent_layer(biome: Dictionary) -> void:
+	_clear_children(_accent_layer)
+	_accent_layer.position = Vector2.ZERO
+	var viewport_size := _get_viewport_size()
+	var chunk_width := viewport_size.x
+	_accent_layer.set_meta("chunk_width", chunk_width)
+	for chunk_index in range(_get_required_chunk_count(chunk_width)):
+		var chunk := Node2D.new()
+		chunk.position.x = float(chunk_index) * chunk_width
+		_populate_accent_chunk(chunk, biome, chunk_index, chunk_width)
+		_accent_layer.add_child(chunk)
+
 func _populate_star_chunk(chunk: Node2D, biome: Dictionary, chunk_index: int, chunk_width: float) -> void:
 	var viewport_size := _get_viewport_size()
 	var star_count := int(biome.get("star_count", 12))
@@ -149,6 +174,28 @@ func _populate_star_chunk(chunk: Node2D, biome: Dictionary, chunk_index: int, ch
 		var alpha_scale := star_rng.randf_range(0.35, 1.0)
 		star.color = Color(star_color.r, star_color.g, star_color.b, star_color.a * alpha_scale)
 		chunk.add_child(star)
+
+func _populate_accent_chunk(chunk: Node2D, biome: Dictionary, chunk_index: int, chunk_width: float) -> void:
+	var accent_count := int(biome.get("accent_count", 0))
+	if accent_count <= 0:
+		return
+	var viewport_size := _get_viewport_size()
+	var accent_color: Color = biome.get("accent_color", Color(1.0, 1.0, 1.0, 0.12))
+	var accent_rng := RandomNumberGenerator.new()
+	accent_rng.seed = _rng.seed + chunk_index * 719 + int(viewport_size.x)
+	for accent_index in range(accent_count):
+		var accent := Polygon2D.new()
+		var width := accent_rng.randf_range(10.0, 26.0)
+		var height := accent_rng.randf_range(3.0, 8.0)
+		accent.polygon = PackedVector2Array([
+			Vector2(0.0, 0.0),
+			Vector2(width, 0.0),
+			Vector2(width, height),
+			Vector2(0.0, height),
+		])
+		accent.color = Color(accent_color.r, accent_color.g, accent_color.b, accent_color.a * accent_rng.randf_range(0.45, 1.0))
+		accent.position = Vector2(accent_rng.randf_range(0.0, chunk_width), accent_rng.randf_range(viewport_size.y * 0.2, viewport_size.y * 0.82))
+		chunk.add_child(accent)
 
 func _rebuild_textured_layer(layer: Node2D, biome: Dictionary, layer_kind: String) -> void:
 	_clear_children(layer)
@@ -180,6 +227,7 @@ func _rebuild_textured_layer(layer: Node2D, biome: Dictionary, layer_kind: Strin
 	layer.set_meta("max_offset", extra_width)
 	layer.set_meta("base_x", base_x)
 	layer.set_meta("current_offset", 0.0)
+	layer.set_meta("direction", 1.0)
 
 func _load_texture(path: String) -> Texture2D:
 	if path.is_empty() or not ResourceLoader.exists(path):
@@ -196,15 +244,23 @@ func _scroll_repeating_layer(layer: Node2D, delta_x: float) -> void:
 	while layer.position.x <= -chunk_width:
 		layer.position.x += chunk_width
 
-func _pan_static_layer(layer: Node2D, delta_x: float) -> void:
+func _pan_dynamic_layer(layer: Node2D, delta_x: float) -> void:
 	if layer == null or layer.get_child_count() == 0:
 		return
 	var max_offset := float(layer.get_meta("max_offset", 0.0))
 	if max_offset <= 0.0:
 		return
 	var current_offset := float(layer.get_meta("current_offset", 0.0))
-	current_offset = minf(current_offset + delta_x, max_offset)
+	var direction := float(layer.get_meta("direction", 1.0))
+	current_offset += delta_x * direction
+	if current_offset >= max_offset:
+		current_offset = max_offset
+		direction = -1.0
+	elif current_offset <= 0.0:
+		current_offset = 0.0
+		direction = 1.0
 	layer.set_meta("current_offset", current_offset)
+	layer.set_meta("direction", direction)
 	var base_x := float(layer.get_meta("base_x", 0.0))
 	var sprite := layer.get_child(0) as Sprite2D
 	if sprite != null:
@@ -226,6 +282,14 @@ func _get_layer_zoom(layer_kind: String) -> float:
 			return NEAR_LAYER_ZOOM
 		_:
 			return 1.0
+
+func _get_speed_factor(key: String, fallback: float) -> float:
+	return float(_current_biome.get(key, fallback))
+
+func _get_intensity_scale(main: Node) -> float:
+	if main == null or not ("speed_multiplier" in main):
+		return 1.0
+	return 1.0 + clampf(float(main.speed_multiplier) - 1.0, 0.0, 1.2) * 0.22
 
 func _transition_to_next_biome() -> void:
 	if _transition_in_progress:

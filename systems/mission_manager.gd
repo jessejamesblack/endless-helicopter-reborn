@@ -2,6 +2,7 @@ extends Node
 
 signal missions_changed(summary: Dictionary)
 
+const EasternTimeScript = preload("res://systems/eastern_time.gd")
 const SAVE_PATH := "user://daily_missions.cfg"
 const SAVE_SECTION := "daily_missions"
 
@@ -34,7 +35,7 @@ func _ready() -> void:
 	refresh_daily_missions()
 
 func get_today_key() -> String:
-	return Time.get_date_string_from_system(true)
+	return EasternTimeScript.get_current_business_day_key()
 
 func refresh_daily_missions() -> void:
 	if validation_mode_enabled:
@@ -230,14 +231,10 @@ func merge_recent_run_details(extra: Dictionary) -> void:
 		_recent_run_result[str(key)] = extra[key]
 
 func get_time_until_next_reset_text() -> String:
-	var current_time := Time.get_time_dict_from_system(true)
-	var remaining_seconds := (23 - int(current_time.get("hour", 0))) * 3600
-	remaining_seconds += (59 - int(current_time.get("minute", 0))) * 60
-	remaining_seconds += 60 - int(current_time.get("second", 0))
-	remaining_seconds = maxi(remaining_seconds, 0)
-	var hours := int(remaining_seconds / 3600)
-	var minutes := int((remaining_seconds % 3600) / 60)
-	return "%02dh %02dm until new missions" % [hours, minutes]
+	return EasternTimeScript.get_time_until_next_reset_text()
+
+func get_reset_label() -> String:
+	return EasternTimeScript.get_reset_label()
 
 func apply_validation_state(date_key: String, missions: Array[Dictionary]) -> void:
 	validation_mode_enabled = true

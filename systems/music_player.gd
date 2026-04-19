@@ -1,5 +1,6 @@
 extends Node
 
+const BackgroundCatalogScript = preload("res://systems/background_catalog.gd")
 const MUSIC_BUS_NAME := "Music"
 const TARGET_VOLUME_DB := -7.0
 const SILENT_VOLUME_DB := -40.0
@@ -19,6 +20,13 @@ func play_menu_music() -> void:
 
 func play_gameplay_music() -> void:
 	_play_track("gameplay", GAMEPLAY_THEME_PATH)
+
+func play_biome_music(biome_id: String) -> void:
+	var biome := BackgroundCatalogScript.get_biome_data(biome_id)
+	var resource_path := str(biome.get("music_track", GAMEPLAY_THEME_PATH))
+	if resource_path.is_empty():
+		resource_path = GAMEPLAY_THEME_PATH
+	_play_track("biome:%s" % biome_id, resource_path)
 
 func stop_music() -> void:
 	if _fade_tween != null and _fade_tween.is_valid():
@@ -82,9 +90,9 @@ func _load_looping_stream(resource_path: String) -> AudioStream:
 
 	var wav_stream := stream as AudioStreamWAV
 	if wav_stream != null:
-		wav_stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		wav_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		wav_stream.loop_begin = 0
-		wav_stream.loop_end = -1
+		wav_stream.loop_end = 0
 
 	var mp3_stream := stream as AudioStreamMP3
 	if mp3_stream != null:

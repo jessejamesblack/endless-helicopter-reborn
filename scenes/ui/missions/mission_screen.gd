@@ -60,10 +60,10 @@ func _ready() -> void:
 
 func _refresh_view() -> void:
 	var summary: Dictionary = {}
+	var mission_manager: Node = _get_mission_manager()
 	if validation_mode_enabled and not _validation_summary.is_empty():
 		summary = _validation_summary.duplicate(true)
 	else:
-		var mission_manager: Node = _get_mission_manager()
 		if mission_manager == null:
 			return
 		if mission_manager.has_method("refresh_daily_missions"):
@@ -71,7 +71,7 @@ func _refresh_view() -> void:
 		summary = mission_manager.get_daily_progress_summary() if mission_manager.has_method("get_daily_progress_summary") else {}
 	progress_label.text = "%d / %d complete" % [int(summary.get("completed", 0)), int(summary.get("total", 3))]
 	subtitle_label.text = str(summary.get("time_until_reset", "New missions daily"))
-	reset_label.text = "New missions daily"
+	reset_label.text = mission_manager.get_reset_label() if mission_manager != null and mission_manager.has_method("get_reset_label") else "Resets daily at 8:00 AM ET"
 	streak_label.text = "Daily Streak: %d" % int(summary.get("daily_streak", 0))
 
 	var next_unlock: Dictionary = summary.get("next_unlock", {})
