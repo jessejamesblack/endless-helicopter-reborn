@@ -1,5 +1,4 @@
-- Score saves and cloud profile sync are back on the live backend path.
-- Fresh devices no longer get stuck forever checking cloud progress before entering a name.
-- The HUD once again shows clear SCORE and MISSILES labels with non-padded numbers.
-- Hangar and menu flows are faster now that NEW badges no longer require extra taps.
-- Stable 1.6.1 rolls up the recent Sprint 6 and Sprint 7 polish into a cleaner Android release.
+- Android installs now fall back to a persisted local player ID when the stable phone ID path is unavailable.
+- Fresh devices should stop getting stuck on “player ID isn’t ready yet” in Settings and score save setup.
+- The save-score screen now has matched Back To Menu and Submit Score buttons.
+- 1.6.2 keeps the recent score-save, restore, and UI-fix work from 1.6.1.

@@ -170,14 +170,27 @@ static func _build_identity_info(cache_path: String, source_path: String, stable
 			"needs_migration": false,
 			"should_persist": false,
 		}
+	if not cached_value.is_empty():
+		if existing_source.is_empty():
+			existing_source = _infer_cached_source(cached_value, stable_prefix)
+		return {
+			"value": cached_value,
+			"cached_value": cached_value,
+			"stable_value": "",
+			"source": existing_source,
+			"remote_ready": true,
+			"needs_migration": false,
+			"should_persist": _read_cached_value(source_path).is_empty(),
+		}
+	var fallback_value := _generate_random_id()
 	return {
-		"value": "",
-		"cached_value": cached_value,
+		"value": fallback_value,
+		"cached_value": "",
 		"stable_value": "",
-		"source": existing_source if not existing_source.is_empty() else IDENTITY_SOURCE_LOCAL_FALLBACK,
-		"remote_ready": false,
+		"source": IDENTITY_SOURCE_LOCAL_FALLBACK,
+		"remote_ready": true,
 		"needs_migration": false,
-		"should_persist": false,
+		"should_persist": true,
 	}
 
 static func _persist_resolved_identity_if_needed(info: Dictionary, cache_path: String, source_path: String) -> void:

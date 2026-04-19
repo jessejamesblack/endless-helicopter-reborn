@@ -72,6 +72,7 @@ var _scroll_origin: float = 0.0
 @onready var setup_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/SetupCard
 @onready var name_help_label: Label = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/NameHelpLabel
 @onready var name_entry: LineEdit = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/NameEntry
+@onready var setup_action_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow
 @onready var setup_back_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow/SetupBackButton
 @onready var save_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SaveButton
 @onready var alert_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/AlertCard
@@ -111,6 +112,7 @@ func _ready() -> void:
 	name_entry.text = OnlineLeaderboardScript.load_cached_name()
 	name_help_label.text = "Choose a public name once. This device will remember it."
 	alert_label.text = ""
+	_configure_setup_buttons()
 	_populate_results_summary()
 	_apply_screen_mode()
 	_configure_touch_scroll()
@@ -747,6 +749,20 @@ func _reset_touch_scroll_state() -> void:
 
 func _apply_panel_rect(rect: Rect2) -> void:
 	_apply_responsive_panel_rect(rect)
+
+func _configure_setup_buttons() -> void:
+	if setup_action_row == null or setup_back_button == null or save_button == null:
+		return
+	if save_button.get_parent() != setup_action_row:
+		save_button.reparent(setup_action_row)
+		setup_action_row.move_child(save_button, 1)
+	setup_action_row.add_theme_constant_override("separation", 10)
+	setup_back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	save_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	setup_back_button.custom_minimum_size = Vector2(0, 48)
+	save_button.custom_minimum_size = Vector2(0, 48)
+	setup_back_button.add_theme_font_size_override("font_size", 18)
+	save_button.add_theme_font_size_override("font_size", 18)
 
 func _get_empty_board_text() -> String:
 	if OnlineLeaderboardScript.FAMILY_ID == "global":
