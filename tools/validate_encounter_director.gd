@@ -2,6 +2,8 @@ extends SceneTree
 
 const ENCOUNTER_CATALOG := preload("res://scenes/game/main/encounter_catalog.gd")
 const MAIN_SCENE := preload("res://scenes/game/main/main.tscn")
+const ENEMY_UNIT_SCENE := preload("res://scenes/enemies/enemy_unit.tscn")
+const ENEMY_PROJECTILE_SCENE := preload("res://scenes/projectiles/enemy_projectile.tscn")
 
 const VALID_SPAWN_TYPES := ["obstacle", "enemy", "pickup"]
 const VALID_ENEMY_KINDS := ["large_spiky_rock", "alien_drone", "stationary_turret", "glowing_rock"]
@@ -15,6 +17,7 @@ func _run_validation() -> void:
 	_validate_catalog_shape()
 	_validate_phase_coverage()
 	await _validate_spawner_runtime()
+	await _validate_enemy_projectile_cap()
 	_validate_run_stats_methods()
 
 	if _failures.is_empty():
@@ -130,6 +133,39 @@ func _validate_run_stats_methods() -> void:
 	_assert(run_stats.has_method("record_encounter_completed"), "RunStats should expose record_encounter_completed().")
 	_assert(run_stats.has_method("record_breather_seen"), "RunStats should expose record_breather_seen().")
 	_assert(run_stats.has_method("record_forced_rescue_ammo_spawn"), "RunStats should expose record_forced_rescue_ammo_spawn().")
+
+func _validate_enemy_projectile_cap() -> void:
+	var root_node := Node.new()
+	get_root().add_child(root_node)
+
+	var enemy := ENEMY_UNIT_SCENE.instantiate()
+	root_node.add_child(enemy)
+	await process_frame
+	enemy.call("configure", "alien_drone")
+
+	var projectiles: Array[Node] = []
+	for _i in 5:
+		var projectile := ENEMY_PROJECTILE_SCENE.instantiate()
+		root_node.add_child(projectile)
+		projectiles.append(projectile)
+		await process_frame
+		projectile.call("configure", "player_missile")
+
+	_assert(
+		not bool(enemy.call("_can_fire_projectile", {"projectile_kind": "player_missile"})),
+		"Enemy projectile firing should stop when the global projectile cap is reached."
+	)
+
+	projectiles[0].queue_free()
+	await process_frame
+	await process_frame
+
+	_assert(
+		bool(enemy.call("_can_fire_projectile", {"projectile_kind": "player_missile"})),
+		"Enemy projectile firing should resume once the projectile count drops below the cap."
+	)
+
+	await _destroy_node(root_node)
 
 func _get_candidates_for_elapsed(spawner: Node, elapsed: float) -> Array:
 	spawner.set("_elapsed", elapsed)

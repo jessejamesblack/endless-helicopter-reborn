@@ -149,15 +149,28 @@ func _on_enable_push_pressed() -> void:
 	if player_profile == null or not player_profile.has_method("are_daily_reminders_enabled") or not player_profile.has_method("set_daily_reminders_enabled"):
 		return
 
-	var next_enabled := not bool(player_profile.are_daily_reminders_enabled())
-	player_profile.set_daily_reminders_enabled(next_enabled)
-
+	var reminders_enabled := bool(player_profile.are_daily_reminders_enabled())
 	var push_notifications = _get_push_notifications()
-	if push_notifications != null:
-		if next_enabled and push_notifications.has_method("enable_notifications"):
+	var diagnostics := _get_push_diagnostics()
+	var permission_granted := bool(diagnostics.get("permission_granted", false))
+	var can_request_permission := bool(diagnostics.get("is_android", false))
+
+	if not reminders_enabled:
+		player_profile.set_daily_reminders_enabled(true)
+		if push_notifications != null and push_notifications.has_method("enable_notifications"):
 			push_notifications.enable_notifications()
-		elif push_notifications.has_method("register_device_for_push"):
-			push_notifications.register_device_for_push()
+		_update_push_status()
+		return
+
+	if can_request_permission and not permission_granted:
+		if push_notifications != null and push_notifications.has_method("enable_notifications"):
+			push_notifications.enable_notifications()
+		_update_push_status()
+		return
+
+	player_profile.set_daily_reminders_enabled(false)
+	if push_notifications != null and push_notifications.has_method("register_device_for_push"):
+		push_notifications.register_device_for_push()
 	_update_push_status()
 
 func _on_push_diagnostics_changed(_status: Dictionary) -> void:
@@ -172,17 +185,33 @@ func _update_push_status() -> void:
 
 	var push_notifications = _get_push_notifications()
 	if push_notifications == null or not push_notifications.has_method("get_diagnostics_text"):
-		push_status_label.text = "Daily mission notifications: %s\nPush unavailable: runtime service not loaded." % ("On" if reminders_enabled else "Off")
-		enable_push_button.text = "Notifications: %s" % ("On" if reminders_enabled else "Off")
+		push_status_label.text = "Daily reminders: %s\nPush permission: Unavailable here\nPush unavailable: runtime service not loaded." % ("On" if reminders_enabled else "Off")
+		enable_push_button.text = "Turn Notifications %s" % ("Off" if reminders_enabled else "On")
 		enable_push_button.disabled = player_profile == null
 		return
 
-	push_status_label.text = "Daily mission notifications: %s\n%s" % [
+	var diagnostics := _get_push_diagnostics()
+	var permission_granted := bool(diagnostics.get("permission_granted", false))
+	var can_request_permission := bool(diagnostics.get("is_android", false))
+	var permission_text := "Granted" if permission_granted else ("Not granted" if can_request_permission else "Unavailable here")
+	push_status_label.text = "Daily reminders: %s\nPush permission: %s\n%s" % [
 		"On" if reminders_enabled else "Off",
+		permission_text,
 		push_notifications.get_diagnostics_text(),
 	]
-	enable_push_button.text = "Notifications: %s" % ("On" if reminders_enabled else "Off")
+	if not reminders_enabled:
+		enable_push_button.text = "Turn Notifications On"
+	elif can_request_permission and not permission_granted:
+		enable_push_button.text = "Enable Push Permission"
+	else:
+		enable_push_button.text = "Turn Notifications Off"
 	enable_push_button.disabled = player_profile == null
+
+func _get_push_diagnostics() -> Dictionary:
+	var push_notifications = _get_push_notifications()
+	if push_notifications == null or not push_notifications.has_method("get_diagnostics"):
+		return {}
+	return push_notifications.get_diagnostics()
 
 func _on_close_pressed() -> void:
 	close_menu()
