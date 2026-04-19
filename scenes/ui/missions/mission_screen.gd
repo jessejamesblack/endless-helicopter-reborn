@@ -23,7 +23,6 @@ var _validation_summary: Dictionary = {}
 @onready var button_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ButtonRow
 @onready var back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/BackButton
 @onready var hangar_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/HangarButton
-@onready var reminder_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/ReminderButton
 
 func _ready() -> void:
 	var music_player = get_node_or_null("/root/MusicPlayer")
@@ -32,7 +31,6 @@ func _ready() -> void:
 
 	back_button.pressed.connect(_on_back_pressed)
 	hangar_button.pressed.connect(_on_hangar_pressed)
-	reminder_button.pressed.connect(_on_reminder_pressed)
 
 	if not validation_mode_enabled:
 		var mission_manager: Node = _get_mission_manager()
@@ -84,7 +82,6 @@ func _refresh_view() -> void:
 		]
 
 	_render_mission_rows(summary.get("missions", []))
-	_update_reminder_button()
 
 func _render_mission_rows(missions_variant) -> void:
 	for child in mission_list.get_children():
@@ -153,33 +150,11 @@ func _format_progress_text(mission: Dictionary) -> String:
 	var target_value := int(round(float(mission.get("target", 1.0))))
 	return "%d / %d%s" % [progress_value, target_value, " COMPLETE" if bool(mission.get("completed", false)) else ""]
 
-func _update_reminder_button() -> void:
-	var player_profile: Node = _get_player_profile()
-	var reminders_enabled: bool = player_profile != null and player_profile.has_method("are_daily_reminders_enabled") and player_profile.are_daily_reminders_enabled()
-	reminder_button.text = "Reminders On" if reminders_enabled else "Enable Reminders"
-
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(START_SCREEN_SCENE_PATH)
 
 func _on_hangar_pressed() -> void:
 	get_tree().change_scene_to_file(HANGAR_SCENE_PATH)
-
-func _on_reminder_pressed() -> void:
-	var player_profile: Node = _get_player_profile()
-	if player_profile == null:
-		return
-
-	var next_enabled: bool = not player_profile.are_daily_reminders_enabled()
-	player_profile.set_daily_reminders_enabled(next_enabled)
-
-	var push_notifications := get_node_or_null("/root/PushNotifications")
-	if push_notifications != null:
-		if next_enabled and push_notifications.has_method("enable_notifications"):
-			push_notifications.enable_notifications()
-		elif push_notifications.has_method("register_device_for_push"):
-			push_notifications.register_device_for_push()
-
-	_update_reminder_button()
 
 func _on_missions_changed(_summary: Dictionary) -> void:
 	_refresh_view()
@@ -223,7 +198,7 @@ func _apply_layout_profile() -> void:
 	next_unlock_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 	streak_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 	button_row.add_theme_constant_override("separation", 8 if compact else 10)
-	for button in [back_button, hangar_button, reminder_button]:
+	for button in [back_button, hangar_button]:
 		button.custom_minimum_size = Vector2(0, 36 if compact else 46)
 		button.add_theme_font_size_override("font_size", 15 if compact else 18)
 	_apply_responsive_panel_rect(PANEL_COMPACT_RECT if compact else PANEL_DEFAULT_RECT)

@@ -49,6 +49,12 @@ func _ready() -> void:
 		if not push_notifications.is_connected("diagnostics_changed", diagnostics_callback):
 			push_notifications.connect("diagnostics_changed", diagnostics_callback)
 
+	var player_profile = _get_player_profile()
+	if player_profile != null and player_profile.has_signal("profile_changed"):
+		var profile_callback := Callable(self, "_on_profile_changed")
+		if not player_profile.is_connected("profile_changed", profile_callback):
+			player_profile.connect("profile_changed", profile_callback)
+
 	_sync_from_settings()
 
 func open_menu() -> void:
@@ -139,23 +145,44 @@ func _on_haptics_toggled(enabled: bool) -> void:
 		game_settings.set_haptics_enabled(enabled)
 
 func _on_enable_push_pressed() -> void:
+	var player_profile = _get_player_profile()
+	if player_profile == null or not player_profile.has_method("are_daily_reminders_enabled") or not player_profile.has_method("set_daily_reminders_enabled"):
+		return
+
+	var next_enabled := not bool(player_profile.are_daily_reminders_enabled())
+	player_profile.set_daily_reminders_enabled(next_enabled)
+
 	var push_notifications = _get_push_notifications()
-	if push_notifications != null and push_notifications.has_method("enable_notifications"):
-		push_notifications.enable_notifications()
+	if push_notifications != null:
+		if next_enabled and push_notifications.has_method("enable_notifications"):
+			push_notifications.enable_notifications()
+		elif push_notifications.has_method("register_device_for_push"):
+			push_notifications.register_device_for_push()
 	_update_push_status()
 
 func _on_push_diagnostics_changed(_status: Dictionary) -> void:
 	_update_push_status()
 
+func _on_profile_changed(_summary: Dictionary) -> void:
+	_update_push_status()
+
 func _update_push_status() -> void:
+	var player_profile = _get_player_profile()
+	var reminders_enabled: bool = player_profile != null and player_profile.has_method("are_daily_reminders_enabled") and bool(player_profile.are_daily_reminders_enabled())
+
 	var push_notifications = _get_push_notifications()
 	if push_notifications == null or not push_notifications.has_method("get_diagnostics_text"):
-		push_status_label.text = "Push unavailable: runtime service not loaded."
-		enable_push_button.disabled = true
+		push_status_label.text = "Daily mission notifications: %s\nPush unavailable: runtime service not loaded." % ("On" if reminders_enabled else "Off")
+		enable_push_button.text = "Notifications: %s" % ("On" if reminders_enabled else "Off")
+		enable_push_button.disabled = player_profile == null
 		return
 
-	push_status_label.text = push_notifications.get_diagnostics_text()
-	enable_push_button.disabled = OS.get_name() != "Android"
+	push_status_label.text = "Daily mission notifications: %s\n%s" % [
+		"On" if reminders_enabled else "Off",
+		push_notifications.get_diagnostics_text(),
+	]
+	enable_push_button.text = "Notifications: %s" % ("On" if reminders_enabled else "Off")
+	enable_push_button.disabled = player_profile == null
 
 func _on_close_pressed() -> void:
 	close_menu()
@@ -165,6 +192,9 @@ func _get_game_settings():
 
 func _get_push_notifications():
 	return get_node_or_null("/root/PushNotifications")
+
+func _get_player_profile():
+	return get_node_or_null("/root/PlayerProfile")
 
 func _fit_panel_to_viewport() -> void:
 	if not is_instance_valid(panel):

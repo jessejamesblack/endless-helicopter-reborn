@@ -31,7 +31,7 @@ create table if not exists public.family_player_profiles (
 	total_daily_missions_completed integer not null default 0,
 	daily_streak integer not null default 0,
 	last_completed_daily_date text,
-	daily_reminders_enabled boolean not null default false,
+	daily_reminders_enabled boolean not null default true,
 	profile_summary jsonb not null default '{}'::jsonb,
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now(),
@@ -270,7 +270,7 @@ create or replace function public.sync_player_profile(
 	p_total_daily_missions_completed integer default 0,
 	p_daily_streak integer default 0,
 	p_last_completed_daily_date text default null,
-	p_daily_reminders_enabled boolean default false,
+	p_daily_reminders_enabled boolean default true,
 	p_profile_summary jsonb default '{}'::jsonb
 )
 returns jsonb
@@ -310,7 +310,7 @@ begin
 		greatest(coalesce(p_total_daily_missions_completed, 0), 0),
 		greatest(coalesce(p_daily_streak, 0), 0),
 		p_last_completed_daily_date,
-		coalesce(p_daily_reminders_enabled, false),
+		coalesce(p_daily_reminders_enabled, true),
 		coalesce(p_profile_summary, '{}'::jsonb)
 	)
 	on conflict (family_id, player_id)

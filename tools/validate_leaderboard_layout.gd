@@ -149,7 +149,8 @@ func _validate_mission_screen(viewport_size: Vector2i) -> void:
 	await process_frame
 	_assert_visible((screen.get("mission_scroll") as Control).visible, "Mission scroll should be visible at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("button_row") as Control).visible, "Mission buttons should be visible at %s." % _format_viewport_size(viewport_size))
-	_assert_visible((screen.get("reminder_button") as Control).visible, "Reminder button should be visible at %s." % _format_viewport_size(viewport_size))
+	_assert_visible((screen.get("back_button") as Control).visible, "Mission back button should be visible at %s." % _format_viewport_size(viewport_size))
+	_assert_visible((screen.get("hangar_button") as Control).visible, "Mission hangar button should be visible at %s." % _format_viewport_size(viewport_size))
 	_assert_within_panel(screen, "mission screen", viewport_size)
 	await _destroy_screen(screen)
 

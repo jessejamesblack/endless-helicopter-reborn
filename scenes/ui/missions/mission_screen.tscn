@@ -198,15 +198,3 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Hangar"
-
-[node name="ReminderButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 46)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
-theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-text = "Enable Reminders"
-
