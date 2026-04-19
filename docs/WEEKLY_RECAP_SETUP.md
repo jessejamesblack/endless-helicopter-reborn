@@ -41,4 +41,4 @@ and include:
 - Posts the top score from the last 7 days.
 - Includes the best near-miss and daily-mission activity when recent runs contain that data.
 - Summarizes new unlocks when the run history contains them.
-- Posts a gentle “no activity this week” recap instead of failing loudly when the family was quiet.
+- Posts a gentle "no activity this week" recap instead of failing loudly when the family was quiet.
