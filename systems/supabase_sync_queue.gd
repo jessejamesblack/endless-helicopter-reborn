@@ -2,6 +2,7 @@ extends Node
 
 signal queue_changed(pending_count: int)
 
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const QUEUE_PATH := "user://supabase_sync_queue.cfg"
 const QUEUE_SECTION := "supabase_sync_queue"
 const MAX_QUEUE_SIZE := 50
@@ -36,7 +37,7 @@ func enqueue_submit_score_v2(name: String, score: int, run_summary: Dictionary, 
 	_jobs.append({
 		"type": JOB_SUBMIT_SCORE_V2,
 		"payload": {
-			"name": OnlineLeaderboard.sanitize_name(name),
+			"name": OnlineLeaderboardScript.sanitize_name(name),
 			"score": maxi(score, 0),
 			"run_summary": run_summary.duplicate(true),
 			"equipped_skin_id": equipped_skin_id,
@@ -56,7 +57,7 @@ func enqueue_sync_daily_mission_progress(mission_summary: Dictionary) -> void:
 	_replace_or_append_job(JOB_SYNC_DAILY_MISSION_PROGRESS, mission_summary.duplicate(true), mission_date)
 
 func flush() -> void:
-	if _is_flushing or not OnlineLeaderboard.is_configured():
+	if _is_flushing or not OnlineLeaderboardScript.is_configured():
 		return
 	call_deferred("_flush_async")
 
@@ -71,16 +72,16 @@ func _startup_sync() -> void:
 	await _flush_async()
 
 func _pull_remote_state() -> void:
-	if not OnlineLeaderboard.is_configured():
+	if not OnlineLeaderboardScript.is_configured():
 		return
 
-	var profile_body := OnlineLeaderboard.make_get_player_profile_body()
-	var mission_body := OnlineLeaderboard.make_get_daily_mission_progress_body(Time.get_date_string_from_system(true))
+	var profile_body := OnlineLeaderboardScript.make_get_player_profile_body()
+	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(Time.get_date_string_from_system(true))
 
 	if _get_profile_available:
-		var profile_response := await _request_json(_pull_request, OnlineLeaderboard.get_get_player_profile_url(), HTTPClient.METHOD_POST, profile_body)
+		var profile_response := await _request_json(_pull_request, OnlineLeaderboardScript.get_get_player_profile_url(), HTTPClient.METHOD_POST, profile_body)
 		if _is_success_response(profile_response):
-			var remote_profile := OnlineLeaderboard.parse_profile_sync_result(profile_response.body)
+			var remote_profile := OnlineLeaderboardScript.parse_profile_sync_result(profile_response.body)
 			var player_profile := get_node_or_null("/root/PlayerProfile")
 			if player_profile != null and player_profile.has_method("merge_remote_profile"):
 				player_profile.merge_remote_profile(remote_profile)
@@ -88,9 +89,9 @@ func _pull_remote_state() -> void:
 			_get_profile_available = not _should_disable_rpc(profile_response, "get_player_profile")
 
 	if _get_daily_available:
-		var mission_response := await _request_json(_pull_request, OnlineLeaderboard.get_get_daily_mission_progress_url(), HTTPClient.METHOD_POST, mission_body)
+		var mission_response := await _request_json(_pull_request, OnlineLeaderboardScript.get_get_daily_mission_progress_url(), HTTPClient.METHOD_POST, mission_body)
 		if _is_success_response(mission_response):
-			var remote_progress := OnlineLeaderboard.parse_daily_mission_sync_result(mission_response.body)
+			var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
 			var mission_manager := get_node_or_null("/root/MissionManager")
 			if mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
 				mission_manager.merge_remote_daily_progress(remote_progress)
@@ -98,7 +99,7 @@ func _pull_remote_state() -> void:
 			_get_daily_available = not _should_disable_rpc(mission_response, "get_daily_mission_progress")
 
 func _flush_async() -> void:
-	if _is_flushing or not OnlineLeaderboard.is_configured():
+	if _is_flushing or not OnlineLeaderboardScript.is_configured():
 		return
 	_is_flushing = true
 
@@ -133,15 +134,15 @@ func _process_submit_score_job(job: Dictionary) -> String:
 	if _submit_v2_available:
 		var response := await _request_json(
 			_flush_request,
-			OnlineLeaderboard.get_submit_v2_url(),
+			OnlineLeaderboardScript.get_submit_v2_url(),
 			HTTPClient.METHOD_POST,
-			OnlineLeaderboard.make_submit_v2_body(
+			OnlineLeaderboardScript.make_submit_v2_body(
 				player_name,
 				int(payload.get("score", 0)),
 				payload.get("run_summary", {}) as Dictionary,
 				str(payload.get("equipped_skin_id", "default_scout"))
 			),
-			OnlineLeaderboard.get_headers() + PackedStringArray(["Prefer: return=representation"])
+			OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"])
 		)
 		if _is_success_response(response):
 			_refresh_bonus_skin_access()
@@ -153,21 +154,21 @@ func _process_submit_score_job(job: Dictionary) -> String:
 
 	var legacy_response := await _request_json(
 		_flush_request,
-		OnlineLeaderboard.get_submit_url(),
+		OnlineLeaderboardScript.get_submit_url(),
 		HTTPClient.METHOD_POST,
-		OnlineLeaderboard.make_submit_body(player_name, int(payload.get("score", 0))),
-		OnlineLeaderboard.get_headers() + PackedStringArray(["Prefer: return=representation"])
+		OnlineLeaderboardScript.make_submit_body(player_name, int(payload.get("score", 0))),
+		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"])
 	)
 	if _is_success_response(legacy_response):
 		_refresh_bonus_skin_access()
 		return "success"
-	if OnlineLeaderboard.should_fallback_to_legacy_submit(_response_error_text(legacy_response)):
+	if OnlineLeaderboardScript.should_fallback_to_legacy_submit(_response_error_text(legacy_response)):
 		var table_response := await _request_json(
 			_flush_request,
-			OnlineLeaderboard.get_legacy_submit_url(),
+			OnlineLeaderboardScript.get_legacy_submit_url(),
 			HTTPClient.METHOD_POST,
-			OnlineLeaderboard.make_legacy_submit_body(player_name, int(payload.get("score", 0))),
-			OnlineLeaderboard.get_headers() + PackedStringArray(["Prefer: return=representation"])
+			OnlineLeaderboardScript.make_legacy_submit_body(player_name, int(payload.get("score", 0))),
+			OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"])
 		)
 		if _is_success_response(table_response):
 			_refresh_bonus_skin_access()
@@ -182,9 +183,9 @@ func _process_profile_sync_job(job: Dictionary) -> String:
 	var payload := job.get("payload", {}) as Dictionary
 	var response := await _request_json(
 		_flush_request,
-		OnlineLeaderboard.get_sync_player_profile_url(),
+		OnlineLeaderboardScript.get_sync_player_profile_url(),
 		HTTPClient.METHOD_POST,
-		OnlineLeaderboard.make_sync_player_profile_body(payload)
+		OnlineLeaderboardScript.make_sync_player_profile_body(payload)
 	)
 	if _is_success_response(response):
 		return "success"
@@ -200,9 +201,9 @@ func _process_daily_sync_job(job: Dictionary) -> String:
 	var payload := job.get("payload", {}) as Dictionary
 	var response := await _request_json(
 		_flush_request,
-		OnlineLeaderboard.get_sync_daily_mission_progress_url(),
+		OnlineLeaderboardScript.get_sync_daily_mission_progress_url(),
 		HTTPClient.METHOD_POST,
-		OnlineLeaderboard.make_sync_daily_mission_progress_body(payload)
+		OnlineLeaderboardScript.make_sync_daily_mission_progress_body(payload)
 	)
 	if _is_success_response(response):
 		return "success"
@@ -212,7 +213,7 @@ func _process_daily_sync_job(job: Dictionary) -> String:
 	return "retry" if _is_retryable_response(response) else "drop"
 
 func _request_json(request: HTTPRequest, url: String, method: int, body: String = "", headers: PackedStringArray = PackedStringArray()) -> Dictionary:
-	var request_headers := headers if not headers.is_empty() else OnlineLeaderboard.get_headers()
+	var request_headers := headers if not headers.is_empty() else OnlineLeaderboardScript.get_headers()
 	var start_error := request.request(url, request_headers, method, body)
 	if start_error != OK:
 		return {
@@ -285,7 +286,7 @@ func _is_retryable_response(response: Dictionary) -> bool:
 	return response_code >= 500 or response_code == 0 or response_code == 429
 
 func _response_error_text(response: Dictionary) -> String:
-	return OnlineLeaderboard.parse_api_error(response.get("body", PackedByteArray()) as PackedByteArray, "")
+	return OnlineLeaderboardScript.parse_api_error(response.get("body", PackedByteArray()) as PackedByteArray, "")
 
 func _should_disable_rpc(response: Dictionary, rpc_name: String) -> bool:
 	var error_text := _response_error_text(response).to_lower()
