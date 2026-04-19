@@ -128,7 +128,7 @@ theme_override_colors/font_color = Color(0.819608, 0.92549, 1, 1)
 theme_override_colors/font_outline_color = Color(0.0470588, 0.109804, 0.180392, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 24
-text = "MISSILES 03"
+text = "MISSILES 02"
 vertical_alignment = 1
 
 [node name="ComboPanel" type="Panel" parent="UI"]
@@ -156,6 +156,22 @@ theme_override_font_sizes/font_size = 20
 text = "COMBO x1.25"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="DirectorDebugLabel" type="Label" parent="UI"]
+visible = false
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 74.0
+offset_right = 150.0
+offset_bottom = 138.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.870588, 0.956863, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
 
 [node name="PauseButton" type="Button" parent="UI" unique_id=988001251]
 anchors_preset = 10

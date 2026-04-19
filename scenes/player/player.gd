@@ -17,7 +17,7 @@ const ENGINE_CROSSFADE_SECONDS := 0.22
 @onready var engine_sound: AudioStreamPlayer = $EngineSound
 
 var missile_scene: PackedScene = preload("res://scenes/projectiles/missile.tscn")
-var ammo: int = 3
+var ammo: int = 2
 var _engine_overlap_sound: AudioStreamPlayer
 var _engine_loop_timer: Timer
 var _engine_loop_length: float = 0.0

@@ -21,7 +21,7 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
     if body.name == "Player":
         if body.has_method("add_ammo"):
-            body.add_ammo(3)
+            body.add_ammo(2)
         var run_stats := get_node_or_null("/root/RunStats")
         if run_stats != null and run_stats.has_method("record_pickup_collected"):
             run_stats.record_pickup_collected()
