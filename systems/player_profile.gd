@@ -15,7 +15,7 @@ var _total_daily_missions_completed: int = 0
 var _daily_streak: int = 0
 var _last_completed_daily_date: String = ""
 var _missions_intro_seen: bool = false
-var _daily_reminders_enabled: bool = false
+var _daily_reminders_enabled: bool = true
 var _leaderboard_bonus_skin_access: bool = false
 var _top_skin_request: HTTPRequest
 var _top_skin_request_in_flight: bool = false
@@ -40,7 +40,7 @@ func load_profile() -> void:
 	_daily_streak = maxi(int(config.get_value(PROFILE_SECTION, "daily_streak", 0)), 0)
 	_last_completed_daily_date = str(config.get_value(PROFILE_SECTION, "last_completed_daily_date", ""))
 	_missions_intro_seen = bool(config.get_value(PROFILE_SECTION, "missions_intro_seen", false))
-	_daily_reminders_enabled = bool(config.get_value(PROFILE_SECTION, "daily_reminders_enabled", false))
+	_daily_reminders_enabled = bool(config.get_value(PROFILE_SECTION, "daily_reminders_enabled", true))
 	_leaderboard_bonus_skin_access = bool(config.get_value(PROFILE_SECTION, "leaderboard_bonus_skin_access", false))
 	_validate_profile_state()
 	_emit_profile_changed()
@@ -257,7 +257,7 @@ func apply_validation_state(summary: Dictionary) -> void:
 	_daily_streak = maxi(int(summary.get("daily_streak", 0)), 0)
 	_last_completed_daily_date = str(summary.get("last_completed_daily_date", ""))
 	_missions_intro_seen = bool(summary.get("missions_intro_seen", false))
-	_daily_reminders_enabled = bool(summary.get("daily_reminders_enabled", false))
+	_daily_reminders_enabled = bool(summary.get("daily_reminders_enabled", true))
 	_leaderboard_bonus_skin_access = bool(summary.get("leaderboard_bonus_skin_access", summary.get("pottercar_access", false)))
 	_validate_profile_state()
 	_emit_profile_changed()
@@ -269,7 +269,7 @@ func _apply_defaults() -> void:
 	_daily_streak = 0
 	_last_completed_daily_date = ""
 	_missions_intro_seen = false
-	_daily_reminders_enabled = false
+	_daily_reminders_enabled = true
 	_leaderboard_bonus_skin_access = false
 	_validate_profile_state()
 

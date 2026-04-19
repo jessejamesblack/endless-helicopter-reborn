@@ -87,6 +87,7 @@ var enemy_projectile_scene: PackedScene = preload("res://scenes/projectiles/enem
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 
 const TURRET_FIRE_RETRY_SECONDS := 0.25
+const MAX_ACTIVE_ENEMY_PROJECTILES := 5
 
 var _base_y: float = 0.0
 var _fire_timer: float = 0.0
@@ -198,13 +199,27 @@ func _play_fire_sound() -> void:
 	fire_sound.play()
 
 func _can_fire_projectile(data: Dictionary) -> bool:
+	if _count_active_enemy_projectiles() >= MAX_ACTIVE_ENEMY_PROJECTILES:
+		return false
 	if str(data.get("projectile_kind", "")) != "turret_round":
 		return true
 	return not _has_active_turret_round()
 
+func _count_active_enemy_projectiles() -> int:
+	var count := 0
+	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"):
+		if not is_instance_valid(projectile):
+			continue
+		if not projectile.is_inside_tree() or projectile.is_queued_for_deletion():
+			continue
+		count += 1
+	return count
+
 func _has_active_turret_round() -> bool:
 	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"):
 		if not is_instance_valid(projectile):
+			continue
+		if not projectile.is_inside_tree() or projectile.is_queued_for_deletion():
 			continue
 		if str(projectile.get("projectile_kind")) == "turret_round":
 			return true

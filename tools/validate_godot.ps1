@@ -14,6 +14,8 @@ $scripts = @(
     'res://systems/run_stats.gd',
     'res://systems/mission_manager.gd',
     'res://systems/supabase_sync_queue.gd',
+    'res://scenes/game/main/encounter_catalog.gd',
+    'res://scenes/game/main/spawner.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
     'res://scenes/ui/settings/settings_menu.gd',
     'res://scenes/ui/pause/pause_menu.gd',
@@ -60,6 +62,12 @@ Write-Host 'Validating missions and cosmetics'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_missions_and_cosmetics.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot missions and cosmetics validation failed'
+}
+
+Write-Host 'Validating encounter director'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_encounter_director.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot encounter director validation failed'
 }
 
 Write-Host 'Godot validation completed successfully.'

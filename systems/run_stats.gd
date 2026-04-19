@@ -22,6 +22,14 @@ var _missile_hits: int = 0
 var _missile_misses: int = 0
 var _max_missile_hit_streak: int = 0
 var _projectile_intercepts: int = 0
+var _director_seed: int = 0
+var _encounters_started: int = 0
+var _encounters_completed: int = 0
+var _breathers_seen: int = 0
+var _highest_director_difficulty: int = 0
+var _forced_rescue_ammo_spawns: int = 0
+var _current_encounter_id: String = ""
+var _current_director_phase: String = ""
 
 func _ready() -> void:
 	_load_local_best_score()
@@ -100,6 +108,34 @@ func record_projectile_intercept() -> void:
 		return
 	_projectile_intercepts += 1
 
+func record_director_seed(seed_value: int) -> void:
+	if not _run_active:
+		return
+	_director_seed = seed_value
+
+func record_encounter_started(encounter_id: String, phase: String, difficulty: int) -> void:
+	if not _run_active:
+		return
+	_encounters_started += 1
+	_current_encounter_id = encounter_id
+	_current_director_phase = phase
+	_highest_director_difficulty = maxi(_highest_director_difficulty, difficulty)
+
+func record_encounter_completed(_encounter_id: String) -> void:
+	if not _run_active:
+		return
+	_encounters_completed += 1
+
+func record_breather_seen() -> void:
+	if not _run_active:
+		return
+	_breathers_seen += 1
+
+func record_forced_rescue_ammo_spawn() -> void:
+	if not _run_active:
+		return
+	_forced_rescue_ammo_spawns += 1
+
 func complete_run(final_score: int) -> Dictionary:
 	var safe_score: int = maxi(final_score, 0)
 	var best_score_before_run: int = _local_best_score
@@ -132,6 +168,14 @@ func complete_run(final_score: int) -> Dictionary:
 		"missile_misses": _missile_misses,
 		"max_missile_hit_streak": _max_missile_hit_streak,
 		"projectile_intercepts": _projectile_intercepts,
+		"director_seed": _director_seed,
+		"encounters_started": _encounters_started,
+		"encounters_completed": _encounters_completed,
+		"breathers_seen": _breathers_seen,
+		"highest_director_difficulty": _highest_director_difficulty,
+		"forced_rescue_ammo_spawns": _forced_rescue_ammo_spawns,
+		"crash_encounter_id": _current_encounter_id,
+		"crash_director_phase": _current_director_phase,
 	}
 
 	_run_active = false
@@ -170,6 +214,14 @@ func _reset_live_stats() -> void:
 	_missile_misses = 0
 	_max_missile_hit_streak = 0
 	_projectile_intercepts = 0
+	_director_seed = 0
+	_encounters_started = 0
+	_encounters_completed = 0
+	_breathers_seen = 0
+	_highest_director_difficulty = 0
+	_forced_rescue_ammo_spawns = 0
+	_current_encounter_id = ""
+	_current_director_phase = ""
 
 func _load_local_best_score() -> void:
 	var config := ConfigFile.new()

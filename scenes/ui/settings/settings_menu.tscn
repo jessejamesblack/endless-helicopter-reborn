@@ -316,7 +316,7 @@ theme_override_font_sizes/font_size = 20
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
-text = "Enable Notifications"
+text = "Notifications: On"
 
 [node name="ButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

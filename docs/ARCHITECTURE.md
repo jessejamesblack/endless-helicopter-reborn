@@ -47,11 +47,15 @@
 - `stationary_turret`: rarer bottom-lane enemy that fires gently homing missiles
 - `glowing_rock`: rarest enemy; when destroyed by the player it triggers a screen-clear blast that removes hostiles and pickups currently on screen
 
-## Spawn Tuning
+## Encounter Director
 
-- Spawn rarity order is: normal rock, alien drone, missile turret, glowing rock.
-- Turrets spawn on a dedicated bottom lane instead of using the general random Y range.
-- Alien drones continue to use randomized vertical placement.
+- `spawner.gd` now defaults to a seeded encounter director instead of a flat timer-plus-weighted-random loop.
+- The director advances through time-based phases: opening, warmup, combat intro, pressure, advanced, and endurance.
+- Encounters are authored chunks from `encounter_catalog.gd` that can include obstacles, drones, turrets, glowing rocks, pickups, and breathers.
+- Director timing is based on real elapsed run time. Gameplay still accelerates through `Main.speed_multiplier`, but encounter durations and breather cadence are not compressed by it.
+- Fairness guards cap active hostiles/projectiles, prevent early turrets, keep glowing rocks spaced out, and allow only one active turret or glowing rock at a time.
+- Ammo comes from authored encounters, breather pickups, and rare rescue ammo when the player is on a drought.
+- In debug builds, the main HUD can show the current director phase, encounter id, seed, and active hostile count for reproducible tuning.
 
 ## Boundaries
 

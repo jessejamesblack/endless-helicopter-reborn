@@ -39,6 +39,7 @@ var _screen_flash_tween: Tween
 @onready var ammo_panel: Panel = $UI/AmmoPanel
 @onready var combo_panel: Panel = $UI/ComboPanel
 @onready var combo_label: Label = $UI/ComboPanel/ComboLabel
+@onready var director_debug_label: Label = $UI/DirectorDebugLabel
 @onready var pause_button: Button = $UI/PauseButton
 @onready var pause_menu = $UI/PauseMenu
 @onready var screen_flash: ColorRect = $UI/ScreenFlash
@@ -47,6 +48,9 @@ func _ready() -> void:
     var run_stats := _get_run_stats()
     if run_stats != null and run_stats.has_method("start_run"):
         run_stats.start_run()
+    var spawner = get_node_or_null("Spawner")
+    if spawner != null and spawner.has_method("reset_for_run"):
+        spawner.reset_for_run()
     reset_combo()
     missile_hit_streak = 0
 
@@ -75,8 +79,11 @@ func _ready() -> void:
     # Dynamically place the spawner just off the right edge of the screen
     if has_node("Spawner"):
         $Spawner.position.x = get_viewport_rect().size.x + 100
+    _configure_director_debug_overlay()
+    _update_director_debug_overlay()
 
 func _process(delta: float) -> void:
+    _update_director_debug_overlay()
     if is_crashed or is_transitioning_to_game_over or get_tree().paused:
         return
     
@@ -433,6 +440,54 @@ func _position_panel(panel: Control, rect: Rect2, is_left_side: bool) -> void:
     panel.offset_top = rect.position.y
     panel.offset_right = rect.position.x + rect.size.x
     panel.offset_bottom = rect.position.y + rect.size.y
+
+func _configure_director_debug_overlay() -> void:
+    if director_debug_label == null:
+        return
+
+    var spawner = get_node_or_null("Spawner")
+    if spawner == null or not spawner.has_method("get_debug_snapshot"):
+        director_debug_label.visible = false
+        return
+
+    var snapshot: Dictionary = spawner.get_debug_snapshot()
+    director_debug_label.visible = bool(snapshot.get("enabled", false))
+
+func _update_director_debug_overlay() -> void:
+    if director_debug_label == null:
+        return
+
+    var spawner = get_node_or_null("Spawner")
+    if spawner == null or not spawner.has_method("get_debug_snapshot"):
+        director_debug_label.visible = false
+        return
+
+    var snapshot: Dictionary = spawner.get_debug_snapshot()
+    var show_overlay := bool(snapshot.get("enabled", false))
+    director_debug_label.visible = show_overlay
+    if not show_overlay:
+        return
+
+    director_debug_label.text = "Phase: %s\nEncounter: %s\nSeed: %s\nActive: %d" % [
+        str(snapshot.get("phase", "unknown")),
+        str(snapshot.get("encounter_id", "idle")),
+        str(snapshot.get("seed", 0)),
+        int(snapshot.get("active_hostiles", 0)),
+    ]
+
+func is_director_debug_enabled() -> bool:
+    var spawner = get_node_or_null("Spawner")
+    if spawner == null:
+        return false
+    return bool(spawner.get("show_director_debug"))
+
+func set_director_debug_enabled(enabled: bool) -> void:
+    var spawner = get_node_or_null("Spawner")
+    if spawner == null:
+        return
+    spawner.set("show_director_debug", enabled and OS.is_debug_build())
+    _configure_director_debug_overlay()
+    _update_director_debug_overlay()
 
 func _get_game_settings():
     return get_node_or_null("/root/GameSettings")

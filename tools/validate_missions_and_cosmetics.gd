@@ -4,6 +4,7 @@ const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const MISSION_SCREEN_SCENE_PATH := "res://scenes/ui/missions/mission_screen.tscn"
 const HANGAR_SCREEN_SCENE_PATH := "res://scenes/ui/hangar/hangar_screen.tscn"
+const SETTINGS_MENU_SCENE_PATH := "res://scenes/ui/settings/settings_menu.tscn"
 
 var _failures: Array[String] = []
 
@@ -61,6 +62,13 @@ func _validate_autoloads() -> void:
 		_assert(push_notifications.has_method("consume_open_missions_request"), "PushNotifications should expose consume_open_missions_request().")
 		_assert(push_notifications.has_method("consume_open_leaderboard_request"), "PushNotifications should still expose consume_open_leaderboard_request().")
 
+	var push_notifications_script := load("res://systems/push_notifications.gd") as GDScript
+	_assert(push_notifications_script != null, "PushNotifications script should load.")
+	if push_notifications_script != null:
+		var push_notifications_probe: Node = push_notifications_script.new()
+		_assert(bool(push_notifications_probe.call("_get_daily_reminders_enabled")), "PushNotifications should default daily mission registration to enabled when PlayerProfile is not yet available.")
+		push_notifications_probe.free()
+
 func _validate_screen_assets() -> void:
 	_assert(ResourceLoader.exists(MISSION_SCREEN_SCENE_PATH), "Mission screen scene should exist.")
 	_assert(ResourceLoader.exists(HANGAR_SCREEN_SCENE_PATH), "Hangar screen scene should exist.")
@@ -91,9 +99,24 @@ func _validate_screen_assets() -> void:
 	var mission_screen := mission_screen_scene.instantiate() as Control
 	get_root().add_child(mission_screen)
 	await process_frame
-	_assert(mission_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/ReminderButton") != null, "Mission screen should include the reminder button.")
+	_assert(mission_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/ReminderButton") == null, "Mission screen should no longer include a reminder button.")
 	mission_screen.free()
 	await process_frame
+
+	var settings_menu_scene := load(SETTINGS_MENU_SCENE_PATH) as PackedScene
+	_assert(settings_menu_scene != null, "Settings menu scene should load.")
+	if settings_menu_scene != null:
+		var settings_menu := settings_menu_scene.instantiate() as Control
+		get_root().add_child(settings_menu)
+		await process_frame
+		_assert(settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/EnablePushButton") != null, "Settings menu should include the notifications toggle button.")
+		var push_status_label := settings_menu.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/PushStatusLabel") as Label
+		_assert(push_status_label != null, "Settings menu should include the push status label.")
+		if push_status_label != null:
+			_assert(push_status_label.text.contains("Daily reminders:"), "Settings push status should show the local reminder preference.")
+			_assert(push_status_label.text.contains("Push permission:"), "Settings push status should distinguish push permission from the reminder preference.")
+		settings_menu.free()
+		await process_frame
 
 	var hangar_screen_scene := load(HANGAR_SCREEN_SCENE_PATH) as PackedScene
 	_assert(hangar_screen_scene != null, "Hangar screen scene should load.")
@@ -182,6 +205,7 @@ func _validate_profile_defaults_and_fallbacks() -> void:
 	})
 	_assert(player_profile.is_skin_unlocked("default_scout"), "Default Scout should be unlocked by default.")
 	_assert(player_profile.get_equipped_skin_id() == "default_scout", "Default Scout should be equipped by default.")
+	_assert(player_profile.are_daily_reminders_enabled(), "Daily mission reminders should be enabled by default.")
 	_assert(not player_profile.has_skin_access("pottercar"), "Pottercar should start unavailable without verified top access.")
 	_assert(not (player_profile.get_unlocked_skins() as Array).has("pottercar"), "Pottercar should not be stored as a permanent unlock.")
 	_assert(not player_profile.equip_skin("pottercar"), "Pottercar should not be equippable while unavailable.")
