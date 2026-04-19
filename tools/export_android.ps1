@@ -6,7 +6,13 @@ param(
 
     [string]$Output = 'build/android/EndlessHelicopter-debug.apk',
 
-    [switch]$Release
+    [switch]$Release,
+
+    [string]$BuildSha = 'dev',
+
+    [string]$BuildDate = '',
+
+    [string]$ReleaseChannel = 'dev'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +21,7 @@ $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $outputPath = Join-Path $projectRoot $Output
 $outputDir = Split-Path -Parent $outputPath
 $buildPluginScript = Join-Path $PSScriptRoot 'build_android_plugin.ps1'
+$generateBuildInfoScript = Join-Path $PSScriptRoot 'generate_build_info.ps1'
 $canonicalBuildDir = Join-Path $projectRoot 'build\android'
 
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
@@ -57,6 +64,15 @@ if (Test-Path $buildPluginScript) {
     & $buildPluginScript -Variant Both
     if ($LASTEXITCODE -ne 0) {
         throw 'Android push bridge build failed.'
+    }
+}
+
+if (Test-Path $generateBuildInfoScript) {
+    $resolvedBuildDate = if ([string]::IsNullOrWhiteSpace($BuildDate)) { [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $BuildDate }
+    Write-Host "Generating build info for channel '$ReleaseChannel'..."
+    & $generateBuildInfoScript -BuildSha $BuildSha -BuildDate $resolvedBuildDate -ReleaseChannel $ReleaseChannel
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Build info generation failed.'
     }
 }
 

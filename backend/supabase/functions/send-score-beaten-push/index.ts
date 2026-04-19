@@ -1,5 +1,11 @@
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import { GoogleAuth } from "npm:google-auth-library@9";
+import {
+  createAdminClient,
+  jsonResponse,
+  requireEnv,
+  truncate,
+} from "../_shared/common.ts";
+import { postDiscordWebhook } from "../_shared/discord_webhook.ts";
 
 type ScoreBeatenPayload = {
   type: string;
@@ -30,7 +36,7 @@ Deno.serve(async (request: Request) => {
   }
 
   const webhookSecret = Deno.env.get("PUSH_WEBHOOK_SECRET") ?? "";
-  if (webhookSecret != "" && request.headers.get("x-push-webhook-secret") !== webhookSecret) {
+  if (webhookSecret !== "" && request.headers.get("x-push-webhook-secret") !== webhookSecret) {
     return jsonResponse({ error: "Unauthorized." }, 401);
   }
 
@@ -39,13 +45,9 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: "Invalid payload." }, 400);
   }
 
-  const supabaseUrl = requireEnv("SUPABASE_URL");
-  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabase = createAdminClient();
   const fcmProjectId = requireEnv("FCM_PROJECT_ID");
   const serviceAccountJson = requireEnv("FCM_SERVICE_ACCOUNT_JSON");
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
 
   const devicesResponse = await supabase
     .from("family_push_devices")
@@ -60,7 +62,7 @@ Deno.serve(async (request: Request) => {
   }
 
   const devices = (devicesResponse.data ?? []) as PushDeviceRow[];
-  if (devices.length == 0) {
+  if (devices.length === 0) {
     await supabase.from("family_push_delivery_log").insert({
       family_id: payload.family_id,
       target_player_id: payload.target_player_id,
@@ -69,6 +71,7 @@ Deno.serve(async (request: Request) => {
       response_code: 200,
       response_body: "No active Android push devices are registered for this player.",
     });
+    await postScoreBeatenDiscord(payload);
     return jsonResponse({ delivered: 0, skipped: true }, 200);
   }
 
@@ -120,14 +123,13 @@ Deno.serve(async (request: Request) => {
       family_id: device.family_id,
       target_player_id: device.player_id,
       device_id: device.device_id,
-      fcm_token: device.fcm_token,
       notification_type: "score_beaten",
       status,
       response_code: fcmResponse.status,
-      response_body: responseText,
+      response_body: truncate(responseText, 2000),
     });
 
-    if (status == "invalid_token") {
+    if (status === "invalid_token") {
       invalidTokenIds.push(device.id);
     }
   }
@@ -140,8 +142,10 @@ Deno.serve(async (request: Request) => {
     await supabase.from("family_push_devices").delete().in("id", invalidTokenIds);
   }
 
+  await postScoreBeatenDiscord(payload);
+
   return jsonResponse({
-    delivered: sentLogRows.filter((row) => row.status == "sent").length,
+    delivered: sentLogRows.filter((row) => row.status === "sent").length,
     invalidated: invalidTokenIds.length,
   });
 });
@@ -185,17 +189,17 @@ function classifyFcmStatus(statusCode: number, responseText: string): string {
   return "failed";
 }
 
-function requireEnv(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
-function jsonResponse(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
+async function postScoreBeatenDiscord(payload: ScoreBeatenPayload): Promise<void> {
+  await postDiscordWebhook({
+    webhookUrl: Deno.env.get("DISCORD_GAME_EVENTS_WEBHOOK_URL") ?? "",
+    content: "Score beaten!",
+    title: `${payload.challenger_name ?? "Player"} beat a family best`,
+    description: `${payload.challenger_name ?? "Player"} beat a saved score.`,
+    color: 0x6dc8ff,
+    fields: [
+      { name: "New score", value: String(payload.challenger_score ?? 0), inline: true },
+      { name: "Previous score", value: String(payload.beaten_score ?? 0), inline: true },
+    ],
+    footer: "Score-beaten push also went through the mobile notification path when available.",
   });
 }

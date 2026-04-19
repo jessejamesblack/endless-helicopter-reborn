@@ -49,9 +49,12 @@ Before running it, replace:
 - `YOUR_PROJECT_REF`
 - `YOUR_PUSH_WEBHOOK_SECRET`
 
-The default cron schedule is:
+The recommended cron schedule is:
 
-- `15:00 UTC`
+- `12:00 UTC` during Eastern Daylight Time
+- `13:00 UTC` during Eastern Standard Time
+
+That keeps the family-facing reset locked to `8:00 AM America/New_York`.
 
 The payload shape is:
 
@@ -67,6 +70,8 @@ The payload shape is:
 - The function only targets Android devices with:
   - `notifications_enabled = true`
   - `daily_missions_enabled = true`
+- The function inserts into `family_daily_dispatch_log` so the same family/day combination does not get spammed repeatedly.
 - It also skips players whose synced mission row for today is already `completed_count >= total_count`.
 - Tapping the notification routes the game to the mission screen.
+- The mission screen now shows `Resets daily at 8:00 AM ET`.
 - The existing `score_beaten` push path stays unchanged.

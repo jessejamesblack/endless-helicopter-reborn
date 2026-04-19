@@ -1,0 +1,4 @@
+- Added Discord-ready Android release posts with checksum, release link, and release-note summaries.
+- Added in-app update checks, required update lockouts, and family-safe app-update push notifications.
+- Added error reporting, developer email alerts, and in-app feedback/bug-report tools.
+- Daily missions now reset at 8:00 AM ET, backgrounds move more visibly, and long-run difficulty ramps much harder.
