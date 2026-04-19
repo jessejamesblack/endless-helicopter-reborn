@@ -85,7 +85,8 @@ func is_startup_sync_in_progress() -> bool:
 func _startup_sync() -> void:
 	if _startup_sync_completed or _startup_sync_in_progress:
 		return
-	_identity_retry_attempts_remaining = max(_identity_retry_attempts_remaining, IDENTITY_RETRY_ATTEMPTS)
+	if _identity_retry_attempts_remaining <= 0:
+		_identity_retry_attempts_remaining = IDENTITY_RETRY_ATTEMPTS
 	call_deferred("_run_startup_sync")
 
 func _run_startup_sync() -> void:
@@ -94,22 +95,15 @@ func _run_startup_sync() -> void:
 	_startup_sync_in_progress = true
 	startup_sync_state_changed.emit()
 	if _is_cloud_access_blocked():
-		_startup_sync_completed = true
-		_startup_sync_in_progress = false
-		startup_sync_state_changed.emit()
+		_finish_startup_sync()
 		return
 	var identity_ready := await _ensure_remote_identity_ready()
 	if identity_ready:
 		await _pull_remote_state()
 		await _flush_async()
-		_startup_sync_completed = true
-		_identity_retry_attempts_remaining = 0
-		if _identity_retry_timer != null:
-			_identity_retry_timer.stop()
+		_finish_startup_sync()
 	else:
-		_schedule_identity_retry()
-	_startup_sync_in_progress = false
-	startup_sync_state_changed.emit()
+		_handle_startup_identity_retry()
 
 func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 	var outcome := {
@@ -269,8 +263,6 @@ func _schedule_identity_retry() -> void:
 	if _identity_retry_timer == null:
 		return
 	if _identity_retry_attempts_remaining <= 0:
-		_identity_retry_attempts_remaining = IDENTITY_RETRY_ATTEMPTS
-	if _identity_retry_attempts_remaining <= 0:
 		return
 	if _identity_retry_timer.is_stopped():
 		_identity_retry_timer.start(IDENTITY_RETRY_SECONDS)
@@ -282,6 +274,22 @@ func _on_identity_retry_timeout() -> void:
 	if _startup_sync_completed:
 		return
 	call_deferred("_run_startup_sync")
+
+func _handle_startup_identity_retry() -> void:
+	if _identity_retry_attempts_remaining <= 0:
+		_finish_startup_sync()
+		return
+	_startup_sync_in_progress = false
+	_schedule_identity_retry()
+	startup_sync_state_changed.emit()
+
+func _finish_startup_sync() -> void:
+	_startup_sync_completed = true
+	_startup_sync_in_progress = false
+	_identity_retry_attempts_remaining = 0
+	if _identity_retry_timer != null:
+		_identity_retry_timer.stop()
+	startup_sync_state_changed.emit()
 
 func _process_job(job: Dictionary) -> String:
 	match str(job.get("type", "")):
@@ -444,10 +452,7 @@ func _handle_upgrade_required_response(operation: String, response: Dictionary) 
 
 func _block_cloud_access(reason: String) -> void:
 	_cloud_access_blocked_reason = reason
-	_startup_sync_completed = true
-	if _identity_retry_timer != null:
-		_identity_retry_timer.stop()
-	startup_sync_state_changed.emit()
+	_finish_startup_sync()
 
 func _is_cloud_access_blocked() -> bool:
 	return not _cloud_access_blocked_reason.is_empty()

@@ -1,32 +1,30 @@
-# Endless Helicopter Reborn 1.6.0
+# Endless Helicopter Reborn 1.6.1
 
-Sprint 6 is the release-ops and polish update. It makes the Android build much easier to ship and support, adds safer update and reporting flows for family installs, and gives longer runs more movement, more identity, and more pressure.
+Version 1.6.1 is a stable bugfix release focused on cloud restore reliability, score saving, cleaner progression UI, and a few rough edges that showed up in hands-on Android testing after Sprint 7.
 
 ## Highlights
 
-- Android releases now publish cleaner GitHub release notes, checksum details, release metadata, and Discord build posts.
-- The game now supports optional update prompts, required-update lockouts, and release-channel-aware app-update push notifications.
-- Family support tools are much stronger: in-app feedback, safer bug-report copying, centralized client error reporting, and developer email alerts.
-- Daily missions now reset at 8:00 AM ET year-round, matching America/New_York through both EST and EDT.
-- Backgrounds feel more alive, visible biomes have music mapping support, and midgame and late-game pacing are noticeably tougher.
+- Score saves now route through the live backend path again, so fresh scores and profile syncs can reach Supabase correctly.
+- Launch-time cloud checks no longer loop forever on brand-new devices with no remote profile.
+- The score HUD once again shows clear `SCORE` and `MISSILES` labels while keeping the cleaner non-padded numbers.
+- `NEW` markers have been removed from menu and Hangar flows so selecting content no longer takes an extra tap.
+- This release is intended as the stable Android follow-up to the larger Sprint 6 and Sprint 7 systems work.
 
-## Player-Facing Changes
+## Player-Facing Fixes
 
-- The start screen can now surface update prompts and block play when an installed build is below the minimum supported version.
-- Settings now shows version, build, channel, update status, screenshot-sharing preference, and family feedback tools.
-- Daily missions clearly show `Resets daily at 8:00 AM ET`.
-- Background motion is more visible, biome transitions feel livelier, and long runs escalate harder after the early fair opening.
-- Major family milestones can now feed into safer reporting and screenshot-sharing flows without embedding Discord secrets in the app.
+- The post-run leaderboard/setup flow can now fall through to the normal name prompt instead of getting stuck while checking cloud progress.
+- Restored score/ammo HUD labels make the in-run UI easier to read without bringing back padded zeros.
+- Hangar and menu flows are less fussy now that `NEW` badges no longer interrupt first-tap selection.
+- Save and restore behavior is more consistent after the recent backend reset and stable profile refresh work.
 
-## Family Ops And Support
+## Backend And Ops Notes
 
-- Score-beaten, daily-mission, and release events can post to Discord without a full bot.
-- Release builds now publish SHA-256 integrity information alongside the APK and release link.
-- Version adoption data is tracked by build and release channel to help spot outdated installs.
-- Weekly recap support, achievement screenshot posting, and safer internal feedback/reporting are now wired into the release stack.
+- Score submission now uses the active live save route that is deployed on Supabase.
+- Profile sync remains on the protected synced profile path so release/update protections stay in place.
+- This release keeps the Sprint 6/7 release stack: GitHub Releases, Discord build notes, release metadata, and update-aware cloud access.
 
 ## Safety Notes
 
-- Discord posts disable mass mentions.
-- Release and error-reporting paths are best-effort and do not block gameplay if a webhook, push, or backend call fails.
-- Operational logs avoid raw secrets, webhook URLs, and push tokens.
+- Cloud restore still uses player identity, not public display name.
+- Release and reporting paths remain best-effort and do not block gameplay if an external service is unavailable.
+- Operational logs continue to avoid raw secrets, webhook URLs, and push tokens.

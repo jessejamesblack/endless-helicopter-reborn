@@ -42,13 +42,10 @@ func _run_validation() -> void:
 	_assert(locked_skin_text.contains("Locked"), "Locked skins should show Locked state in Hangar.")
 	_assert(not locked_skin_text.contains("Equipped"), "Locked skins should never show Equipped in Hangar.")
 
-	var new_vehicle_text := str(hangar.call("_build_vehicle_button_text", "bubble_chopper", player_profile, helicopter_skins))
-	_assert(new_vehicle_text.contains("NEW"), "Unseen vehicles should show NEW in Hangar.")
-	hangar.set("_selected_vehicle_id", "bubble_chopper")
-	hangar.set("_selected_skin_id", "factory")
-	hangar.call("_mark_lore_seen")
-	_assert(player_profile.has_seen_vehicle_lore("bubble_chopper"), "Selecting a NEW vehicle should clear its NEW state in one interaction.")
-	_assert(player_profile.has_seen_skin_lore("bubble_chopper", "factory"), "Selecting a NEW skin should clear its NEW state in one interaction.")
+	var vehicle_text := str(hangar.call("_build_vehicle_button_text", "bubble_chopper", player_profile, helicopter_skins))
+	_assert(not vehicle_text.contains("NEW"), "Hangar should not show NEW badges for vehicles.")
+	var skin_text := str(hangar.call("_build_skin_button_text", "bubble_chopper", "factory", player_profile, helicopter_skins))
+	_assert(not skin_text.contains("NEW"), "Hangar should not show NEW badges for skins.")
 
 	hangar.free()
 	await process_frame

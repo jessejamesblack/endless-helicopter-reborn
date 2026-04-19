@@ -70,7 +70,6 @@ func _ready() -> void:
 		discovery_manager.mark_tip_seen("hangar")
 
 	_configure_touch_scroll()
-	_mark_lore_seen()
 	_refresh_view()
 
 func _refresh_view() -> void:
@@ -102,7 +101,6 @@ func _render_vehicle_list() -> void:
 		button.touch_activated.connect(func() -> void:
 			_selected_vehicle_id = vehicle_id
 			_selected_skin_id = _get_selected_vehicle_skin(player_profile, vehicle_id)
-			_mark_lore_seen()
 			_refresh_view()
 		)
 		vehicle_list.add_child(button)
@@ -127,7 +125,6 @@ func _render_skin_list() -> void:
 		button.add_theme_constant_override("outline_size", 2)
 		button.touch_activated.connect(func() -> void:
 			_selected_skin_id = skin_id
-			_mark_lore_seen()
 			_update_preview()
 			_update_details()
 			_render_skin_list()
@@ -136,8 +133,6 @@ func _render_skin_list() -> void:
 
 func _build_vehicle_button_text(vehicle_id: String, player_profile: Node, helicopter_skins: Node) -> String:
 	var label := str(helicopter_skins.get_display_name(vehicle_id))
-	if player_profile.has_method("has_seen_vehicle_lore") and not player_profile.has_seen_vehicle_lore(vehicle_id):
-		label = "NEW  " + label
 	var has_access: bool = player_profile.is_vehicle_unlocked(vehicle_id) if player_profile.has_method("is_vehicle_unlocked") else player_profile.has_skin_access(vehicle_id)
 	if not has_access:
 		return "%s  -  Locked" % label
@@ -148,8 +143,6 @@ func _build_vehicle_button_text(vehicle_id: String, player_profile: Node, helico
 func _build_skin_button_text(vehicle_id: String, skin_id: String, player_profile: Node, helicopter_skins: Node) -> String:
 	var skin_data: Dictionary = helicopter_skins.get_vehicle_skin_data(vehicle_id, skin_id)
 	var label := str(skin_data.get("display_name", skin_id.capitalize()))
-	if player_profile.has_method("has_seen_skin_lore") and not player_profile.has_seen_skin_lore(vehicle_id, skin_id):
-		label = "NEW  " + label
 	if skin_id == "original_icon" and not bool(skin_data.get("available", false)):
 		return "%s  -  Unavailable" % label
 	var unlocked: bool = player_profile.is_vehicle_skin_unlocked(vehicle_id, skin_id)
