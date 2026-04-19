@@ -257,9 +257,25 @@ theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_font_sizes/font_size = 20
 text = "Progress"
 
-[node name="RestoreProgressButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+[node name="ProgressHelpLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Paste a player ID from support if this device doesn't restore cloud progress automatically."
+autowrap_mode = 2
+
+[node name="RestorePlayerIdEntry" type="LineEdit" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+placeholder_text = "Paste player ID from support (optional)"
+
+[node name="ProgressActionRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RestoreProgressButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/ProgressActionRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
@@ -271,6 +287,22 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Restore Progress"
+
+[node name="ClearRestorePlayerIdButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/ProgressActionRow"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Use Device ID"
 
 [node name="RestoreProgressStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
 custom_minimum_size = Vector2(0, 84)
