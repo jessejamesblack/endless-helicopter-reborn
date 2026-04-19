@@ -5,6 +5,7 @@ const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn
 const PANEL_MARGIN := 4.0
 const PANEL_DEFAULT_RECT := Rect2(-360.0, -300.0, 720.0, 600.0)
 const PANEL_COMPACT_RECT := Rect2(-336.0, -268.0, 672.0, 536.0)
+const TOUCH_SCROLL_DEADZONE := 6
 
 var validation_mode_enabled: bool = false
 var _validation_summary: Dictionary = {}
@@ -53,6 +54,7 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_apply_layout_profile()
+	_configure_touch_scroll()
 
 	_refresh_view()
 
@@ -105,16 +107,19 @@ func _create_mission_row(mission: Dictionary) -> PanelContainer:
 	card.custom_minimum_size = Vector2(0, 84 if compact else 92)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel", _create_card_style())
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12 if compact else 14)
 	margin.add_theme_constant_override("margin_top", 10 if compact else 12)
 	margin.add_theme_constant_override("margin_right", 12 if compact else 14)
 	margin.add_theme_constant_override("margin_bottom", 10 if compact else 12)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(margin)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4 if compact else 6)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(column)
 
 	var title_label := Label.new()
@@ -123,12 +128,14 @@ func _create_mission_row(mission: Dictionary) -> PanelContainer:
 	title_label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
 	title_label.add_theme_constant_override("outline_size", 2)
 	title_label.add_theme_font_size_override("font_size", 17 if compact else 18)
+	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(title_label)
 
 	var description_label := Label.new()
 	description_label.text = str(mission.get("description", ""))
 	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_body_label_theme(description_label)
+	description_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(description_label)
 
 	var progress_label := Label.new()
@@ -136,6 +143,7 @@ func _create_mission_row(mission: Dictionary) -> PanelContainer:
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	progress_label.add_theme_color_override("font_color", Color(0.921569, 0.94902, 1, 1))
 	progress_label.add_theme_font_size_override("font_size", 15 if compact else 16)
+	progress_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(progress_label)
 
 	return card
@@ -241,3 +249,7 @@ func _get_player_profile() -> Node:
 
 func _get_mission_manager() -> Node:
 	return get_node_or_null("/root/MissionManager")
+
+func _configure_touch_scroll() -> void:
+	mission_scroll.scroll_deadzone = TOUCH_SCROLL_DEADZONE
+	mission_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
