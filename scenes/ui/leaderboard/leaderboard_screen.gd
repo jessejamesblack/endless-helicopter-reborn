@@ -7,6 +7,9 @@ const RESULTS_PANEL_RECT := Rect2(-340.0, -354.0, 680.0, 708.0)
 const BOARD_PANEL_RECT := Rect2(-320.0, -310.0, 640.0, 620.0)
 const SETUP_PANEL_RECT := Rect2(-280.0, -210.0, 560.0, 420.0)
 const PANEL_MARGIN := 4.0
+const TOUCH_SCROLL_DEADZONE := 10.0
+const TOUCH_SCROLL_AXIS_BIAS := 1.2
+const MOUSE_POINTER_ID := -1000
 
 enum ScreenMode {
 	RESULTS,
@@ -35,6 +38,11 @@ var leaderboard_entries: Array[Dictionary] = []
 var leaderboard_offset: int = 0
 var leaderboard_has_more: bool = true
 var leaderboard_fetch_in_flight: bool = false
+var _scroll_pointer_active: bool = false
+var _scroll_dragging: bool = false
+var _scroll_pointer_id: int = -1
+var _scroll_press_position: Vector2 = Vector2.ZERO
+var _scroll_origin: float = 0.0
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var panel: Panel = $Panel
@@ -675,8 +683,67 @@ func _apply_label_theme(label: Label, font_color: Color, font_size: int) -> void
 	label.add_theme_font_size_override("font_size", font_size)
 
 func _configure_touch_scroll() -> void:
-	leaderboard_scroll.scroll_deadzone = 6
+	leaderboard_scroll.scroll_deadzone = int(TOUCH_SCROLL_DEADZONE)
 	leaderboard_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _input(event: InputEvent) -> void:
+	if not leaderboard_card.visible:
+		return
+	if event is InputEventScreenTouch:
+		_handle_scroll_touch(event.position, event.index, event.pressed)
+		return
+	if event is InputEventScreenDrag:
+		_handle_scroll_drag(event.position, event.index)
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_scroll_touch(event.position, MOUSE_POINTER_ID, event.pressed)
+		return
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_handle_scroll_drag(event.position, MOUSE_POINTER_ID)
+
+func _handle_scroll_touch(position: Vector2, pointer_id: int, pressed: bool) -> void:
+	if pressed:
+		if not _is_touch_inside_scroll(position) or not _can_scroll_content():
+			return
+		_scroll_pointer_active = true
+		_scroll_dragging = false
+		_scroll_pointer_id = pointer_id
+		_scroll_press_position = position
+		_scroll_origin = float(leaderboard_scroll.scroll_vertical)
+		return
+	if _scroll_pointer_active and _scroll_pointer_id == pointer_id:
+		if _scroll_dragging:
+			get_viewport().set_input_as_handled()
+		_reset_touch_scroll_state()
+
+func _handle_scroll_drag(position: Vector2, pointer_id: int) -> void:
+	if not _scroll_pointer_active or _scroll_pointer_id != pointer_id:
+		return
+	var drag_delta := position - _scroll_press_position
+	if not _scroll_dragging:
+		if abs(drag_delta.y) < TOUCH_SCROLL_DEADZONE:
+			return
+		if abs(drag_delta.y) < abs(drag_delta.x) * TOUCH_SCROLL_AXIS_BIAS:
+			return
+		_scroll_dragging = true
+	if _scroll_dragging:
+		var next_scroll := _scroll_origin - drag_delta.y
+		leaderboard_scroll.scroll_vertical = int(round(next_scroll))
+		get_viewport().set_input_as_handled()
+
+func _is_touch_inside_scroll(position: Vector2) -> bool:
+	return leaderboard_scroll.get_global_rect().has_point(position)
+
+func _can_scroll_content() -> bool:
+	var scroll_bar := leaderboard_scroll.get_v_scroll_bar()
+	return scroll_bar != null and scroll_bar.max_value > 0.0
+
+func _reset_touch_scroll_state() -> void:
+	_scroll_pointer_active = false
+	_scroll_dragging = false
+	_scroll_pointer_id = -1
+	_scroll_press_position = Vector2.ZERO
+	_scroll_origin = 0.0
 
 func _apply_panel_rect(rect: Rect2) -> void:
 	_apply_responsive_panel_rect(rect)

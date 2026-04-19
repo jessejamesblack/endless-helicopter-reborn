@@ -230,6 +230,10 @@ static func save_cached_name(name: String) -> void:
 	if file != null:
 		file.store_string(sanitize_name(name))
 
+static func clear_cached_name() -> void:
+	if FileAccess.file_exists(NAME_CACHE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(NAME_CACHE_PATH))
+
 static func load_cached_name() -> String:
 	if not FileAccess.file_exists(NAME_CACHE_PATH):
 		return ""

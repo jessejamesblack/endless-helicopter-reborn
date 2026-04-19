@@ -208,6 +208,45 @@ text = "Debug Channel"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="LocalNameSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LocalNameHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Local Leaderboard Name"
+
+[node name="CachedNameLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Cached leaderboard name: (not set)"
+autowrap_mode = 2
+
+[node name="NameButtonRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="UseQaNameButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/NameButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Use QATesting"
+
+[node name="ClearNameButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/NameButtonRow"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Clear Saved Name"
+
 [node name="FeedbackSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8

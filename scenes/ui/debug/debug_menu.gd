@@ -3,8 +3,12 @@ extends Control
 signal closed
 
 const BuildInfoScript = preload("res://systems/build_info.gd")
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const PANEL_DESIRED_SIZE := Vector2(980.0, 640.0)
 const PANEL_MARGIN := 18.0
+const TOUCH_SCROLL_DEADZONE := 10.0
+const TOUCH_SCROLL_AXIS_BIAS := 1.2
+const MOUSE_POINTER_ID := -1000
 
 @onready var panel: Panel = $Overlay/Panel
 @onready var panel_margin: MarginContainer = $Overlay/Panel/MarginContainer
@@ -23,6 +27,9 @@ const PANEL_MARGIN := 18.0
 @onready var screenshot_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/ScreenshotToggle
 @onready var release_channel_row: HBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/DebugReleaseChannelRow
 @onready var release_channel_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/DebugReleaseChannelRow/DebugReleaseChannelOption
+@onready var cached_name_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/CachedNameLabel
+@onready var use_qa_name_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/NameButtonRow/UseQaNameButton
+@onready var clear_name_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/LocalNameSection/NameButtonRow/ClearNameButton
 @onready var send_feedback_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/FeedbackSection/FeedbackButtonRow/SendFeedbackButton
 @onready var copy_bug_report_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/FeedbackSection/FeedbackButtonRow/CopyBugReportButton
 @onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/DebugColumns/SummaryCard/SummaryColumn/PushStatusLabel
@@ -49,6 +56,12 @@ const PANEL_MARGIN := 18.0
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
 @onready var feedback_screen = $FeedbackScreen
 
+var _scroll_pointer_active: bool = false
+var _scroll_dragging: bool = false
+var _scroll_pointer_id: int = -1
+var _scroll_press_position: Vector2 = Vector2.ZERO
+var _scroll_origin: float = 0.0
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
@@ -60,6 +73,8 @@ func _ready() -> void:
 	retry_push_button.pressed.connect(_on_retry_push_pressed)
 	screenshot_toggle.toggled.connect(_on_screenshot_toggle_toggled)
 	release_channel_option.item_selected.connect(_on_release_channel_selected)
+	use_qa_name_button.pressed.connect(_on_use_qa_name_pressed)
+	clear_name_button.pressed.connect(_on_clear_name_pressed)
 	send_feedback_button.pressed.connect(_on_send_feedback_pressed)
 	copy_bug_report_button.pressed.connect(_on_copy_bug_report_pressed)
 	close_button.pressed.connect(_on_close_pressed)
@@ -78,6 +93,7 @@ func _ready() -> void:
 
 	_refresh_support_state()
 	_update_push_status()
+	_configure_touch_scroll()
 
 func open_menu() -> void:
 	_fit_panel_to_viewport()
@@ -85,6 +101,7 @@ func open_menu() -> void:
 	_update_push_status()
 	if is_instance_valid(content_scroll):
 		content_scroll.scroll_vertical = 0
+	_reset_touch_scroll_state()
 	visible = true
 	close_button.grab_focus()
 
@@ -125,6 +142,7 @@ func _refresh_support_state() -> void:
 		str(BuildInfoScript.BUILD_SHA),
 		_get_effective_release_channel_label(),
 	]
+	_update_cached_name_label()
 	release_channel_row.visible = OS.is_debug_build()
 
 func _get_update_status_text() -> String:
@@ -161,6 +179,14 @@ func _on_release_channel_selected(index: int) -> void:
 func _on_send_feedback_pressed() -> void:
 	if feedback_screen != null and feedback_screen.has_method("open_menu"):
 		feedback_screen.open_menu()
+
+func _on_use_qa_name_pressed() -> void:
+	OnlineLeaderboardScript.save_cached_name("QATesting")
+	_update_cached_name_label()
+
+func _on_clear_name_pressed() -> void:
+	OnlineLeaderboardScript.clear_cached_name()
+	_update_cached_name_label()
 
 func _on_copy_bug_report_pressed() -> void:
 	var reporter = get_node_or_null("/root/ErrorReporter")
@@ -244,6 +270,68 @@ func _get_device_id_for_debug(push_notifications) -> String:
 func _on_close_pressed() -> void:
 	close_menu()
 
+func _input(event: InputEvent) -> void:
+	if not visible or not is_instance_valid(content_scroll):
+		return
+	if event is InputEventScreenTouch:
+		_handle_scroll_touch(event.position, event.index, event.pressed)
+		return
+	if event is InputEventScreenDrag:
+		_handle_scroll_drag(event.position, event.index)
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_scroll_touch(event.position, MOUSE_POINTER_ID, event.pressed)
+		return
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_handle_scroll_drag(event.position, MOUSE_POINTER_ID)
+
+func _configure_touch_scroll() -> void:
+	content_scroll.scroll_deadzone = int(TOUCH_SCROLL_DEADZONE)
+
+func _handle_scroll_touch(position: Vector2, pointer_id: int, pressed: bool) -> void:
+	if pressed:
+		if not _is_touch_inside_scroll(position) or not _can_scroll_content():
+			return
+		_scroll_pointer_active = true
+		_scroll_dragging = false
+		_scroll_pointer_id = pointer_id
+		_scroll_press_position = position
+		_scroll_origin = float(content_scroll.scroll_vertical)
+		return
+	if _scroll_pointer_active and _scroll_pointer_id == pointer_id:
+		if _scroll_dragging:
+			get_viewport().set_input_as_handled()
+		_reset_touch_scroll_state()
+
+func _handle_scroll_drag(position: Vector2, pointer_id: int) -> void:
+	if not _scroll_pointer_active or _scroll_pointer_id != pointer_id:
+		return
+	var drag_delta := position - _scroll_press_position
+	if not _scroll_dragging:
+		if abs(drag_delta.y) < TOUCH_SCROLL_DEADZONE:
+			return
+		if abs(drag_delta.y) < abs(drag_delta.x) * TOUCH_SCROLL_AXIS_BIAS:
+			return
+		_scroll_dragging = true
+	if _scroll_dragging:
+		var next_scroll := _scroll_origin - drag_delta.y
+		content_scroll.scroll_vertical = int(round(next_scroll))
+		get_viewport().set_input_as_handled()
+
+func _is_touch_inside_scroll(position: Vector2) -> bool:
+	return content_scroll.get_global_rect().has_point(position)
+
+func _can_scroll_content() -> bool:
+	var scroll_bar := content_scroll.get_v_scroll_bar()
+	return scroll_bar != null and scroll_bar.max_value > 0.0
+
+func _reset_touch_scroll_state() -> void:
+	_scroll_pointer_active = false
+	_scroll_dragging = false
+	_scroll_pointer_id = -1
+	_scroll_press_position = Vector2.ZERO
+	_scroll_origin = 0.0
+
 func _get_push_notifications():
 	return get_node_or_null("/root/PushNotifications")
 
@@ -324,6 +412,13 @@ func _apply_modal_density(target_size: Vector2) -> void:
 
 func _yes_no(value: bool) -> String:
 	return "yes" if value else "no"
+
+func _update_cached_name_label() -> void:
+	var cached_name := OnlineLeaderboardScript.load_cached_name()
+	if cached_name.is_empty():
+		cached_name_label.text = "Cached leaderboard name: (not set)"
+		return
+	cached_name_label.text = "Cached leaderboard name: %s" % cached_name
 
 func _get_debug_value_labels() -> Array[Label]:
 	return [

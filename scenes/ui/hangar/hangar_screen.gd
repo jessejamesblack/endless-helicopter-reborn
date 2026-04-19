@@ -4,12 +4,20 @@ const MISSION_SCREEN_SCENE_PATH := "res://scenes/ui/missions/mission_screen.tscn
 const TouchScrollButtonScript = preload("res://systems/touch_scroll_button.gd")
 const PREVIEW_CENTER := Vector2(152, 94)
 const PREVIEW_SCALE_MULTIPLIER := 2.55
-const TOUCH_SCROLL_DEADZONE := 6
+const TOUCH_SCROLL_DEADZONE := 10.0
+const TOUCH_SCROLL_AXIS_BIAS := 1.2
+const MOUSE_POINTER_ID := -1000
 const LIST_BUTTON_HEIGHT := 42.0
 const LIST_BUTTON_FONT_SIZE := 15
 
 var _selected_vehicle_id: String = "default_scout"
 var _selected_skin_id: String = "factory"
+var _active_scroll: ScrollContainer = null
+var _scroll_pointer_active: bool = false
+var _scroll_dragging: bool = false
+var _scroll_pointer_id: int = -1
+var _scroll_press_position: Vector2 = Vector2.ZERO
+var _scroll_origin: float = 0.0
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var subtitle_label: Label = $Panel/MarginContainer/VBoxContainer/SubtitleLabel
@@ -292,9 +300,72 @@ func _configure_touch_scroll() -> void:
 	for scroll in [vehicle_list_scroll, skin_list_scroll]:
 		if scroll == null:
 			continue
-		scroll.scroll_deadzone = TOUCH_SCROLL_DEADZONE
+		scroll.scroll_deadzone = int(TOUCH_SCROLL_DEADZONE)
 	vehicle_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	skin_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_handle_scroll_touch(event.position, event.index, event.pressed)
+		return
+	if event is InputEventScreenDrag:
+		_handle_scroll_drag(event.position, event.index)
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_scroll_touch(event.position, MOUSE_POINTER_ID, event.pressed)
+		return
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_handle_scroll_drag(event.position, MOUSE_POINTER_ID)
+
+func _handle_scroll_touch(position: Vector2, pointer_id: int, pressed: bool) -> void:
+	if pressed:
+		var touched_scroll := _get_scroll_at_position(position)
+		if touched_scroll == null or not _can_scroll_content(touched_scroll):
+			return
+		_active_scroll = touched_scroll
+		_scroll_pointer_active = true
+		_scroll_dragging = false
+		_scroll_pointer_id = pointer_id
+		_scroll_press_position = position
+		_scroll_origin = float(touched_scroll.scroll_vertical)
+		return
+	if _scroll_pointer_active and _scroll_pointer_id == pointer_id:
+		if _scroll_dragging:
+			get_viewport().set_input_as_handled()
+		_reset_touch_scroll_state()
+
+func _handle_scroll_drag(position: Vector2, pointer_id: int) -> void:
+	if not _scroll_pointer_active or _scroll_pointer_id != pointer_id or _active_scroll == null:
+		return
+	var drag_delta := position - _scroll_press_position
+	if not _scroll_dragging:
+		if abs(drag_delta.y) < TOUCH_SCROLL_DEADZONE:
+			return
+		if abs(drag_delta.y) < abs(drag_delta.x) * TOUCH_SCROLL_AXIS_BIAS:
+			return
+		_scroll_dragging = true
+	if _scroll_dragging:
+		var next_scroll := _scroll_origin - drag_delta.y
+		_active_scroll.scroll_vertical = int(round(next_scroll))
+		get_viewport().set_input_as_handled()
+
+func _get_scroll_at_position(position: Vector2) -> ScrollContainer:
+	for scroll in [vehicle_list_scroll, skin_list_scroll]:
+		if scroll != null and scroll.get_global_rect().has_point(position):
+			return scroll
+	return null
+
+func _can_scroll_content(scroll: ScrollContainer) -> bool:
+	var scroll_bar := scroll.get_v_scroll_bar()
+	return scroll_bar != null and scroll_bar.max_value > 0.0
+
+func _reset_touch_scroll_state() -> void:
+	_active_scroll = null
+	_scroll_pointer_active = false
+	_scroll_dragging = false
+	_scroll_pointer_id = -1
+	_scroll_press_position = Vector2.ZERO
+	_scroll_origin = 0.0
 
 func get_preview_state() -> Dictionary:
 	return {

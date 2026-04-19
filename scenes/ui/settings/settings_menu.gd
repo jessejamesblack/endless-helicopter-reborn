@@ -6,6 +6,9 @@ const SIDE_LEFT := "left"
 const SIDE_RIGHT := "right"
 const PANEL_DESIRED_SIZE := Vector2(920.0, 560.0)
 const PANEL_MARGIN := 18.0
+const TOUCH_SCROLL_DEADZONE := 10.0
+const TOUCH_SCROLL_AXIS_BIAS := 1.2
+const MOUSE_POINTER_ID := -1000
 
 @onready var panel: Panel = $Overlay/Panel
 @onready var title_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/TitleLabel
@@ -31,6 +34,13 @@ const PANEL_MARGIN := 18.0
 @onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/PushSection/PushStatusLabel
 @onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/PushSection/EnablePushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
+
+var _scroll_pointer_active: bool = false
+var _scroll_dragging: bool = false
+var _scroll_pointer_id: int = -1
+var _scroll_press_position: Vector2 = Vector2.ZERO
+var _scroll_last_position: Vector2 = Vector2.ZERO
+var _scroll_origin: float = 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -63,12 +73,14 @@ func _ready() -> void:
 			player_profile.connect("profile_changed", profile_callback)
 
 	_sync_from_settings()
+	_configure_touch_scroll()
 
 func open_menu() -> void:
 	_fit_panel_to_viewport()
 	_sync_from_settings()
 	if is_instance_valid(content_scroll):
 		content_scroll.scroll_vertical = 0
+	_reset_touch_scroll_state()
 	visible = true
 	close_button.grab_focus()
 
@@ -275,6 +287,71 @@ func _get_push_diagnostics() -> Dictionary:
 
 func _on_close_pressed() -> void:
 	close_menu()
+
+func _input(event: InputEvent) -> void:
+	if not visible or not is_instance_valid(content_scroll):
+		return
+	if event is InputEventScreenTouch:
+		_handle_scroll_touch(event.position, event.index, event.pressed)
+		return
+	if event is InputEventScreenDrag:
+		_handle_scroll_drag(event.position, event.index)
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_scroll_touch(event.position, MOUSE_POINTER_ID, event.pressed)
+		return
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_handle_scroll_drag(event.position, MOUSE_POINTER_ID)
+
+func _configure_touch_scroll() -> void:
+	content_scroll.scroll_deadzone = int(TOUCH_SCROLL_DEADZONE)
+
+func _handle_scroll_touch(position: Vector2, pointer_id: int, pressed: bool) -> void:
+	if pressed:
+		if not _is_touch_inside_scroll(position) or not _can_scroll_content():
+			return
+		_scroll_pointer_active = true
+		_scroll_dragging = false
+		_scroll_pointer_id = pointer_id
+		_scroll_press_position = position
+		_scroll_last_position = position
+		_scroll_origin = float(content_scroll.scroll_vertical)
+		return
+	if _scroll_pointer_active and _scroll_pointer_id == pointer_id:
+		if _scroll_dragging:
+			get_viewport().set_input_as_handled()
+		_reset_touch_scroll_state()
+
+func _handle_scroll_drag(position: Vector2, pointer_id: int) -> void:
+	if not _scroll_pointer_active or _scroll_pointer_id != pointer_id:
+		return
+	var drag_delta := position - _scroll_press_position
+	if not _scroll_dragging:
+		if abs(drag_delta.y) < TOUCH_SCROLL_DEADZONE:
+			return
+		if abs(drag_delta.y) < abs(drag_delta.x) * TOUCH_SCROLL_AXIS_BIAS:
+			return
+		_scroll_dragging = true
+	if _scroll_dragging:
+		var next_scroll := _scroll_origin - drag_delta.y
+		content_scroll.scroll_vertical = int(round(next_scroll))
+		_scroll_last_position = position
+		get_viewport().set_input_as_handled()
+
+func _is_touch_inside_scroll(position: Vector2) -> bool:
+	return content_scroll.get_global_rect().has_point(position)
+
+func _can_scroll_content() -> bool:
+	var scroll_bar := content_scroll.get_v_scroll_bar()
+	return scroll_bar != null and scroll_bar.max_value > 0.0
+
+func _reset_touch_scroll_state() -> void:
+	_scroll_pointer_active = false
+	_scroll_dragging = false
+	_scroll_pointer_id = -1
+	_scroll_press_position = Vector2.ZERO
+	_scroll_last_position = Vector2.ZERO
+	_scroll_origin = 0.0
 
 func _get_game_settings():
 	return get_node_or_null("/root/GameSettings")
