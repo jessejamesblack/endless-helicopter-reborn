@@ -535,29 +535,11 @@ max_length = 96
 
 [node name="SetupActionRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox"]
 layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="RestoreUnlocksButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
-theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
-theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
-theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
-theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 18
-theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "Restore Unlocks"
 
 [node name="SetupBackButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
 theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)

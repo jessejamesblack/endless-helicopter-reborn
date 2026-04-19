@@ -247,6 +247,39 @@ horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 text = "100%"
 
+[node name="ProgressSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ProgressHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_font_sizes/font_size = 20
+text = "Progress"
+
+[node name="RestoreProgressButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Restore Progress"
+
+[node name="RestoreProgressStatusLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Current Player ID: (not ready yet)\nTap Restore Progress to check cloud saves."
+vertical_alignment = 0
+autowrap_mode = 2
+
 [node name="SystemCard" type="PanelContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns"]
 layout_mode = 2
 size_flags_horizontal = 3

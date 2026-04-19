@@ -2,6 +2,7 @@ extends Control
 
 signal closed
 
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const SIDE_LEFT := "left"
 const SIDE_RIGHT := "right"
 const PANEL_DESIRED_SIZE := Vector2(920.0, 560.0)
@@ -23,6 +24,8 @@ const MOUSE_POINTER_ID := -1000
 @onready var music_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/MusicRow/MusicValueRow/MusicValueLabel
 @onready var sfx_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/SfxRow/SfxValueRow/SfxSlider
 @onready var sfx_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/SfxRow/SfxValueRow/SfxValueLabel
+@onready var restore_progress_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/RestoreProgressButton
+@onready var restore_progress_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection/RestoreProgressStatusLabel
 @onready var system_card: PanelContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard
 @onready var system_column: VBoxContainer = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn
 @onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/SystemCard/SystemColumn/FireSideRow/FireSideOption
@@ -41,6 +44,7 @@ var _scroll_pointer_id: int = -1
 var _scroll_press_position: Vector2 = Vector2.ZERO
 var _scroll_last_position: Vector2 = Vector2.ZERO
 var _scroll_origin: float = 0.0
+var _restore_progress_in_flight: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -57,6 +61,7 @@ func _ready() -> void:
 	haptics_toggle.toggled.connect(_on_haptics_toggled)
 	haptics_intensity_slider.value_changed.connect(_on_haptics_intensity_changed)
 	frame_rate_option.item_selected.connect(_on_frame_rate_selected)
+	restore_progress_button.pressed.connect(_on_restore_progress_pressed)
 	enable_push_button.pressed.connect(_on_enable_push_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
@@ -144,6 +149,7 @@ func _sync_from_settings() -> void:
 	_update_layout_labels()
 	_update_haptics_labels()
 	_update_push_status()
+	_refresh_restore_progress_section()
 
 func _update_audio_labels() -> void:
 	master_value_label.text = "%d%%" % int(round(master_slider.value * 100.0))
@@ -209,6 +215,9 @@ func _on_frame_rate_selected(index: int) -> void:
 	if game_settings != null:
 		game_settings.set_frame_rate_setting(setting)
 
+func _on_restore_progress_pressed() -> void:
+	call_deferred("_restore_progress_async")
+
 func _on_enable_push_pressed() -> void:
 	var player_profile = _get_player_profile()
 	if player_profile == null or not player_profile.has_method("are_daily_reminders_enabled") or not player_profile.has_method("set_daily_reminders_enabled"):
@@ -243,6 +252,7 @@ func _on_push_diagnostics_changed(_status: Dictionary) -> void:
 
 func _on_profile_changed(_summary: Dictionary) -> void:
 	_update_push_status()
+	_refresh_restore_progress_section()
 
 func _update_push_status() -> void:
 	var player_profile = _get_player_profile()
@@ -361,6 +371,62 @@ func _get_push_notifications():
 
 func _get_player_profile():
 	return get_node_or_null("/root/PlayerProfile")
+
+func _get_sync_queue():
+	return get_node_or_null("/root/SupabaseSyncQueue")
+
+func _refresh_restore_progress_section(message: String = "") -> void:
+	if not is_instance_valid(restore_progress_button) or not is_instance_valid(restore_progress_status_label):
+		return
+	restore_progress_button.disabled = _restore_progress_in_flight
+	restore_progress_button.text = "Restoring..." if _restore_progress_in_flight else "Restore Progress"
+	if not message.is_empty():
+		restore_progress_status_label.text = message
+		return
+	var player_id := OnlineLeaderboardScript.get_player_id_for_display()
+	var source_hint := "Uses the current player ID."
+	if OnlineLeaderboardScript.has_manual_player_id_override():
+		source_hint = "Using a pasted player ID."
+	restore_progress_status_label.text = "Current Player ID: %s\n%s Tap Restore Progress to check cloud saves. Use Leaderboard if you need a different player ID." % [
+		player_id,
+		source_hint,
+	]
+
+func _restore_progress_async() -> void:
+	if _restore_progress_in_flight:
+		return
+	if not OnlineLeaderboardScript.is_configured():
+		_refresh_restore_progress_section("Online restore is not configured in this build.")
+		return
+	var player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
+	if player_id.is_empty():
+		_refresh_restore_progress_section("No player ID is ready yet. Open Leaderboard to paste an existing player ID.")
+		return
+	var sync_queue = _get_sync_queue()
+	if sync_queue == null:
+		_refresh_restore_progress_section("Restore service is not available right now.")
+		return
+	_restore_progress_in_flight = true
+	_refresh_restore_progress_section("Checking cloud saves for player ID %s..." % player_id)
+	var restore_result := {
+		"ok": false,
+		"profile_restored": false,
+		"mission_restored": false,
+		"error_message": "Could not restore progress right now.",
+	}
+	if sync_queue.has_method("pull_remote_profile_state_async"):
+		restore_result = await sync_queue.pull_remote_profile_state_async()
+	elif sync_queue.has_method("pull_remote_profile_state"):
+		sync_queue.pull_remote_profile_state()
+		restore_result["ok"] = true
+	_restore_progress_in_flight = false
+	if not bool(restore_result.get("ok", false)):
+		_refresh_restore_progress_section(str(restore_result.get("error_message", "Could not restore progress right now.")))
+		return
+	if bool(restore_result.get("profile_restored", false)) or bool(restore_result.get("mission_restored", false)):
+		_refresh_restore_progress_section("Progress restored from cloud for player ID %s." % player_id)
+		return
+	_refresh_restore_progress_section("No saved progress was found for player ID %s. Use Leaderboard if you need to paste a different player ID." % player_id)
 
 func _fit_panel_to_viewport() -> void:
 	if not is_instance_valid(panel):

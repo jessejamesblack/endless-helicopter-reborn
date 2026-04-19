@@ -115,7 +115,6 @@ func _validate_setup_mode(viewport_size: Vector2i) -> void:
 	_assert_visible((screen.get("setup_card") as Control).visible, "Setup card should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("name_entry") as Control).visible, "Name entry should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("player_id_entry") as Control).visible, "Player ID entry should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
-	_assert_visible((screen.get("restore_unlocks_button") as Control).visible, "Restore Unlocks should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("setup_back_button") as Control).visible, "Setup back button should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("save_button") as Control).visible, "Save button should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_within_panel(screen, "setup", viewport_size)
