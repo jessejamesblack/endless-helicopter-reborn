@@ -787,8 +787,11 @@ func _prepare_player_id_for_online_actions(allow_current_player_id: bool) -> boo
 			set_status(str(validation.get("error", "Enter a valid player ID.")))
 			return false
 		var validated_player_id := str(validation.get("player_id", ""))
+		var active_player_id_before_restore := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
 		var previous_player_id := OnlineLeaderboardScript.load_manual_player_id_override()
 		player_id_entry.text = validated_player_id
+		if validated_player_id != active_player_id_before_restore:
+			_clear_pending_sync_jobs()
 		OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
 		_refresh_player_id_ui()
 		var should_check_restore := true
@@ -809,9 +812,9 @@ func _prepare_player_id_for_online_actions(allow_current_player_id: bool) -> boo
 				"error_message": "Could not check that player ID right now.",
 			}
 			if sync_queue.has_method("pull_remote_profile_state_async"):
-				restore_result = await sync_queue.pull_remote_profile_state_async()
+				restore_result = await sync_queue.pull_remote_profile_state_async(true)
 			elif sync_queue.has_method("pull_remote_profile_state"):
-				sync_queue.pull_remote_profile_state()
+				sync_queue.pull_remote_profile_state(true)
 				restore_result["ok"] = true
 			is_restoring_profile = false
 			if not bool(restore_result.get("ok", false)):
@@ -847,6 +850,11 @@ func _apply_responsive_panel_rect(rect: Rect2) -> void:
 	panel.offset_top = -target_size.y * 0.5
 	panel.offset_right = target_size.x * 0.5
 	panel.offset_bottom = target_size.y * 0.5
+
+func _clear_pending_sync_jobs() -> void:
+	var sync_queue := _get_sync_queue()
+	if sync_queue != null and sync_queue.has_method("clear_pending_jobs"):
+		sync_queue.clear_pending_jobs()
 
 func _on_viewport_size_changed() -> void:
 	_apply_responsive_panel_rect(_get_active_panel_rect())

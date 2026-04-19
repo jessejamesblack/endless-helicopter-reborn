@@ -198,6 +198,14 @@ func merge_remote_daily_progress(summary: Dictionary) -> bool:
 	_emit_missions_changed()
 	return true
 
+func replace_remote_daily_progress(summary: Dictionary) -> bool:
+	refresh_daily_missions()
+	return _replace_daily_progress_with_summary(summary)
+
+func reset_current_daily_progress() -> bool:
+	refresh_daily_missions()
+	return _replace_daily_progress_with_summary({})
+
 func get_next_unlock_progress() -> Dictionary:
 	var profile: Node = _get_player_profile()
 	var total_completed: int = profile.get_total_daily_missions_completed() if profile != null else 0
@@ -358,6 +366,24 @@ func _queue_daily_sync() -> void:
 
 func _emit_missions_changed() -> void:
 	missions_changed.emit(get_daily_progress_summary())
+
+func _replace_daily_progress_with_summary(summary: Dictionary) -> bool:
+	var previous_summary_json := JSON.stringify(get_daily_sync_summary())
+	var replacement_missions := build_daily_missions_for_key(_today_key)
+	var mission_date := str(summary.get("mission_date", ""))
+	var remote_missions_variant = summary.get("missions", [])
+	if mission_date == _today_key and remote_missions_variant is Array:
+		var sanitized_remote := _sanitize_missions(remote_missions_variant, _today_key)
+		if sanitized_remote.size() == 3:
+			replacement_missions = sanitized_remote
+	_missions = replacement_missions
+	_recent_run_result = {}
+	var changed := previous_summary_json != JSON.stringify(get_daily_sync_summary())
+	if not changed:
+		return false
+	_save_state()
+	_emit_missions_changed()
+	return true
 
 func _get_player_profile():
 	return get_node_or_null("/root/PlayerProfile")

@@ -347,6 +347,37 @@ func get_profile_summary() -> Dictionary:
 func merge_remote_profile(summary: Dictionary) -> bool:
 	return apply_remote_profile_summary(summary)
 
+func replace_remote_profile(summary: Dictionary) -> bool:
+	if summary.is_empty():
+		return false
+	var previous_summary_json := JSON.stringify(get_profile_sync_summary())
+	var previous_bonus_access := _leaderboard_bonus_vehicle_access
+	_unlocked_vehicles = _sanitize_vehicle_ids(summary.get("unlocked_vehicles", summary.get("unlocked_skins", [DEFAULT_VEHICLE_ID])))
+	_equipped_vehicle_id = _resolve_vehicle_id(str(summary.get("equipped_vehicle_id", summary.get("equipped_skin_id", DEFAULT_VEHICLE_ID))))
+	_unlocked_vehicle_skins = _sanitize_vehicle_skin_unlocks(summary.get("unlocked_vehicle_skins", {}))
+	_equipped_vehicle_skins = _sanitize_equipped_vehicle_skins(summary.get("equipped_vehicle_skins", {}))
+	_vehicle_skin_progress = _sanitize_vehicle_skin_progress(summary.get("vehicle_skin_progress", {}))
+	_global_skin_unlocks = _sanitize_string_array(summary.get("global_skin_unlocks", []))
+	_best_score_milestones = _sanitize_bool_dictionary(summary.get("best_score_milestones", {SCORE_MILESTONE_ORIGINAL_ICON: false}))
+	_seen_vehicle_lore = _sanitize_string_array(summary.get("seen_vehicle_lore", []))
+	_seen_skin_lore = _sanitize_string_array(summary.get("seen_skin_lore", []))
+	_vehicle_catalog_version_seen = maxi(int(summary.get("vehicle_catalog_version", 1)), 1)
+	_total_daily_missions_completed = maxi(int(summary.get("total_daily_missions_completed", 0)), 0)
+	_daily_streak = maxi(int(summary.get("daily_streak", 0)), 0)
+	_last_completed_daily_date = str(summary.get("last_completed_daily_date", ""))
+	_missions_intro_seen = bool(summary.get("missions_intro_seen", false))
+	_daily_reminders_enabled = bool(summary.get("daily_reminders_enabled", true))
+	_leaderboard_bonus_vehicle_access = false
+	_validate_profile_state()
+	var changed := previous_summary_json != JSON.stringify(get_profile_sync_summary()) or previous_bonus_access != _leaderboard_bonus_vehicle_access
+	if not changed:
+		return false
+	save_profile()
+	_emit_profile_changed()
+	if not validation_mode_enabled and OnlineLeaderboardScript.is_configured():
+		call_deferred("refresh_top_player_skin_access")
+	return true
+
 func apply_remote_profile_summary(summary: Dictionary) -> bool:
 	var remote_unlocked_vehicles := _sanitize_vehicle_ids(summary.get("unlocked_vehicles", summary.get("unlocked_skins", _unlocked_vehicles)))
 	var merged_unlocked_vehicles := _unlocked_vehicles.duplicate()

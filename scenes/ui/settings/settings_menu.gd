@@ -225,13 +225,28 @@ func _on_restore_progress_pressed() -> void:
 	call_deferred("_restore_progress_async")
 
 func _on_clear_restore_player_id_pressed() -> void:
-	OnlineLeaderboardScript.clear_manual_player_id_override()
-	if is_instance_valid(restore_player_id_entry):
-		restore_player_id_entry.text = ""
-	_refresh_restore_progress_section("Using this device's current player ID again.")
+	call_deferred("_restore_with_device_player_id_async")
 
 func _on_restore_player_id_text_submitted(_text: String) -> void:
 	call_deferred("_restore_progress_async")
+
+func _restore_with_device_player_id_async() -> void:
+	if _restore_progress_in_flight:
+		return
+	_clear_pending_sync_jobs()
+	OnlineLeaderboardScript.clear_manual_player_id_override()
+	if is_instance_valid(restore_player_id_entry):
+		restore_player_id_entry.text = ""
+	var current_player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
+	var current_player_id_source := OnlineLeaderboardScript.get_player_identity_source()
+	if current_player_id.is_empty():
+		_refresh_restore_progress_section("This phone's player ID is not ready yet. Try again in a moment.")
+		return
+	_refresh_restore_progress_section("Switched back to this device's player ID %s (%s). Restoring cloud progress..." % [
+		current_player_id,
+		current_player_id_source,
+	])
+	await _restore_progress_async()
 
 func _on_enable_push_pressed() -> void:
 	var player_profile = _get_player_profile()
@@ -403,6 +418,7 @@ func _refresh_restore_progress_section(message: String = "") -> void:
 		restore_progress_status_label.text = message
 		return
 	var player_id := OnlineLeaderboardScript.get_player_id_for_display()
+	var player_id_source := OnlineLeaderboardScript.get_player_identity_source()
 	var entered_player_id := ""
 	if is_instance_valid(restore_player_id_entry):
 		entered_player_id = restore_player_id_entry.text.strip_edges()
@@ -411,8 +427,9 @@ func _refresh_restore_progress_section(message: String = "") -> void:
 		source_hint = "Restore will use the pasted player ID above."
 	elif OnlineLeaderboardScript.has_manual_player_id_override():
 		source_hint = "Using a pasted player ID."
-	restore_progress_status_label.text = "Current Player ID: %s\n%s Paste a player ID from support if restore doesn't work on its own, then tap Restore Progress." % [
+	restore_progress_status_label.text = "Current Player ID: %s\nPlayer ID Source: %s\n%s Paste a player ID from support if restore doesn't work on its own, then tap Restore Progress." % [
 		player_id,
+		player_id_source,
 		source_hint,
 	]
 
@@ -422,6 +439,7 @@ func _restore_progress_async() -> void:
 	if not OnlineLeaderboardScript.is_configured():
 		_refresh_restore_progress_section("Online restore is not configured in this build.")
 		return
+	var active_player_id_before_restore := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
 	var entered_player_id := ""
 	if is_instance_valid(restore_player_id_entry):
 		entered_player_id = restore_player_id_entry.text.strip_edges()
@@ -431,6 +449,8 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section(str(validation.get("error", "Enter a valid player ID.")))
 			return
 		var validated_player_id := str(validation.get("player_id", ""))
+		if validated_player_id != active_player_id_before_restore:
+			_clear_pending_sync_jobs()
 		OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
 		restore_player_id_entry.text = validated_player_id
 	var player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
@@ -450,18 +470,31 @@ func _restore_progress_async() -> void:
 		"error_message": "Could not restore progress right now.",
 	}
 	if sync_queue.has_method("pull_remote_profile_state_async"):
-		restore_result = await sync_queue.pull_remote_profile_state_async()
+		restore_result = await sync_queue.pull_remote_profile_state_async(true)
 	elif sync_queue.has_method("pull_remote_profile_state"):
-		sync_queue.pull_remote_profile_state()
+		sync_queue.pull_remote_profile_state(true)
 		restore_result["ok"] = true
 	_restore_progress_in_flight = false
 	if not bool(restore_result.get("ok", false)):
 		_refresh_restore_progress_section(str(restore_result.get("error_message", "Could not restore progress right now.")))
 		return
-	if bool(restore_result.get("profile_restored", false)) or bool(restore_result.get("mission_restored", false)):
-		_refresh_restore_progress_section("Progress restored from cloud for player ID %s." % player_id)
+	var profile_restored := bool(restore_result.get("profile_restored", false))
+	var mission_restored := bool(restore_result.get("mission_restored", false))
+	if profile_restored and mission_restored:
+		_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s." % player_id)
+		return
+	if profile_restored:
+		_refresh_restore_progress_section("Profile restored from cloud for player ID %s." % player_id)
+		return
+	if mission_restored:
+		_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but no saved profile was found." % player_id)
 		return
 	_refresh_restore_progress_section("No saved progress was found for player ID %s. Double-check the pasted player ID with support and try again." % player_id)
+
+func _clear_pending_sync_jobs() -> void:
+	var sync_queue = _get_sync_queue()
+	if sync_queue != null and sync_queue.has_method("clear_pending_jobs"):
+		sync_queue.clear_pending_jobs()
 
 func _fit_panel_to_viewport() -> void:
 	if not is_instance_valid(panel):

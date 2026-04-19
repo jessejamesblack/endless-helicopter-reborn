@@ -190,6 +190,7 @@ func _on_use_qa_name_pressed() -> void:
 	call_deferred("_apply_qa_profile_async")
 
 func _on_clear_name_pressed() -> void:
+	_clear_pending_sync_jobs()
 	OnlineLeaderboardScript.clear_cached_name()
 	OnlineLeaderboardScript.clear_manual_player_id_override()
 	_cached_name_status_message = ""
@@ -462,6 +463,9 @@ func _apply_qa_profile_async() -> void:
 		_update_cached_name_label()
 		return
 
+	var active_player_id_before_restore := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
+	if resolved_player_id != active_player_id_before_restore:
+		_clear_pending_sync_jobs()
 	OnlineLeaderboardScript.save_cached_name(QA_TESTING_NAME)
 	OnlineLeaderboardScript.save_manual_player_id_override(resolved_player_id)
 	_cached_name_status_message = "QATesting applied with player ID %s. Restoring cloud progress..." % resolved_player_id
@@ -470,7 +474,7 @@ func _apply_qa_profile_async() -> void:
 
 	var sync_queue = get_node_or_null("/root/SupabaseSyncQueue")
 	if sync_queue != null and sync_queue.has_method("pull_remote_profile_state_async"):
-		var restore_result: Dictionary = await sync_queue.pull_remote_profile_state_async()
+		var restore_result: Dictionary = await sync_queue.pull_remote_profile_state_async(true)
 		if not bool(restore_result.get("ok", false)):
 			_cached_name_status_message = "QATesting applied, but cloud restore failed: %s" % str(restore_result.get("error_message", "unknown error"))
 		elif bool(restore_result.get("profile_restored", false)) or bool(restore_result.get("mission_restored", false)):
@@ -576,6 +580,11 @@ func _is_success_response(response: Dictionary) -> bool:
 	return int(response.get("result", HTTPRequest.RESULT_CANT_CONNECT)) == HTTPRequest.RESULT_SUCCESS \
 		and int(response.get("response_code", 0)) >= 200 \
 		and int(response.get("response_code", 0)) < 300
+
+func _clear_pending_sync_jobs() -> void:
+	var sync_queue = get_node_or_null("/root/SupabaseSyncQueue")
+	if sync_queue != null and sync_queue.has_method("clear_pending_jobs"):
+		sync_queue.clear_pending_jobs()
 
 func _get_debug_value_labels() -> Array[Label]:
 	return [

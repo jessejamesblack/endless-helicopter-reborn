@@ -71,11 +71,11 @@ func flush() -> void:
 		return
 	call_deferred("_flush_async")
 
-func pull_remote_profile_state() -> void:
-	call_deferred("_pull_remote_state")
+func pull_remote_profile_state(replace_existing_state: bool = false) -> void:
+	call_deferred("_pull_remote_state", replace_existing_state)
 
-func pull_remote_profile_state_async() -> Dictionary:
-	return await _pull_remote_state()
+func pull_remote_profile_state_async(replace_existing_state: bool = false) -> Dictionary:
+	return await _pull_remote_state(replace_existing_state)
 
 func get_pending_count() -> int:
 	return _jobs.size()
@@ -102,7 +102,7 @@ func _run_startup_sync() -> void:
 		_schedule_identity_retry()
 	_startup_sync_in_progress = false
 
-func _pull_remote_state() -> Dictionary:
+func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 	var outcome := {
 		"ok": false,
 		"profile_restored": false,
@@ -127,8 +127,11 @@ func _pull_remote_state() -> Dictionary:
 			var remote_profile := OnlineLeaderboardScript.parse_profile_sync_result(profile_response.body)
 			var player_profile := get_node_or_null("/root/PlayerProfile")
 			outcome["profile_restored"] = not remote_profile.is_empty()
-			if player_profile != null and player_profile.has_method("merge_remote_profile"):
-				player_profile.merge_remote_profile(remote_profile)
+			if outcome["profile_restored"]:
+				if replace_existing_state and player_profile != null and player_profile.has_method("replace_remote_profile"):
+					player_profile.replace_remote_profile(remote_profile)
+				elif player_profile != null and player_profile.has_method("merge_remote_profile"):
+					player_profile.merge_remote_profile(remote_profile)
 		else:
 			_get_profile_available = not _should_disable_rpc(profile_response, "get_player_profile")
 
@@ -138,11 +141,23 @@ func _pull_remote_state() -> Dictionary:
 			var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
 			var mission_manager := get_node_or_null("/root/MissionManager")
 			outcome["mission_restored"] = not remote_progress.is_empty()
-			if mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
+			if replace_existing_state and bool(outcome.get("profile_restored", false)):
+				if outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
+					mission_manager.replace_remote_daily_progress(remote_progress)
+				elif not outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
+					mission_manager.reset_current_daily_progress()
+			elif mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
 				mission_manager.merge_remote_daily_progress(remote_progress)
 		else:
 			_get_daily_available = not _should_disable_rpc(mission_response, "get_daily_mission_progress")
 	return outcome
+
+func clear_pending_jobs() -> void:
+	if _jobs.is_empty():
+		return
+	_jobs.clear()
+	_save_queue()
+	_emit_queue_changed()
 
 func _flush_async() -> void:
 	if _is_flushing or not OnlineLeaderboardScript.is_configured():
