@@ -42,7 +42,7 @@ const SKINS := {
 		"scale": Vector2(0.0365, 0.0365),
 		"offset": Vector2(0.0, -3.0),
 		"flip_h": true,
-		"use_background_key": true,
+		"use_background_key": false,
 		"unlock_type": "missions",
 		"collision_points": [
 			Vector2(-34, -14),
@@ -69,7 +69,7 @@ const SKINS := {
 		"scale": Vector2(0.0355, 0.0355),
 		"offset": Vector2(0.0, -3.2),
 		"flip_h": true,
-		"use_background_key": true,
+		"use_background_key": false,
 		"unlock_type": "missions",
 		"collision_points": [
 			Vector2(-46, -18),
@@ -97,7 +97,7 @@ const SKINS := {
 		"scale": Vector2(0.0298, 0.0298),
 		"offset": Vector2(0.0, -3.4),
 		"flip_h": true,
-		"use_background_key": true,
+		"use_background_key": false,
 		"unlock_type": "missions",
 		"collision_points": [
 			Vector2(-52, -18),
@@ -125,7 +125,7 @@ const SKINS := {
 		"scale": Vector2(0.0355, 0.0355),
 		"offset": Vector2(0.0, -3.1),
 		"flip_h": true,
-		"use_background_key": true,
+		"use_background_key": false,
 		"unlock_type": "missions",
 		"collision_points": [
 			Vector2(-48, -18),
@@ -153,7 +153,7 @@ const SKINS := {
 		"scale": Vector2(0.0295, 0.0295),
 		"offset": Vector2(0.0, -3.5),
 		"flip_h": true,
-		"use_background_key": true,
+		"use_background_key": false,
 		"unlock_type": "missions",
 		"collision_points": [
 			Vector2(-60, -18),
@@ -182,7 +182,7 @@ const SKINS := {
 		"scale": Vector2(0.0405, 0.0405),
 		"offset": Vector2(0.0, -3.2),
 		"flip_h": true,
-		"use_background_key": true,
+		"use_background_key": false,
 		"unlock_type": "leaderboard_top",
 		"collision_points": [
 			Vector2(-58, -18),

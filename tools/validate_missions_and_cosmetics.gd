@@ -112,11 +112,49 @@ func _validate_skin_library() -> void:
 			var polygon: PackedVector2Array = helicopter_skins.get_collision_polygon(skin_id)
 			_assert(not polygon.is_empty(), "Skin collision polygon should exist for %s." % skin_id)
 
+	_validate_imported_skin_transparency(helicopter_skins)
+
 	if helicopter_skins.has_method("get_unlocks_for_completed_missions"):
 		_assert(not (helicopter_skins.get_unlocks_for_completed_missions(999) as Array).has("pottercar"), "Mission unlock helpers should exclude Pottercar.")
 	if helicopter_skins.has_method("get_next_locked_skin"):
 		var next_unlock: Dictionary = helicopter_skins.get_next_locked_skin(999)
 		_assert(str(next_unlock.get("skin_id", "")) != "pottercar", "Next mission unlock should never be Pottercar.")
+
+func _validate_imported_skin_transparency(helicopter_skins: Node) -> void:
+	var probe_points := {
+		"bubble_chopper": [Vector2i(170, 225), Vector2i(2359, 1459)],
+		"huey_runner": [Vector2i(120, 225), Vector2i(2359, 1484)],
+		"blackhawk_shadow": [Vector2i(110, 95), Vector2i(2789, 1274)],
+		"apache_strike": [Vector2i(250, 300), Vector2i(2200, 1350)],
+		"chinook_lift": [Vector2i(250, 150), Vector2i(2300, 1150)],
+		"pottercar": [Vector2i(400, 290), Vector2i(2359, 1529)],
+	}
+
+	for skin_id in probe_points.keys():
+		var texture_path := str(helicopter_skins.get_texture_path(skin_id))
+		var png_bytes := FileAccess.get_file_as_bytes(texture_path)
+		_assert(not png_bytes.is_empty(), "Imported skin bytes should be readable for %s." % skin_id)
+		if png_bytes.is_empty():
+			continue
+
+		var image := Image.new()
+		var load_error := image.load_png_from_buffer(png_bytes)
+		_assert(load_error == OK, "Imported skin PNG should load for %s." % skin_id)
+		if load_error != OK:
+			continue
+
+		var points: Array = probe_points[skin_id]
+		for point_variant in points:
+			var point := point_variant as Vector2i
+			_assert(
+				point.x >= 0 and point.y >= 0 and point.x < image.get_width() and point.y < image.get_height(),
+				"Imported skin probe point should be inside image bounds for %s." % skin_id
+			)
+			if point.x < 0 or point.y < 0 or point.x >= image.get_width() or point.y >= image.get_height():
+				continue
+
+			var pixel := image.get_pixelv(point)
+			_assert(pixel.a < 0.05, "Imported skin matte should be transparent near the crop edge for %s." % skin_id)
 
 func _validate_profile_defaults_and_fallbacks() -> void:
 	var player_profile: Node = _get_autoload("PlayerProfile")
