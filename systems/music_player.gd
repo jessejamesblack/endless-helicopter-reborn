@@ -90,9 +90,9 @@ func _load_looping_stream(resource_path: String) -> AudioStream:
 
 	var wav_stream := stream as AudioStreamWAV
 	if wav_stream != null:
-		wav_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav_stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
 		wav_stream.loop_begin = 0
-		wav_stream.loop_end = 0
+		wav_stream.loop_end = -1
 
 	var mp3_stream := stream as AudioStreamMP3
 	if mp3_stream != null:

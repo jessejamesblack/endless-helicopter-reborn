@@ -67,7 +67,9 @@ func _ready() -> void:
     var background_manager = get_node_or_null("Background")
     if music_player != null:
         if background_manager != null and background_manager.has_method("get_current_biome_id") and music_player.has_method("play_biome_music"):
-            music_player.play_biome_music(background_manager.get_current_biome_id())
+            var current_biome_id := str(background_manager.get_current_biome_id())
+            if not current_biome_id.is_empty():
+                music_player.play_biome_music(current_biome_id)
         elif music_player.has_method("play_gameplay_music"):
             music_player.play_gameplay_music()
 

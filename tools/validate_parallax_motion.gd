@@ -17,4 +17,7 @@ func _run_validation() -> void:
 	var manager_text := Helper.read_text("res://scenes/background/background_manager.gd")
 	Helper.assert_condition(_failures, manager_text.contains("_accent_layer"), "BackgroundManager should build an accent layer.")
 	Helper.assert_condition(_failures, manager_text.contains("_get_intensity_scale"), "BackgroundManager should scale background motion with intensity.")
+	Helper.assert_condition(_failures, manager_text.contains("_biome_travel_progress"), "BackgroundManager should track shared biome travel progress.")
+	Helper.assert_condition(_failures, manager_text.contains("_apply_forward_parallax_layer"), "BackgroundManager should use forward-only parallax layers.")
+	Helper.assert_condition(_failures, not manager_text.contains("_pan_dynamic_layer"), "BackgroundManager should not use ping-pong parallax any more.")
 	Helper.finish(self, _failures, "Parallax motion validation completed successfully.")
