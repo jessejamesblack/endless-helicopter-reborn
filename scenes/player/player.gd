@@ -28,7 +28,7 @@ var _boundary_recovery_timer: float = 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 func _ready() -> void:
-    _apply_equipped_skin()
+    _apply_equipped_vehicle_and_skin()
     _setup_engine_audio()
 
 func _physics_process(delta: float) -> void:
@@ -67,6 +67,9 @@ func fire_missile() -> void:
         var run_stats := get_node_or_null("/root/RunStats")
         if run_stats != null and run_stats.has_method("record_missile_fired"):
             run_stats.record_missile_fired()
+        var haptics_manager = get_node_or_null("/root/HapticsManager")
+        if haptics_manager != null and haptics_manager.has_method("play"):
+            haptics_manager.play("missile_fire")
         
         if has_node("MissileFireSound"):
             $MissileFireSound.play()
@@ -80,6 +83,9 @@ func add_ammo(amount: int) -> void:
     var game_settings = get_node_or_null("/root/GameSettings")
     if game_settings != null and game_settings.has_method("vibrate"):
         game_settings.vibrate(30)
+    var haptics_manager = get_node_or_null("/root/HapticsManager")
+    if haptics_manager != null and haptics_manager.has_method("play"):
+        haptics_manager.play("mission_complete")
         
     if has_node("ReloadSound"):
         $ReloadSound.play()
@@ -121,8 +127,11 @@ func _record_boundary_recovery_feedback() -> void:
     var game_settings = get_node_or_null("/root/GameSettings")
     if game_settings != null and game_settings.has_method("vibrate"):
         game_settings.vibrate(20)
+    var haptics_manager = get_node_or_null("/root/HapticsManager")
+    if haptics_manager != null and haptics_manager.has_method("play"):
+        haptics_manager.play("boundary_recovery")
 
-func _apply_equipped_skin() -> void:
+func _apply_equipped_vehicle_and_skin() -> void:
     if sprite == null:
         return
 
@@ -131,16 +140,32 @@ func _apply_equipped_skin() -> void:
     if profile == null or skins == null:
         return
 
-    var skin_id := "default_scout"
-    if profile.has_method("get_equipped_skin_id"):
-        skin_id = profile.get_equipped_skin_id()
+    var vehicle_id := "default_scout"
+    var skin_id := "factory"
+    if profile.has_method("get_equipped_vehicle_id"):
+        vehicle_id = profile.get_equipped_vehicle_id()
+    elif profile.has_method("get_equipped_skin_id"):
+        vehicle_id = profile.get_equipped_skin_id()
+    if profile.has_method("get_equipped_vehicle_skin_id"):
+        skin_id = profile.get_equipped_vehicle_skin_id(vehicle_id)
 
-    if skins.has_method("apply_skin_to_player"):
-        skins.apply_skin_to_player(sprite, collision_polygon, skin_id)
-        return
+    if skins.has_method("apply_vehicle_and_skin_to_player"):
+        skins.apply_vehicle_and_skin_to_player(sprite, collision_polygon, vehicle_id, skin_id)
+    elif skins.has_method("apply_skin_to_player"):
+        skins.apply_skin_to_player(sprite, collision_polygon, vehicle_id)
+    elif skins.has_method("apply_skin_to_sprite"):
+        skins.apply_skin_to_sprite(sprite, vehicle_id)
 
-    if skins.has_method("apply_skin_to_sprite"):
-        skins.apply_skin_to_sprite(sprite, skin_id)
+    if skins.has_method("get_vehicle_profile"):
+        var vehicle_profile: Dictionary = skins.get_vehicle_profile(vehicle_id)
+        jump_velocity = float(vehicle_profile.get("jump_velocity", jump_velocity))
+        tilt_speed = float(vehicle_profile.get("tilt_speed", tilt_speed))
+        max_tilt = float(vehicle_profile.get("max_tilt", max_tilt))
+        boundary_bounce_down_speed = float(vehicle_profile.get("boundary_bounce_down_speed", boundary_bounce_down_speed))
+        boundary_bounce_up_speed = float(vehicle_profile.get("boundary_bounce_up_speed", boundary_bounce_up_speed))
+        boundary_recovery_seconds = float(vehicle_profile.get("boundary_recovery_seconds", boundary_recovery_seconds))
+        boundary_inset = float(vehicle_profile.get("boundary_inset", boundary_inset))
+        gravity = ProjectSettings.get_setting("physics/2d/default_gravity") * float(vehicle_profile.get("gravity_scale", 1.0))
 
 func _setup_engine_audio() -> void:
     if engine_sound == null or engine_sound.stream == null:

@@ -5,18 +5,30 @@ signal profile_changed(summary: Dictionary)
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const PROFILE_PATH := "user://player_profile.cfg"
 const PROFILE_SECTION := "player_profile"
-const DEFAULT_SKIN_ID := "default_scout"
-const LEADERBOARD_BONUS_SKIN_ID := "pottercar"
+const DEFAULT_VEHICLE_ID := "default_scout"
+const DEFAULT_SKIN_ID := "factory"
+const GOLD_MASTERY_BONUS_VEHICLE_ID := "crazytaxi"
+const LEADERBOARD_BONUS_VEHICLE_ID := "pottercar"
+const SCORE_MILESTONE_ORIGINAL_ICON := "score_10000"
 
 var validation_mode_enabled: bool = false
-var _unlocked_skins: Array[String] = [DEFAULT_SKIN_ID]
-var _equipped_skin_id: String = DEFAULT_SKIN_ID
+
+var _unlocked_vehicles: Array[String] = [DEFAULT_VEHICLE_ID]
+var _equipped_vehicle_id: String = DEFAULT_VEHICLE_ID
+var _unlocked_vehicle_skins: Dictionary = {DEFAULT_VEHICLE_ID: [DEFAULT_SKIN_ID]}
+var _equipped_vehicle_skins: Dictionary = {DEFAULT_VEHICLE_ID: DEFAULT_SKIN_ID}
+var _vehicle_skin_progress: Dictionary = {}
+var _global_skin_unlocks: Array[String] = []
+var _best_score_milestones: Dictionary = {SCORE_MILESTONE_ORIGINAL_ICON: false}
+var _seen_vehicle_lore: Array[String] = []
+var _seen_skin_lore: Array[String] = []
+var _vehicle_catalog_version_seen: int = 1
 var _total_daily_missions_completed: int = 0
 var _daily_streak: int = 0
 var _last_completed_daily_date: String = ""
 var _missions_intro_seen: bool = false
 var _daily_reminders_enabled: bool = true
-var _leaderboard_bonus_skin_access: bool = false
+var _leaderboard_bonus_vehicle_access: bool = false
 var _top_skin_request: HTTPRequest
 var _top_skin_request_in_flight: bool = false
 
@@ -28,20 +40,27 @@ func _ready() -> void:
 
 func load_profile() -> void:
 	var config := ConfigFile.new()
-	var error := config.load(PROFILE_PATH)
-	if error != OK:
+	if config.load(PROFILE_PATH) != OK:
 		_apply_defaults()
 		save_profile()
 		return
 
-	_unlocked_skins = _sanitize_skin_ids(config.get_value(PROFILE_SECTION, "unlocked_skins", [DEFAULT_SKIN_ID]))
-	_equipped_skin_id = str(config.get_value(PROFILE_SECTION, "equipped_skin_id", DEFAULT_SKIN_ID))
+	_unlocked_vehicles = _sanitize_vehicle_ids(config.get_value(PROFILE_SECTION, "unlocked_vehicles", config.get_value(PROFILE_SECTION, "unlocked_skins", [DEFAULT_VEHICLE_ID])))
+	_equipped_vehicle_id = _resolve_vehicle_id(str(config.get_value(PROFILE_SECTION, "equipped_vehicle_id", config.get_value(PROFILE_SECTION, "equipped_skin_id", DEFAULT_VEHICLE_ID))))
+	_unlocked_vehicle_skins = _sanitize_vehicle_skin_unlocks(config.get_value(PROFILE_SECTION, "unlocked_vehicle_skins", {}))
+	_equipped_vehicle_skins = _sanitize_equipped_vehicle_skins(config.get_value(PROFILE_SECTION, "equipped_vehicle_skins", {}))
+	_vehicle_skin_progress = _sanitize_vehicle_skin_progress(config.get_value(PROFILE_SECTION, "vehicle_skin_progress", {}))
+	_global_skin_unlocks = _sanitize_string_array(config.get_value(PROFILE_SECTION, "global_skin_unlocks", []))
+	_best_score_milestones = _sanitize_bool_dictionary(config.get_value(PROFILE_SECTION, "best_score_milestones", {SCORE_MILESTONE_ORIGINAL_ICON: false}))
+	_seen_vehicle_lore = _sanitize_string_array(config.get_value(PROFILE_SECTION, "seen_vehicle_lore", []))
+	_seen_skin_lore = _sanitize_string_array(config.get_value(PROFILE_SECTION, "seen_skin_lore", []))
+	_vehicle_catalog_version_seen = maxi(int(config.get_value(PROFILE_SECTION, "vehicle_catalog_version_seen", 1)), 1)
 	_total_daily_missions_completed = maxi(int(config.get_value(PROFILE_SECTION, "total_daily_missions_completed", 0)), 0)
 	_daily_streak = maxi(int(config.get_value(PROFILE_SECTION, "daily_streak", 0)), 0)
 	_last_completed_daily_date = str(config.get_value(PROFILE_SECTION, "last_completed_daily_date", ""))
 	_missions_intro_seen = bool(config.get_value(PROFILE_SECTION, "missions_intro_seen", false))
 	_daily_reminders_enabled = bool(config.get_value(PROFILE_SECTION, "daily_reminders_enabled", true))
-	_leaderboard_bonus_skin_access = bool(config.get_value(PROFILE_SECTION, "leaderboard_bonus_skin_access", false))
+	_leaderboard_bonus_vehicle_access = bool(config.get_value(PROFILE_SECTION, "leaderboard_bonus_skin_access", false))
 	_validate_profile_state()
 	_emit_profile_changed()
 
@@ -49,59 +68,383 @@ func save_profile() -> void:
 	if validation_mode_enabled:
 		return
 	var config := ConfigFile.new()
-	config.set_value(PROFILE_SECTION, "unlocked_skins", _unlocked_skins.duplicate())
-	config.set_value(PROFILE_SECTION, "equipped_skin_id", _equipped_skin_id)
+	config.set_value(PROFILE_SECTION, "unlocked_skins", _unlocked_vehicles.duplicate())
+	config.set_value(PROFILE_SECTION, "equipped_skin_id", get_equipped_vehicle_id())
+	config.set_value(PROFILE_SECTION, "unlocked_vehicles", _unlocked_vehicles.duplicate())
+	config.set_value(PROFILE_SECTION, "equipped_vehicle_id", get_equipped_vehicle_id())
+	config.set_value(PROFILE_SECTION, "unlocked_vehicle_skins", _unlocked_vehicle_skins.duplicate(true))
+	config.set_value(PROFILE_SECTION, "equipped_vehicle_skins", _equipped_vehicle_skins.duplicate(true))
+	config.set_value(PROFILE_SECTION, "vehicle_skin_progress", _vehicle_skin_progress.duplicate(true))
+	config.set_value(PROFILE_SECTION, "global_skin_unlocks", _global_skin_unlocks.duplicate())
+	config.set_value(PROFILE_SECTION, "best_score_milestones", _best_score_milestones.duplicate(true))
+	config.set_value(PROFILE_SECTION, "seen_vehicle_lore", _seen_vehicle_lore.duplicate())
+	config.set_value(PROFILE_SECTION, "seen_skin_lore", _seen_skin_lore.duplicate())
+	config.set_value(PROFILE_SECTION, "vehicle_catalog_version_seen", _vehicle_catalog_version_seen)
 	config.set_value(PROFILE_SECTION, "total_daily_missions_completed", _total_daily_missions_completed)
 	config.set_value(PROFILE_SECTION, "daily_streak", _daily_streak)
 	config.set_value(PROFILE_SECTION, "last_completed_daily_date", _last_completed_daily_date)
 	config.set_value(PROFILE_SECTION, "missions_intro_seen", _missions_intro_seen)
 	config.set_value(PROFILE_SECTION, "daily_reminders_enabled", _daily_reminders_enabled)
-	config.set_value(PROFILE_SECTION, "leaderboard_bonus_skin_access", _leaderboard_bonus_skin_access)
+	config.set_value(PROFILE_SECTION, "leaderboard_bonus_skin_access", _leaderboard_bonus_vehicle_access)
 	config.save(PROFILE_PATH)
 
+func is_vehicle_unlocked(vehicle_id: String) -> bool:
+	return has_vehicle_access(vehicle_id)
+
+func has_vehicle_access(vehicle_id: String) -> bool:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty():
+		return false
+	if _is_dynamic_vehicle_id(resolved_vehicle_id):
+		return _leaderboard_bonus_vehicle_access if resolved_vehicle_id == LEADERBOARD_BONUS_VEHICLE_ID else false
+	return _unlocked_vehicles.has(resolved_vehicle_id)
+
 func is_skin_unlocked(skin_id: String) -> bool:
-	return has_skin_access(skin_id)
+	return has_vehicle_access(skin_id)
 
 func has_skin_access(skin_id: String) -> bool:
-	var resolved_skin_id := _resolve_skin_id(skin_id)
-	if resolved_skin_id.is_empty():
+	return has_vehicle_access(skin_id)
+
+func unlock_vehicle(vehicle_id: String) -> bool:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty() or _is_dynamic_vehicle_id(resolved_vehicle_id) or _unlocked_vehicles.has(resolved_vehicle_id):
 		return false
-	if _is_dynamic_skin_id(resolved_skin_id):
-		return _leaderboard_bonus_skin_access if resolved_skin_id == LEADERBOARD_BONUS_SKIN_ID else false
-	return _unlocked_skins.has(resolved_skin_id)
+	_unlocked_vehicles.append(resolved_vehicle_id)
+	_sort_vehicle_ids(_unlocked_vehicles)
+	_ensure_vehicle_records(resolved_vehicle_id)
+	_persist_and_signal(true)
+	return true
 
 func unlock_skin(skin_id: String) -> bool:
-	var resolved_skin_id := _resolve_skin_id(skin_id)
-	if resolved_skin_id.is_empty() or _is_dynamic_skin_id(resolved_skin_id) or _unlocked_skins.has(resolved_skin_id):
-		return false
+	return unlock_vehicle(skin_id)
 
-	_unlocked_skins.append(resolved_skin_id)
-	_sort_unlocked_skins()
-	save_profile()
-	_queue_profile_sync()
-	_emit_profile_changed()
-	return true
+func get_unlocked_vehicles() -> Array[String]:
+	return _unlocked_vehicles.duplicate()
 
 func get_unlocked_skins() -> Array[String]:
-	return _unlocked_skins.duplicate()
+	return get_unlocked_vehicles()
+
+func get_equipped_vehicle_id() -> String:
+	if has_vehicle_access(_equipped_vehicle_id):
+		return _equipped_vehicle_id
+	return DEFAULT_VEHICLE_ID
 
 func get_equipped_skin_id() -> String:
-	if has_skin_access(_equipped_skin_id):
-		return _equipped_skin_id
-	return DEFAULT_SKIN_ID
+	return get_equipped_vehicle_id()
+
+func equip_vehicle(vehicle_id: String) -> bool:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty() or not has_vehicle_access(resolved_vehicle_id):
+		return false
+	if _equipped_vehicle_id == resolved_vehicle_id:
+		return false
+	_equipped_vehicle_id = resolved_vehicle_id
+	_ensure_vehicle_records(resolved_vehicle_id)
+	_persist_and_signal(true)
+	return true
 
 func equip_skin(skin_id: String) -> bool:
-	var resolved_skin_id := _resolve_skin_id(skin_id)
-	if resolved_skin_id.is_empty() or not has_skin_access(resolved_skin_id):
+	return equip_vehicle(skin_id)
+
+func is_vehicle_skin_unlocked(vehicle_id: String, skin_id: String) -> bool:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty() or not has_vehicle_access(resolved_vehicle_id):
 		return false
-	if _equipped_skin_id == resolved_skin_id:
+	var resolved_skin_id := _resolve_vehicle_skin_id(resolved_vehicle_id, skin_id)
+	if resolved_skin_id.is_empty():
+		return false
+	if resolved_skin_id == DEFAULT_SKIN_ID:
+		return true
+	if resolved_skin_id == "original_icon":
+		return _global_skin_unlocks.has("original_icon") and _is_original_icon_available(resolved_vehicle_id)
+	var unlocked_for_vehicle := _get_unlocked_skin_array(resolved_vehicle_id)
+	return unlocked_for_vehicle.has(resolved_skin_id)
+
+func unlock_vehicle_skin(vehicle_id: String, skin_id: String) -> bool:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	var resolved_skin_id := _resolve_vehicle_skin_id(resolved_vehicle_id, skin_id)
+	if resolved_vehicle_id.is_empty() or resolved_skin_id.is_empty():
+		return false
+	if not has_vehicle_access(resolved_vehicle_id):
+		return false
+	if resolved_skin_id == DEFAULT_SKIN_ID:
+		return false
+	if resolved_skin_id == "original_icon":
+		return false
+	var unlocked_for_vehicle := _get_unlocked_skin_array(resolved_vehicle_id)
+	if unlocked_for_vehicle.has(resolved_skin_id):
+		return false
+	unlocked_for_vehicle.append(resolved_skin_id)
+	_sort_skin_ids_for_vehicle(resolved_vehicle_id, unlocked_for_vehicle)
+	_unlocked_vehicle_skins[resolved_vehicle_id] = unlocked_for_vehicle
+	_persist_and_signal(true)
+	return true
+
+func unlock_skin_for_all_available_original_icons(skin_id: String = "original_icon") -> Array[Dictionary]:
+	if skin_id != "original_icon":
+		return []
+	if not _global_skin_unlocks.has("original_icon"):
+		_global_skin_unlocks.append("original_icon")
+	_best_score_milestones[SCORE_MILESTONE_ORIGINAL_ICON] = true
+	var unlocked: Array[Dictionary] = []
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_ids"):
+		for vehicle_id in helicopter_skins.get_vehicle_ids():
+			if helicopter_skins.has_method("is_original_icon_available") and helicopter_skins.is_original_icon_available(vehicle_id):
+				unlocked.append({
+					"unlock_type": "global_skin_set",
+					"vehicle_id": vehicle_id,
+					"skin_id": "original_icon",
+				})
+	_persist_and_signal(true)
+	return unlocked
+
+func get_equipped_vehicle_skin_id(vehicle_id: String) -> String:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty():
+		return DEFAULT_SKIN_ID
+	_ensure_vehicle_records(resolved_vehicle_id)
+	var equipped_skin_id := str(_equipped_vehicle_skins.get(resolved_vehicle_id, DEFAULT_SKIN_ID))
+	return equipped_skin_id if is_vehicle_skin_unlocked(resolved_vehicle_id, equipped_skin_id) else DEFAULT_SKIN_ID
+
+func equip_vehicle_skin(vehicle_id: String, skin_id: String) -> bool:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	var resolved_skin_id := _resolve_vehicle_skin_id(resolved_vehicle_id, skin_id)
+	if resolved_vehicle_id.is_empty() or resolved_skin_id.is_empty():
+		return false
+	if not is_vehicle_skin_unlocked(resolved_vehicle_id, resolved_skin_id):
+		return false
+	if get_equipped_vehicle_skin_id(resolved_vehicle_id) == resolved_skin_id:
+		return false
+	_equipped_vehicle_skins[resolved_vehicle_id] = resolved_skin_id
+	_persist_and_signal(true)
+	return true
+
+func get_vehicle_skin_progress(vehicle_id: String) -> Dictionary:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty():
+		return _default_vehicle_skin_progress()
+	_ensure_vehicle_records(resolved_vehicle_id)
+	return (_vehicle_skin_progress.get(resolved_vehicle_id, _default_vehicle_skin_progress()) as Dictionary).duplicate(true)
+
+func apply_run_skin_progress(vehicle_id: String, summary: Dictionary) -> Array[Dictionary]:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty() or not has_vehicle_access(resolved_vehicle_id):
+		return []
+	_ensure_vehicle_records(resolved_vehicle_id)
+	var had_gold_mastery_bonus_vehicle := has_vehicle_access(GOLD_MASTERY_BONUS_VEHICLE_ID)
+
+	var progress := get_vehicle_skin_progress(resolved_vehicle_id)
+	progress["runs_completed"] = int(progress.get("runs_completed", 0)) + 1
+	progress["near_misses"] = int(progress.get("near_misses", 0)) + int(summary.get("near_misses", 0))
+	progress["projectile_intercepts"] = int(progress.get("projectile_intercepts", 0)) + int(summary.get("projectile_intercepts", 0))
+	progress["best_score"] = maxi(int(progress.get("best_score", 0)), int(summary.get("score", 0)))
+	_vehicle_skin_progress[resolved_vehicle_id] = progress
+
+	var unlocked: Array[Dictionary] = []
+	if int(progress.get("runs_completed", 0)) >= 5 and unlock_vehicle_skin(resolved_vehicle_id, "desert"):
+		unlocked.append(_build_skin_unlock_entry(resolved_vehicle_id, "desert"))
+	if int(progress.get("near_misses", 0)) >= 25 and unlock_vehicle_skin(resolved_vehicle_id, "neon"):
+		unlocked.append(_build_skin_unlock_entry(resolved_vehicle_id, "neon"))
+	if int(progress.get("projectile_intercepts", 0)) >= 10 and unlock_vehicle_skin(resolved_vehicle_id, "prototype"):
+		unlocked.append(_build_skin_unlock_entry(resolved_vehicle_id, "prototype"))
+	if int(progress.get("best_score", 0)) >= 5000 and unlock_vehicle_skin(resolved_vehicle_id, "gold"):
+		unlocked.append(_build_skin_unlock_entry(resolved_vehicle_id, "gold"))
+	if not had_gold_mastery_bonus_vehicle and has_vehicle_access(GOLD_MASTERY_BONUS_VEHICLE_ID):
+		unlocked.append(_build_vehicle_unlock_entry(GOLD_MASTERY_BONUS_VEHICLE_ID))
+
+	if int(summary.get("score", 0)) >= 10000 and not has_score_milestone(SCORE_MILESTONE_ORIGINAL_ICON):
+		mark_score_milestone(SCORE_MILESTONE_ORIGINAL_ICON)
+		if not _global_skin_unlocks.has("original_icon"):
+			unlocked.append({
+				"unlock_type": "global_skin_set",
+				"skin_id": "original_icon",
+				"title": "Original Icon",
+			})
+		unlock_skin_for_all_available_original_icons("original_icon")
+	else:
+		_persist_and_signal(true)
+
+	return unlocked
+
+func apply_daily_mission_vehicle_credit(vehicle_id: String, completed_count: int) -> Array[Dictionary]:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	var safe_completed_count := maxi(completed_count, 0)
+	if resolved_vehicle_id.is_empty() or safe_completed_count <= 0 or not has_vehicle_access(resolved_vehicle_id):
+		return []
+	_ensure_vehicle_records(resolved_vehicle_id)
+
+	var progress := get_vehicle_skin_progress(resolved_vehicle_id)
+	progress["daily_missions_completed"] = int(progress.get("daily_missions_completed", 0)) + safe_completed_count
+	_vehicle_skin_progress[resolved_vehicle_id] = progress
+
+	var unlocked: Array[Dictionary] = []
+	if int(progress.get("daily_missions_completed", 0)) >= 3 and unlock_vehicle_skin(resolved_vehicle_id, "arctic"):
+		unlocked.append(_build_skin_unlock_entry(resolved_vehicle_id, "arctic"))
+
+	_persist_and_signal(true)
+	return unlocked
+
+func has_score_milestone(milestone_id: String) -> bool:
+	return bool(_best_score_milestones.get(milestone_id, false))
+
+func mark_score_milestone(milestone_id: String) -> bool:
+	if has_score_milestone(milestone_id):
+		return false
+	_best_score_milestones[milestone_id] = true
+	_persist_and_signal(true)
+	return true
+
+func has_seen_vehicle_lore(vehicle_id: String) -> bool:
+	return _seen_vehicle_lore.has(_resolve_vehicle_id(vehicle_id))
+
+func mark_vehicle_lore_seen(vehicle_id: String) -> void:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty() or _seen_vehicle_lore.has(resolved_vehicle_id):
+		return
+	_seen_vehicle_lore.append(resolved_vehicle_id)
+	_persist_and_signal(true)
+
+func has_seen_skin_lore(vehicle_id: String, skin_id: String) -> bool:
+	return _seen_skin_lore.has("%s:%s" % [_resolve_vehicle_id(vehicle_id), _resolve_vehicle_skin_id(_resolve_vehicle_id(vehicle_id), skin_id)])
+
+func mark_skin_lore_seen(vehicle_id: String, skin_id: String) -> void:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	var resolved_skin_id := _resolve_vehicle_skin_id(resolved_vehicle_id, skin_id)
+	if resolved_vehicle_id.is_empty() or resolved_skin_id.is_empty():
+		return
+	var key := "%s:%s" % [resolved_vehicle_id, resolved_skin_id]
+	if _seen_skin_lore.has(key):
+		return
+	_seen_skin_lore.append(key)
+	_persist_and_signal(true)
+
+func get_profile_sync_summary() -> Dictionary:
+	return {
+		"equipped_skin_id": get_equipped_vehicle_id(),
+		"unlocked_skins": get_unlocked_vehicles(),
+		"equipped_vehicle_id": get_equipped_vehicle_id(),
+		"equipped_vehicle_skin_id": get_equipped_vehicle_skin_id(get_equipped_vehicle_id()),
+		"unlocked_vehicles": get_unlocked_vehicles(),
+		"unlocked_vehicle_skins": _unlocked_vehicle_skins.duplicate(true),
+		"equipped_vehicle_skins": _equipped_vehicle_skins.duplicate(true),
+		"vehicle_skin_progress": _vehicle_skin_progress.duplicate(true),
+		"global_skin_unlocks": _global_skin_unlocks.duplicate(),
+		"best_score_milestones": _best_score_milestones.duplicate(true),
+		"seen_vehicle_lore": _seen_vehicle_lore.duplicate(),
+		"seen_skin_lore": _seen_skin_lore.duplicate(),
+		"vehicle_catalog_version": _vehicle_catalog_version_seen,
+		"total_daily_missions_completed": _total_daily_missions_completed,
+		"daily_streak": _daily_streak,
+		"last_completed_daily_date": _last_completed_daily_date,
+		"daily_reminders_enabled": _daily_reminders_enabled,
+		"missions_intro_seen": _missions_intro_seen,
+	}
+
+func get_profile_summary() -> Dictionary:
+	return get_profile_sync_summary()
+
+func merge_remote_profile(summary: Dictionary) -> bool:
+	return apply_remote_profile_summary(summary)
+
+func apply_remote_profile_summary(summary: Dictionary) -> bool:
+	var remote_unlocked_vehicles := _sanitize_vehicle_ids(summary.get("unlocked_vehicles", summary.get("unlocked_skins", _unlocked_vehicles)))
+	var merged_unlocked_vehicles := _unlocked_vehicles.duplicate()
+	for vehicle_id in remote_unlocked_vehicles:
+		if not merged_unlocked_vehicles.has(vehicle_id) and not _is_dynamic_vehicle_id(vehicle_id):
+			merged_unlocked_vehicles.append(vehicle_id)
+	_sort_vehicle_ids(merged_unlocked_vehicles)
+
+	var remote_unlocked_vehicle_skins := _sanitize_vehicle_skin_unlocks(summary.get("unlocked_vehicle_skins", {}))
+	var remote_equipped_vehicle_skins := _sanitize_equipped_vehicle_skins(summary.get("equipped_vehicle_skins", {}))
+	var remote_progress := _sanitize_vehicle_skin_progress(summary.get("vehicle_skin_progress", {}))
+	var remote_global_unlocks := _sanitize_string_array(summary.get("global_skin_unlocks", []))
+	var remote_milestones := _sanitize_bool_dictionary(summary.get("best_score_milestones", {}))
+	var remote_seen_vehicle_lore := _sanitize_string_array(summary.get("seen_vehicle_lore", []))
+	var remote_seen_skin_lore := _sanitize_string_array(summary.get("seen_skin_lore", []))
+
+	var merged_skin_unlocks := _merge_vehicle_skin_unlocks(_unlocked_vehicle_skins, remote_unlocked_vehicle_skins, merged_unlocked_vehicles)
+	var merged_equipped_vehicle_skins := _merge_equipped_vehicle_skins(_equipped_vehicle_skins, remote_equipped_vehicle_skins, merged_unlocked_vehicles, merged_skin_unlocks, remote_global_unlocks)
+	var merged_progress := _merge_vehicle_skin_progress(_vehicle_skin_progress, remote_progress)
+	var merged_global_unlocks := _merge_string_arrays(_global_skin_unlocks, remote_global_unlocks)
+	var merged_milestones := _merge_bool_dictionaries(_best_score_milestones, remote_milestones)
+	var merged_seen_vehicle_lore := _merge_string_arrays(_seen_vehicle_lore, remote_seen_vehicle_lore)
+	var merged_seen_skin_lore := _merge_string_arrays(_seen_skin_lore, remote_seen_skin_lore)
+	var merged_total := maxi(_total_daily_missions_completed, int(summary.get("total_daily_missions_completed", _total_daily_missions_completed)))
+	var merged_streak := maxi(_daily_streak, int(summary.get("daily_streak", _daily_streak)))
+	var merged_date := _pick_later_date(_last_completed_daily_date, str(summary.get("last_completed_daily_date", "")))
+	var merged_intro_seen := _missions_intro_seen or bool(summary.get("missions_intro_seen", false))
+	var merged_catalog_version := maxi(_vehicle_catalog_version_seen, int(summary.get("vehicle_catalog_version", _vehicle_catalog_version_seen)))
+
+	var remote_equipped_vehicle_id := _resolve_vehicle_id(str(summary.get("equipped_vehicle_id", summary.get("equipped_skin_id", _equipped_vehicle_id))))
+	var merged_equipped_vehicle_id := _equipped_vehicle_id
+	if not _is_vehicle_accessible_with_unlocks(merged_equipped_vehicle_id, merged_unlocked_vehicles):
+		merged_equipped_vehicle_id = remote_equipped_vehicle_id if _is_vehicle_accessible_with_unlocks(remote_equipped_vehicle_id, merged_unlocked_vehicles) else DEFAULT_VEHICLE_ID
+
+	var changed := merged_unlocked_vehicles != _unlocked_vehicles \
+		or merged_equipped_vehicle_id != _equipped_vehicle_id \
+		or JSON.stringify(merged_skin_unlocks) != JSON.stringify(_unlocked_vehicle_skins) \
+		or JSON.stringify(merged_equipped_vehicle_skins) != JSON.stringify(_equipped_vehicle_skins) \
+		or JSON.stringify(merged_progress) != JSON.stringify(_vehicle_skin_progress) \
+		or merged_global_unlocks != _global_skin_unlocks \
+		or JSON.stringify(merged_milestones) != JSON.stringify(_best_score_milestones) \
+		or merged_seen_vehicle_lore != _seen_vehicle_lore \
+		or merged_seen_skin_lore != _seen_skin_lore \
+		or merged_total != _total_daily_missions_completed \
+		or merged_streak != _daily_streak \
+		or merged_date != _last_completed_daily_date \
+		or merged_intro_seen != _missions_intro_seen \
+		or merged_catalog_version != _vehicle_catalog_version_seen
+
+	if not changed:
 		return false
 
-	_equipped_skin_id = resolved_skin_id
+	_unlocked_vehicles = merged_unlocked_vehicles
+	_equipped_vehicle_id = merged_equipped_vehicle_id
+	_unlocked_vehicle_skins = merged_skin_unlocks
+	_equipped_vehicle_skins = merged_equipped_vehicle_skins
+	_vehicle_skin_progress = merged_progress
+	_global_skin_unlocks = merged_global_unlocks
+	_best_score_milestones = merged_milestones
+	_seen_vehicle_lore = merged_seen_vehicle_lore
+	_seen_skin_lore = merged_seen_skin_lore
+	_total_daily_missions_completed = merged_total
+	_daily_streak = merged_streak
+	_last_completed_daily_date = merged_date
+	_missions_intro_seen = merged_intro_seen
+	_vehicle_catalog_version_seen = merged_catalog_version
+	_validate_profile_state()
 	save_profile()
-	_queue_profile_sync()
 	_emit_profile_changed()
 	return true
+
+func restore_profile_from_cloud() -> void:
+	var sync_queue := get_node_or_null("/root/SupabaseSyncQueue")
+	if sync_queue != null and sync_queue.has_method("pull_remote_profile_state"):
+		sync_queue.pull_remote_profile_state()
+	elif sync_queue != null and sync_queue.has_method("flush"):
+		sync_queue.flush()
+
+func apply_validation_state(summary: Dictionary) -> void:
+	validation_mode_enabled = true
+	_unlocked_vehicles = _sanitize_vehicle_ids(summary.get("unlocked_vehicles", summary.get("unlocked_skins", [DEFAULT_VEHICLE_ID])))
+	_equipped_vehicle_id = _resolve_vehicle_id(str(summary.get("equipped_vehicle_id", summary.get("equipped_skin_id", DEFAULT_VEHICLE_ID))))
+	_unlocked_vehicle_skins = _sanitize_vehicle_skin_unlocks(summary.get("unlocked_vehicle_skins", {}))
+	_equipped_vehicle_skins = _sanitize_equipped_vehicle_skins(summary.get("equipped_vehicle_skins", {}))
+	_vehicle_skin_progress = _sanitize_vehicle_skin_progress(summary.get("vehicle_skin_progress", {}))
+	_global_skin_unlocks = _sanitize_string_array(summary.get("global_skin_unlocks", []))
+	_best_score_milestones = _sanitize_bool_dictionary(summary.get("best_score_milestones", {SCORE_MILESTONE_ORIGINAL_ICON: false}))
+	_seen_vehicle_lore = _sanitize_string_array(summary.get("seen_vehicle_lore", []))
+	_seen_skin_lore = _sanitize_string_array(summary.get("seen_skin_lore", []))
+	_vehicle_catalog_version_seen = maxi(int(summary.get("vehicle_catalog_version", 1)), 1)
+	_total_daily_missions_completed = maxi(int(summary.get("total_daily_missions_completed", 0)), 0)
+	_daily_streak = maxi(int(summary.get("daily_streak", 0)), 0)
+	_last_completed_daily_date = str(summary.get("last_completed_daily_date", ""))
+	_missions_intro_seen = bool(summary.get("missions_intro_seen", false))
+	_daily_reminders_enabled = bool(summary.get("daily_reminders_enabled", true))
+	_leaderboard_bonus_vehicle_access = bool(summary.get("leaderboard_bonus_skin_access", summary.get("pottercar_access", false)))
+	_validate_profile_state()
+	_emit_profile_changed()
 
 func get_total_daily_missions_completed() -> int:
 	return _total_daily_missions_completed
@@ -111,36 +454,24 @@ func increment_total_daily_missions_completed(amount: int = 1) -> void:
 	if safe_amount <= 0:
 		return
 	_total_daily_missions_completed += safe_amount
-	save_profile()
-	_queue_profile_sync()
-	_emit_profile_changed()
+	_persist_and_signal(true)
 
 func get_daily_streak() -> int:
 	return _daily_streak
 
 func update_daily_streak(completed_date_key: String) -> void:
 	var normalized_date := completed_date_key.strip_edges()
-	if normalized_date.is_empty():
+	if normalized_date.is_empty() or _last_completed_daily_date == normalized_date:
 		return
-
-	if _last_completed_daily_date == normalized_date:
-		return
-
 	if _last_completed_daily_date.is_empty():
 		_daily_streak = 1
 	else:
 		var previous_unix := Time.get_unix_time_from_datetime_string("%sT00:00:00Z" % _last_completed_daily_date)
 		var current_unix := Time.get_unix_time_from_datetime_string("%sT00:00:00Z" % normalized_date)
 		var day_difference := int(round((current_unix - previous_unix) / 86400.0))
-		if day_difference == 1:
-			_daily_streak += 1
-		else:
-			_daily_streak = 1
-
+		_daily_streak = _daily_streak + 1 if day_difference == 1 else 1
 	_last_completed_daily_date = normalized_date
-	save_profile()
-	_queue_profile_sync()
-	_emit_profile_changed()
+	_persist_and_signal(true)
 
 func are_daily_reminders_enabled() -> bool:
 	return _daily_reminders_enabled
@@ -149,9 +480,7 @@ func set_daily_reminders_enabled(enabled: bool) -> void:
 	if _daily_reminders_enabled == enabled:
 		return
 	_daily_reminders_enabled = enabled
-	save_profile()
-	_queue_profile_sync()
-	_emit_profile_changed()
+	_persist_and_signal(true)
 
 func has_seen_missions_intro() -> bool:
 	return _missions_intro_seen
@@ -160,9 +489,7 @@ func mark_missions_intro_seen() -> void:
 	if _missions_intro_seen:
 		return
 	_missions_intro_seen = true
-	save_profile()
-	_queue_profile_sync()
-	_emit_profile_changed()
+	_persist_and_signal(true)
 
 func refresh_top_player_skin_access() -> void:
 	if validation_mode_enabled or not OnlineLeaderboardScript.is_configured() or _top_skin_request_in_flight:
@@ -191,111 +518,242 @@ func apply_leaderboard_entries(entries: Array) -> bool:
 	return apply_leaderboard_top_status(is_top_player)
 
 func apply_leaderboard_top_status(is_top_player: bool) -> bool:
-	return _apply_verified_bonus_skin_access(is_top_player)
-
-func get_profile_summary() -> Dictionary:
-	return {
-		"equipped_skin_id": get_equipped_skin_id(),
-		"unlocked_skins": get_unlocked_skins(),
-		"total_daily_missions_completed": _total_daily_missions_completed,
-		"daily_streak": _daily_streak,
-		"last_completed_daily_date": _last_completed_daily_date,
-		"daily_reminders_enabled": _daily_reminders_enabled,
-		"missions_intro_seen": _missions_intro_seen,
-	}
-
-func merge_remote_profile(summary: Dictionary) -> bool:
-	var merged_unlocked := _unlocked_skins.duplicate()
-	for skin_id_variant in summary.get("unlocked_skins", []):
-		var resolved_skin_id := _resolve_skin_id(str(skin_id_variant))
-		if resolved_skin_id.is_empty() or _is_dynamic_skin_id(resolved_skin_id):
-			continue
-		if not merged_unlocked.has(resolved_skin_id):
-			merged_unlocked.append(resolved_skin_id)
-
-	var remote_equipped_skin_id := _resolve_skin_id(str(summary.get("equipped_skin_id", "")))
-	var merged_equipped_skin_id := _equipped_skin_id
-	if not _is_skin_accessible_with_unlocks(merged_equipped_skin_id, merged_unlocked):
-		if _is_skin_accessible_with_unlocks(remote_equipped_skin_id, merged_unlocked):
-			merged_equipped_skin_id = remote_equipped_skin_id
-		else:
-			merged_equipped_skin_id = DEFAULT_SKIN_ID
-
-	var merged_total := maxi(_total_daily_missions_completed, int(summary.get("total_daily_missions_completed", _total_daily_missions_completed)))
-	var merged_streak := maxi(_daily_streak, int(summary.get("daily_streak", _daily_streak)))
-	var merged_date := _pick_later_date(_last_completed_daily_date, str(summary.get("last_completed_daily_date", "")))
-	var merged_intro_seen := _missions_intro_seen or bool(summary.get("missions_intro_seen", false))
-
-	_sort_skin_ids(merged_unlocked)
-
-	var changed := merged_unlocked != _unlocked_skins \
-		or merged_equipped_skin_id != _equipped_skin_id \
-		or merged_total != _total_daily_missions_completed \
-		or merged_streak != _daily_streak \
-		or merged_date != _last_completed_daily_date \
-		or merged_intro_seen != _missions_intro_seen
-
-	if not changed:
-		return false
-
-	_unlocked_skins = merged_unlocked
-	_equipped_skin_id = merged_equipped_skin_id
-	_total_daily_missions_completed = merged_total
-	_daily_streak = merged_streak
-	_last_completed_daily_date = merged_date
-	_missions_intro_seen = merged_intro_seen
-	_validate_profile_state()
-	save_profile()
-	_emit_profile_changed()
-	return true
-
-func apply_validation_state(summary: Dictionary) -> void:
-	validation_mode_enabled = true
-	_unlocked_skins = _sanitize_skin_ids(summary.get("unlocked_skins", [DEFAULT_SKIN_ID]))
-	_equipped_skin_id = str(summary.get("equipped_skin_id", DEFAULT_SKIN_ID))
-	_total_daily_missions_completed = maxi(int(summary.get("total_daily_missions_completed", 0)), 0)
-	_daily_streak = maxi(int(summary.get("daily_streak", 0)), 0)
-	_last_completed_daily_date = str(summary.get("last_completed_daily_date", ""))
-	_missions_intro_seen = bool(summary.get("missions_intro_seen", false))
-	_daily_reminders_enabled = bool(summary.get("daily_reminders_enabled", true))
-	_leaderboard_bonus_skin_access = bool(summary.get("leaderboard_bonus_skin_access", summary.get("pottercar_access", false)))
-	_validate_profile_state()
-	_emit_profile_changed()
+	return _apply_verified_bonus_vehicle_access(is_top_player)
 
 func _apply_defaults() -> void:
-	_unlocked_skins = [DEFAULT_SKIN_ID]
-	_equipped_skin_id = DEFAULT_SKIN_ID
+	_unlocked_vehicles = [DEFAULT_VEHICLE_ID]
+	_equipped_vehicle_id = DEFAULT_VEHICLE_ID
+	_unlocked_vehicle_skins = {DEFAULT_VEHICLE_ID: [DEFAULT_SKIN_ID]}
+	_equipped_vehicle_skins = {DEFAULT_VEHICLE_ID: DEFAULT_SKIN_ID}
+	_vehicle_skin_progress = {DEFAULT_VEHICLE_ID: _default_vehicle_skin_progress()}
+	_global_skin_unlocks = []
+	_best_score_milestones = {SCORE_MILESTONE_ORIGINAL_ICON: false}
+	_seen_vehicle_lore = []
+	_seen_skin_lore = []
+	_vehicle_catalog_version_seen = 1
 	_total_daily_missions_completed = 0
 	_daily_streak = 0
 	_last_completed_daily_date = ""
 	_missions_intro_seen = false
 	_daily_reminders_enabled = true
-	_leaderboard_bonus_skin_access = false
+	_leaderboard_bonus_vehicle_access = false
 	_validate_profile_state()
 
-func _sanitize_skin_ids(raw_value) -> Array[String]:
-	var sanitized: Array[String] = [DEFAULT_SKIN_ID]
+func _validate_profile_state() -> void:
+	_unlocked_vehicles = _sanitize_vehicle_ids(_unlocked_vehicles)
+	_apply_derived_vehicle_unlocks()
+	for vehicle_id in _unlocked_vehicles:
+		_ensure_vehicle_records(vehicle_id)
+	if not has_vehicle_access(_equipped_vehicle_id):
+		_equipped_vehicle_id = DEFAULT_VEHICLE_ID
+	_ensure_vehicle_records(_equipped_vehicle_id)
+	for vehicle_id in _unlocked_vehicles:
+		var equipped_skin_id := str(_equipped_vehicle_skins.get(vehicle_id, DEFAULT_SKIN_ID))
+		if not is_vehicle_skin_unlocked(vehicle_id, equipped_skin_id):
+			_equipped_vehicle_skins[vehicle_id] = DEFAULT_SKIN_ID
+	if _global_skin_unlocks.has("original_icon"):
+		_best_score_milestones[SCORE_MILESTONE_ORIGINAL_ICON] = true
+
+func _ensure_vehicle_records(vehicle_id: String) -> void:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty():
+		return
+	if not _unlocked_vehicle_skins.has(resolved_vehicle_id):
+		_unlocked_vehicle_skins[resolved_vehicle_id] = [DEFAULT_SKIN_ID]
+	else:
+		var unlocked_for_vehicle := _get_unlocked_skin_array(resolved_vehicle_id)
+		if not unlocked_for_vehicle.has(DEFAULT_SKIN_ID):
+			unlocked_for_vehicle.append(DEFAULT_SKIN_ID)
+			_sort_skin_ids_for_vehicle(resolved_vehicle_id, unlocked_for_vehicle)
+			_unlocked_vehicle_skins[resolved_vehicle_id] = unlocked_for_vehicle
+	if not _equipped_vehicle_skins.has(resolved_vehicle_id):
+		_equipped_vehicle_skins[resolved_vehicle_id] = DEFAULT_SKIN_ID
+	if not _vehicle_skin_progress.has(resolved_vehicle_id):
+		_vehicle_skin_progress[resolved_vehicle_id] = _default_vehicle_skin_progress()
+
+func _sanitize_vehicle_ids(raw_value) -> Array[String]:
+	var sanitized: Array[String] = [DEFAULT_VEHICLE_ID]
 	if raw_value is Array:
-		for skin_id_variant in raw_value:
-			var resolved_skin_id := _resolve_skin_id(str(skin_id_variant))
-			if resolved_skin_id.is_empty() or _is_dynamic_skin_id(resolved_skin_id) or sanitized.has(resolved_skin_id):
+		for vehicle_id_variant in raw_value:
+			var resolved_vehicle_id := _resolve_vehicle_id(str(vehicle_id_variant))
+			if resolved_vehicle_id.is_empty() or _is_dynamic_vehicle_id(resolved_vehicle_id) or sanitized.has(resolved_vehicle_id):
 				continue
-			sanitized.append(resolved_skin_id)
-	_sort_skin_ids(sanitized)
+			sanitized.append(resolved_vehicle_id)
+	_sort_vehicle_ids(sanitized)
 	return sanitized
 
-func _validate_profile_state() -> void:
-	_unlocked_skins = _sanitize_skin_ids(_unlocked_skins)
-	if not has_skin_access(_equipped_skin_id):
-		_equipped_skin_id = DEFAULT_SKIN_ID
+func _sanitize_vehicle_skin_unlocks(raw_value) -> Dictionary:
+	var sanitized := {}
+	if raw_value is Dictionary:
+		for vehicle_id_variant in raw_value.keys():
+			var resolved_vehicle_id := _resolve_vehicle_id(str(vehicle_id_variant))
+			if resolved_vehicle_id.is_empty():
+				continue
+			var unlocked_for_vehicle: Array[String] = [DEFAULT_SKIN_ID]
+			var raw_skin_array = raw_value[vehicle_id_variant]
+			if raw_skin_array is Array:
+				for skin_id_variant in raw_skin_array:
+					var resolved_skin_id := _resolve_vehicle_skin_id(resolved_vehicle_id, str(skin_id_variant))
+					if resolved_skin_id.is_empty() or resolved_skin_id == "original_icon" or unlocked_for_vehicle.has(resolved_skin_id):
+						continue
+					unlocked_for_vehicle.append(resolved_skin_id)
+			_sort_skin_ids_for_vehicle(resolved_vehicle_id, unlocked_for_vehicle)
+			sanitized[resolved_vehicle_id] = unlocked_for_vehicle
+	for vehicle_id in _sanitize_vehicle_ids(_unlocked_vehicles):
+		if not sanitized.has(vehicle_id):
+			var default_unlocks: Array[String] = [DEFAULT_SKIN_ID]
+			sanitized[vehicle_id] = default_unlocks
+	return sanitized
 
-func _resolve_skin_id(skin_id: String) -> String:
-	if skin_id.strip_edges().is_empty():
+func _sanitize_equipped_vehicle_skins(raw_value) -> Dictionary:
+	var sanitized := {}
+	if raw_value is Dictionary:
+		for vehicle_id_variant in raw_value.keys():
+			var resolved_vehicle_id := _resolve_vehicle_id(str(vehicle_id_variant))
+			if resolved_vehicle_id.is_empty():
+				continue
+			sanitized[resolved_vehicle_id] = _resolve_vehicle_skin_id(resolved_vehicle_id, str(raw_value[vehicle_id_variant]))
+	return sanitized
+
+func _sanitize_vehicle_skin_progress(raw_value) -> Dictionary:
+	var sanitized := {}
+	if raw_value is Dictionary:
+		for vehicle_id_variant in raw_value.keys():
+			var resolved_vehicle_id := _resolve_vehicle_id(str(vehicle_id_variant))
+			if resolved_vehicle_id.is_empty():
+				continue
+			if raw_value[vehicle_id_variant] is not Dictionary:
+				continue
+			var raw_progress: Dictionary = raw_value[vehicle_id_variant]
+			var progress := _default_vehicle_skin_progress()
+			progress["runs_completed"] = maxi(int(raw_progress.get("runs_completed", 0)), 0)
+			progress["daily_missions_completed"] = maxi(int(raw_progress.get("daily_missions_completed", 0)), 0)
+			progress["near_misses"] = maxi(int(raw_progress.get("near_misses", 0)), 0)
+			progress["projectile_intercepts"] = maxi(int(raw_progress.get("projectile_intercepts", 0)), 0)
+			progress["best_score"] = maxi(int(raw_progress.get("best_score", 0)), 0)
+			sanitized[resolved_vehicle_id] = progress
+	return sanitized
+
+func _sanitize_bool_dictionary(raw_value) -> Dictionary:
+	var sanitized := {SCORE_MILESTONE_ORIGINAL_ICON: false}
+	if raw_value is Dictionary:
+		for key in raw_value.keys():
+			sanitized[str(key)] = bool(raw_value[key])
+	return sanitized
+
+func _sanitize_string_array(raw_value) -> Array[String]:
+	var sanitized: Array[String] = []
+	if raw_value is Array:
+		for value in raw_value:
+			var clean_value := str(value).strip_edges()
+			if clean_value.is_empty() or sanitized.has(clean_value):
+				continue
+			sanitized.append(clean_value)
+	return sanitized
+
+func _default_vehicle_skin_progress() -> Dictionary:
+	return {
+		"runs_completed": 0,
+		"daily_missions_completed": 0,
+		"near_misses": 0,
+		"projectile_intercepts": 0,
+		"best_score": 0,
+	}
+
+func _resolve_vehicle_id(vehicle_id: String) -> String:
+	if vehicle_id.strip_edges().is_empty():
 		return ""
-	var helicopter_skins := get_node_or_null("/root/HelicopterSkins")
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("has_vehicle"):
+		return vehicle_id if helicopter_skins.has_vehicle(vehicle_id) else ""
 	if helicopter_skins != null and helicopter_skins.has_method("has_skin"):
-		return skin_id if helicopter_skins.has_skin(skin_id) else ""
-	return DEFAULT_SKIN_ID if skin_id == DEFAULT_SKIN_ID else skin_id
+		return vehicle_id if helicopter_skins.has_skin(vehicle_id) else ""
+	return DEFAULT_VEHICLE_ID if vehicle_id == DEFAULT_VEHICLE_ID else vehicle_id
+
+func _resolve_vehicle_skin_id(vehicle_id: String, skin_id: String) -> String:
+	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
+	if resolved_vehicle_id.is_empty():
+		return ""
+	if skin_id.strip_edges().is_empty():
+		return DEFAULT_SKIN_ID
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_skin_ids"):
+		return skin_id if helicopter_skins.get_vehicle_skin_ids(resolved_vehicle_id).has(skin_id) else ""
+	return DEFAULT_SKIN_ID if skin_id == DEFAULT_SKIN_ID else ""
+
+func _is_dynamic_vehicle_id(vehicle_id: String) -> bool:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("is_dynamic_vehicle"):
+		return bool(helicopter_skins.is_dynamic_vehicle(vehicle_id))
+	if helicopter_skins != null and helicopter_skins.has_method("is_dynamic_skin"):
+		return bool(helicopter_skins.is_dynamic_skin(vehicle_id))
+	return vehicle_id == LEADERBOARD_BONUS_VEHICLE_ID
+
+func _is_original_icon_available(vehicle_id: String) -> bool:
+	var helicopter_skins := _get_helicopter_skins()
+	return helicopter_skins != null and helicopter_skins.has_method("is_original_icon_available") and bool(helicopter_skins.is_original_icon_available(vehicle_id))
+
+func _get_unlocked_skin_array(vehicle_id: String) -> Array[String]:
+	var unlocked_for_vehicle: Array[String] = []
+	var stored_unlocks: Array = _unlocked_vehicle_skins.get(vehicle_id, [DEFAULT_SKIN_ID])
+	for skin_id_variant in stored_unlocks:
+		unlocked_for_vehicle.append(str(skin_id_variant))
+	if not unlocked_for_vehicle.has(DEFAULT_SKIN_ID):
+		unlocked_for_vehicle.append(DEFAULT_SKIN_ID)
+	return unlocked_for_vehicle
+
+func _apply_derived_vehicle_unlocks() -> void:
+	if _unlocked_vehicles.has(GOLD_MASTERY_BONUS_VEHICLE_ID):
+		return
+	if _count_gold_vehicle_unlocks() < 3:
+		return
+	_unlocked_vehicles.append(GOLD_MASTERY_BONUS_VEHICLE_ID)
+	_sort_vehicle_ids(_unlocked_vehicles)
+
+func _count_gold_vehicle_unlocks() -> int:
+	var helicopter_skins := _get_helicopter_skins()
+	var count := 0
+	for vehicle_id in _unlocked_vehicles:
+		if vehicle_id == GOLD_MASTERY_BONUS_VEHICLE_ID or _is_dynamic_vehicle_id(vehicle_id):
+			continue
+		if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_skin_ids") and not helicopter_skins.get_vehicle_skin_ids(vehicle_id).has("gold"):
+			continue
+		if is_vehicle_skin_unlocked(vehicle_id, "gold"):
+			count += 1
+	return count
+
+func get_gold_mastery_vehicle_count() -> int:
+	return _count_gold_vehicle_unlocks()
+
+func has_unlocked_gold_mastery_bonus_vehicle() -> bool:
+	return _unlocked_vehicles.has(GOLD_MASTERY_BONUS_VEHICLE_ID)
+
+func _build_vehicle_unlock_entry(vehicle_id: String) -> Dictionary:
+	return {
+		"unlock_type": "vehicle",
+		"vehicle_id": vehicle_id,
+		"title": get_display_vehicle_name(vehicle_id),
+	}
+
+func _build_skin_unlock_entry(vehicle_id: String, skin_id: String) -> Dictionary:
+	return {
+		"unlock_type": "vehicle_skin",
+		"vehicle_id": vehicle_id,
+		"skin_id": skin_id,
+		"title": "%s / %s" % [get_display_vehicle_name(vehicle_id), get_display_skin_name(vehicle_id, skin_id)],
+	}
+
+func get_display_vehicle_name(vehicle_id: String) -> String:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("get_display_name"):
+		return str(helicopter_skins.get_display_name(vehicle_id))
+	return vehicle_id
+
+func get_display_skin_name(vehicle_id: String, skin_id: String) -> String:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_skin_data"):
+		return str(helicopter_skins.get_vehicle_skin_data(vehicle_id, skin_id).get("display_name", skin_id))
+	return skin_id
 
 func _pick_later_date(a: String, b: String) -> String:
 	var clean_a := a.strip_edges()
@@ -306,8 +764,95 @@ func _pick_later_date(a: String, b: String) -> String:
 		return clean_a
 	return clean_b if clean_b > clean_a else clean_a
 
-func _sort_unlocked_skins() -> void:
-	_sort_skin_ids(_unlocked_skins)
+func _merge_string_arrays(a: Array[String], b: Array[String]) -> Array[String]:
+	var merged := a.duplicate()
+	for value in b:
+		if not merged.has(value):
+			merged.append(value)
+	return merged
+
+func _merge_bool_dictionaries(a: Dictionary, b: Dictionary) -> Dictionary:
+	var merged := a.duplicate(true)
+	for key in b.keys():
+		merged[str(key)] = bool(merged.get(str(key), false)) or bool(b[key])
+	return merged
+
+func _merge_vehicle_skin_unlocks(local_unlocks: Dictionary, remote_unlocks: Dictionary, unlocked_vehicles: Array[String]) -> Dictionary:
+	var merged := local_unlocks.duplicate(true)
+	for vehicle_id in unlocked_vehicles:
+		var local_array := _get_unlocked_skin_array(vehicle_id)
+		var remote_array: Array[String] = []
+		for skin_id_variant in remote_unlocks.get(vehicle_id, []):
+			var resolved_skin_id := _resolve_vehicle_skin_id(vehicle_id, str(skin_id_variant))
+			if resolved_skin_id.is_empty() or resolved_skin_id == "original_icon":
+				continue
+			remote_array.append(resolved_skin_id)
+		for skin_id in remote_array:
+			if not local_array.has(skin_id):
+				local_array.append(skin_id)
+		_sort_skin_ids_for_vehicle(vehicle_id, local_array)
+		merged[vehicle_id] = local_array
+	return merged
+
+func _merge_equipped_vehicle_skins(local_equipped: Dictionary, remote_equipped: Dictionary, unlocked_vehicles: Array[String], unlocked_vehicle_skins: Dictionary, global_unlocks: Array[String]) -> Dictionary:
+	var merged := local_equipped.duplicate(true)
+	for vehicle_id in unlocked_vehicles:
+		var candidate_skin_id := _resolve_vehicle_skin_id(vehicle_id, str(merged.get(vehicle_id, DEFAULT_SKIN_ID)))
+		if _is_skin_accessible_with_state(vehicle_id, candidate_skin_id, unlocked_vehicle_skins, global_unlocks):
+			merged[vehicle_id] = candidate_skin_id
+			continue
+		var remote_skin_id := _resolve_vehicle_skin_id(vehicle_id, str(remote_equipped.get(vehicle_id, DEFAULT_SKIN_ID)))
+		merged[vehicle_id] = remote_skin_id if _is_skin_accessible_with_state(vehicle_id, remote_skin_id, unlocked_vehicle_skins, global_unlocks) else DEFAULT_SKIN_ID
+	return merged
+
+func _merge_vehicle_skin_progress(local_progress: Dictionary, remote_progress: Dictionary) -> Dictionary:
+	var merged := local_progress.duplicate(true)
+	for vehicle_id in remote_progress.keys():
+		var local_entry: Dictionary = merged.get(vehicle_id, _default_vehicle_skin_progress())
+		var remote_entry: Dictionary = remote_progress.get(vehicle_id, _default_vehicle_skin_progress())
+		merged[vehicle_id] = {
+			"runs_completed": maxi(int(local_entry.get("runs_completed", 0)), int(remote_entry.get("runs_completed", 0))),
+			"daily_missions_completed": maxi(int(local_entry.get("daily_missions_completed", 0)), int(remote_entry.get("daily_missions_completed", 0))),
+			"near_misses": maxi(int(local_entry.get("near_misses", 0)), int(remote_entry.get("near_misses", 0))),
+			"projectile_intercepts": maxi(int(local_entry.get("projectile_intercepts", 0)), int(remote_entry.get("projectile_intercepts", 0))),
+			"best_score": maxi(int(local_entry.get("best_score", 0)), int(remote_entry.get("best_score", 0))),
+		}
+	return merged
+
+func _is_vehicle_accessible_with_unlocks(vehicle_id: String, unlocked_vehicles: Array[String]) -> bool:
+	if vehicle_id.is_empty():
+		return false
+	if _is_dynamic_vehicle_id(vehicle_id):
+		return _leaderboard_bonus_vehicle_access if vehicle_id == LEADERBOARD_BONUS_VEHICLE_ID else false
+	return unlocked_vehicles.has(vehicle_id)
+
+func _is_skin_accessible_with_state(vehicle_id: String, skin_id: String, unlocked_vehicle_skins: Dictionary, global_unlocks: Array[String]) -> bool:
+	if vehicle_id.is_empty() or skin_id.is_empty():
+		return false
+	if skin_id == DEFAULT_SKIN_ID:
+		return true
+	if skin_id == "original_icon":
+		return global_unlocks.has("original_icon") and _is_original_icon_available(vehicle_id)
+	var unlocked_for_vehicle: Array = unlocked_vehicle_skins.get(vehicle_id, [DEFAULT_SKIN_ID])
+	return unlocked_for_vehicle.has(skin_id)
+
+func _sort_vehicle_ids(ids: Array[String]) -> void:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins == null or not helicopter_skins.has_method("get_vehicle_ids"):
+		return
+	var ordered_ids: Array[String] = helicopter_skins.get_vehicle_ids()
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		return ordered_ids.find(a) < ordered_ids.find(b)
+	)
+
+func _sort_skin_ids_for_vehicle(vehicle_id: String, ids: Array[String]) -> void:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins == null or not helicopter_skins.has_method("get_vehicle_skin_ids"):
+		return
+	var ordered_ids: Array[String] = helicopter_skins.get_vehicle_skin_ids(vehicle_id)
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		return ordered_ids.find(a) < ordered_ids.find(b)
+	)
 
 func _ensure_top_skin_request() -> void:
 	if _top_skin_request != null:
@@ -322,54 +867,39 @@ func _on_top_skin_request_completed(result: int, response_code: int, _headers: P
 		return
 	apply_leaderboard_entries(OnlineLeaderboardScript.parse_entries(body))
 
-func _apply_verified_bonus_skin_access(is_top_player: bool) -> bool:
-	var previous_access := _leaderboard_bonus_skin_access
-	var previous_equipped_skin_id := _equipped_skin_id
-	_leaderboard_bonus_skin_access = is_top_player
+func _apply_verified_bonus_vehicle_access(is_top_player: bool) -> bool:
+	var previous_access := _leaderboard_bonus_vehicle_access
+	var previous_equipped_vehicle_id := _equipped_vehicle_id
+	_leaderboard_bonus_vehicle_access = is_top_player
 	_validate_profile_state()
-
-	var access_changed := previous_access != _leaderboard_bonus_skin_access
-	var equipped_skin_changed := previous_equipped_skin_id != _equipped_skin_id
-	if not access_changed and not equipped_skin_changed:
+	var access_changed := previous_access != _leaderboard_bonus_vehicle_access
+	var equipped_vehicle_changed := previous_equipped_vehicle_id != _equipped_vehicle_id
+	if not access_changed and not equipped_vehicle_changed:
 		return false
-
 	save_profile()
-	if equipped_skin_changed:
+	if equipped_vehicle_changed:
 		_queue_profile_sync()
 	_emit_profile_changed()
 	return true
 
-func _is_dynamic_skin_id(skin_id: String) -> bool:
-	var helicopter_skins := get_node_or_null("/root/HelicopterSkins")
-	if helicopter_skins != null and helicopter_skins.has_method("is_dynamic_skin"):
-		return bool(helicopter_skins.is_dynamic_skin(skin_id))
-	return skin_id == LEADERBOARD_BONUS_SKIN_ID
-
-func _is_skin_accessible_with_unlocks(skin_id: String, unlocked_skins: Array[String]) -> bool:
-	if skin_id.is_empty():
-		return false
-	if _is_dynamic_skin_id(skin_id):
-		return _leaderboard_bonus_skin_access if skin_id == LEADERBOARD_BONUS_SKIN_ID else false
-	return unlocked_skins.has(skin_id)
-
-func _sort_skin_ids(ids: Array[String]) -> void:
-	var helicopter_skins := get_node_or_null("/root/HelicopterSkins")
-	if helicopter_skins == null or not helicopter_skins.has_method("get_skin_ids"):
-		return
-
-	var ordered_ids: Array[String] = helicopter_skins.get_skin_ids()
-	ids.sort_custom(func(a: String, b: String) -> bool:
-		return ordered_ids.find(a) < ordered_ids.find(b)
-	)
+func _persist_and_signal(sync_profile: bool) -> void:
+	_validate_profile_state()
+	save_profile()
+	if sync_profile:
+		_queue_profile_sync()
+	_emit_profile_changed()
 
 func _queue_profile_sync() -> void:
 	if validation_mode_enabled:
 		return
 	var sync_queue := get_node_or_null("/root/SupabaseSyncQueue")
 	if sync_queue != null and sync_queue.has_method("enqueue_sync_player_profile"):
-		sync_queue.enqueue_sync_player_profile(get_profile_summary())
+		sync_queue.enqueue_sync_player_profile(get_profile_sync_summary())
 		if sync_queue.has_method("flush"):
 			sync_queue.flush()
 
 func _emit_profile_changed() -> void:
-	profile_changed.emit(get_profile_summary())
+	profile_changed.emit(get_profile_sync_summary())
+
+func _get_helicopter_skins() -> Node:
+	return get_node_or_null("/root/HelicopterSkins")

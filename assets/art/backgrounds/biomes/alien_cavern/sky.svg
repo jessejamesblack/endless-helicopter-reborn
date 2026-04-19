@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="648" viewBox="0 0 1536 648">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#061528"/>
+      <stop offset="48%" stop-color="#12384b"/>
+      <stop offset="100%" stop-color="#1f5e57"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a3fff4"/>
+      <stop offset="60%" stop-color="#46bfb2" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#46bfb2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#bcffd8"/>
+      <stop offset="55%" stop-color="#74d3a1" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#74d3a1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1536" height="648" fill="url(#sky)"/>
+  <circle cx="420" cy="214" r="196" fill="url(#glowA)" opacity=".94"/>
+  <circle cx="1118" cy="172" r="152" fill="url(#glowB)" opacity=".92"/>
+  <ellipse cx="768" cy="528" rx="520" ry="92" fill="#85fff1" opacity=".11"/>
+  <g fill="#d3fff7" opacity=".18">
+    <ellipse cx="364" cy="126" rx="218" ry="26"/>
+    <ellipse cx="764" cy="168" rx="280" ry="32"/>
+    <ellipse cx="1148" cy="244" rx="236" ry="34"/>
+  </g>
+</svg>

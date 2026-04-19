@@ -24,6 +24,9 @@ const PANEL_MARGIN := 18.0
 @onready var fire_side_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FireSideRow/FireSideOption
 @onready var hud_side_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HudSideValueLabel
 @onready var haptics_toggle: CheckButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsToggle
+@onready var haptics_intensity_slider: HSlider = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow/HapticsIntensityValueRow/HapticsIntensitySlider
+@onready var haptics_intensity_value_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/HapticsIntensityRow/HapticsIntensityValueRow/HapticsIntensityValueLabel
+@onready var frame_rate_option: OptionButton = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/FrameRateRow/FrameRateOption
 @onready var push_status_label: Label = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/PushStatusLabel
 @onready var enable_push_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ContentColumns/SystemCard/SystemColumn/PushSection/EnablePushButton
 @onready var close_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ButtonRow/CloseButton
@@ -34,12 +37,15 @@ func _ready() -> void:
 	_fit_panel_to_viewport()
 	get_viewport().size_changed.connect(_fit_panel_to_viewport)
 	_populate_side_options()
+	_populate_frame_rate_options()
 
 	master_slider.value_changed.connect(_on_master_slider_changed)
 	music_slider.value_changed.connect(_on_music_slider_changed)
 	sfx_slider.value_changed.connect(_on_sfx_slider_changed)
 	fire_side_option.item_selected.connect(_on_fire_side_selected)
 	haptics_toggle.toggled.connect(_on_haptics_toggled)
+	haptics_intensity_slider.value_changed.connect(_on_haptics_intensity_changed)
+	frame_rate_option.item_selected.connect(_on_frame_rate_selected)
 	enable_push_button.pressed.connect(_on_enable_push_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
@@ -75,6 +81,14 @@ func _populate_side_options() -> void:
 	fire_side_option.add_item("Left")
 	fire_side_option.add_item("Right")
 
+func _populate_frame_rate_options() -> void:
+	if frame_rate_option.item_count > 0:
+		return
+	frame_rate_option.add_item("Battery Saver")
+	frame_rate_option.add_item("Smooth")
+	frame_rate_option.add_item("Ultra Smooth")
+	frame_rate_option.add_item("Device Default")
+
 func _sync_from_settings() -> void:
 	var game_settings = _get_game_settings()
 	if game_settings == null:
@@ -85,27 +99,45 @@ func _sync_from_settings() -> void:
 	sfx_slider.set_block_signals(true)
 	fire_side_option.set_block_signals(true)
 	haptics_toggle.set_block_signals(true)
+	haptics_intensity_slider.set_block_signals(true)
+	frame_rate_option.set_block_signals(true)
 
 	master_slider.value = float(game_settings.get_master_volume())
 	music_slider.value = float(game_settings.get_music_volume())
 	sfx_slider.value = float(game_settings.get_sfx_volume())
 	fire_side_option.select(0 if str(game_settings.get_fire_button_side()) == SIDE_LEFT else 1)
 	haptics_toggle.button_pressed = bool(game_settings.is_haptics_enabled())
+	haptics_intensity_slider.value = float(game_settings.get_haptics_intensity())
+	match str(game_settings.get_frame_rate_setting()):
+		"battery_saver":
+			frame_rate_option.select(0)
+		"smooth":
+			frame_rate_option.select(1)
+		"ultra":
+			frame_rate_option.select(2)
+		_:
+			frame_rate_option.select(3)
 
 	master_slider.set_block_signals(false)
 	music_slider.set_block_signals(false)
 	sfx_slider.set_block_signals(false)
 	fire_side_option.set_block_signals(false)
 	haptics_toggle.set_block_signals(false)
+	haptics_intensity_slider.set_block_signals(false)
+	frame_rate_option.set_block_signals(false)
 
 	_update_audio_labels()
 	_update_layout_labels()
+	_update_haptics_labels()
 	_update_push_status()
 
 func _update_audio_labels() -> void:
 	master_value_label.text = "%d%%" % int(round(master_slider.value * 100.0))
 	music_value_label.text = "%d%%" % int(round(music_slider.value * 100.0))
 	sfx_value_label.text = "%d%%" % int(round(sfx_slider.value * 100.0))
+
+func _update_haptics_labels() -> void:
+	haptics_intensity_value_label.text = "%d%%" % int(round(haptics_intensity_slider.value * 100.0))
 
 func _update_layout_labels() -> void:
 	var game_settings = _get_game_settings()
@@ -143,6 +175,25 @@ func _on_haptics_toggled(enabled: bool) -> void:
 	var game_settings = _get_game_settings()
 	if game_settings != null:
 		game_settings.set_haptics_enabled(enabled)
+
+func _on_haptics_intensity_changed(value: float) -> void:
+	var game_settings = _get_game_settings()
+	if game_settings != null:
+		game_settings.set_haptics_intensity(value)
+	_update_haptics_labels()
+
+func _on_frame_rate_selected(index: int) -> void:
+	var setting := "device_default"
+	match index:
+		0:
+			setting = "battery_saver"
+		1:
+			setting = "smooth"
+		2:
+			setting = "ultra"
+	var game_settings = _get_game_settings()
+	if game_settings != null:
+		game_settings.set_frame_rate_setting(setting)
 
 func _on_enable_push_pressed() -> void:
 	var player_profile = _get_player_profile()

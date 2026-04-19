@@ -2,11 +2,13 @@ extends Node
 
 const STATS_PATH := "user://run_stats.cfg"
 const STATS_SECTION := "run_stats"
+const SURVIVAL_SCORE_TIME_STEP_SECONDS := 0.001
 
 var _local_best_score: int = 0
 var _last_run_summary: Dictionary = {}
 var _run_active: bool = false
 var _time_survived_seconds: float = 0.0
+var _survival_score: int = 0
 var _missiles_fired: int = 0
 var _hostiles_destroyed: int = 0
 var _ammo_pickups_collected: int = 0
@@ -43,6 +45,8 @@ func record_survival_time(delta: float) -> void:
 	if not _run_active:
 		return
 	_time_survived_seconds += maxf(delta, 0.0)
+	var quantized_elapsed := snappedf(maxf(_time_survived_seconds, 0.0), SURVIVAL_SCORE_TIME_STEP_SECONDS)
+	_survival_score = int(floor(quantized_elapsed * 10.0))
 
 func record_missile_fired() -> void:
 	if not _run_active:
@@ -136,7 +140,7 @@ func record_forced_rescue_ammo_spawn() -> void:
 		return
 	_forced_rescue_ammo_spawns += 1
 
-func complete_run(final_score: int) -> Dictionary:
+func complete_run(final_score: int, extra_summary: Dictionary = {}) -> Dictionary:
 	var safe_score: int = maxi(final_score, 0)
 	var best_score_before_run: int = _local_best_score
 	var best_score_after_run: int = maxi(best_score_before_run, safe_score)
@@ -152,7 +156,9 @@ func complete_run(final_score: int) -> Dictionary:
 		"best_score_after_run": best_score_after_run,
 		"distance_to_best_before_run": max(best_score_before_run - safe_score, 0),
 		"is_new_best": is_new_best,
+		"time_survived": _time_survived_seconds,
 		"time_survived_seconds": _time_survived_seconds,
+		"survival_score": _survival_score,
 		"missiles_fired": _missiles_fired,
 		"hostiles_destroyed": _hostiles_destroyed,
 		"ammo_pickups_collected": _ammo_pickups_collected,
@@ -177,6 +183,8 @@ func complete_run(final_score: int) -> Dictionary:
 		"crash_encounter_id": _current_encounter_id,
 		"crash_director_phase": _current_director_phase,
 	}
+	for key in extra_summary.keys():
+		_last_run_summary[str(key)] = extra_summary[key]
 
 	_run_active = false
 	_reset_live_stats()
@@ -199,6 +207,7 @@ func get_local_best_score() -> int:
 
 func _reset_live_stats() -> void:
 	_time_survived_seconds = 0.0
+	_survival_score = 0
 	_missiles_fired = 0
 	_hostiles_destroyed = 0
 	_ammo_pickups_collected = 0

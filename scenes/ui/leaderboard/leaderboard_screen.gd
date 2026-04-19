@@ -357,15 +357,23 @@ func _populate_mission_summary() -> void:
 	]
 
 	var completed_titles = current_mission_result.get("missions_completed_this_run", []) if current_mission_result.has("missions_completed_this_run") else []
-	var unlocked_skin_ids = current_mission_result.get("newly_unlocked_skins", []) if current_mission_result.has("newly_unlocked_skins") else []
+	var unlock_entries: Array = current_run_summary.get("post_run_unlocks", []) if current_run_summary.has("post_run_unlocks") else current_mission_result.get("unlocks", [])
+	if unlock_entries.is_empty() and current_mission_result.has("newly_unlocked_vehicles"):
+		for vehicle_id in current_mission_result.get("newly_unlocked_vehicles", []):
+			unlock_entries.append({
+				"unlock_type": "vehicle",
+				"vehicle_id": str(vehicle_id),
+			})
 	var next_unlock: Dictionary = current_mission_result.get("next_unlock", progress_summary.get("next_unlock", {}))
 
 	mission_line_one_label.text = "+ %s complete!" % str(completed_titles[0]) if completed_titles is Array and not completed_titles.is_empty() else "Keep flying to clear today's missions."
-	mission_line_two_label.text = "+ %s unlocked!" % _get_skin_display_name(str(unlocked_skin_ids[0])) if unlocked_skin_ids is Array and not unlocked_skin_ids.is_empty() else ""
-	if next_unlock.is_empty():
-		mission_line_three_label.text = "Next unlock: Collection complete"
+	mission_line_two_label.text = _format_unlock_line(unlock_entries[0]) if unlock_entries.size() >= 1 else ""
+	if unlock_entries.size() >= 2:
+		mission_line_three_label.text = _format_unlock_line(unlock_entries[1])
+	elif next_unlock.is_empty():
+		mission_line_three_label.text = "Next vehicle: Collection complete"
 	else:
-		mission_line_three_label.text = "Next unlock: %s %s" % [
+		mission_line_three_label.text = "Next vehicle: %s %s" % [
 			str(next_unlock.get("display_name", "Scout")),
 			str(next_unlock.get("progress_text", "")),
 		]
@@ -663,7 +671,7 @@ func _apply_label_theme(label: Label, font_color: Color, font_size: int) -> void
 	label.add_theme_font_size_override("font_size", font_size)
 
 func _configure_touch_scroll() -> void:
-	leaderboard_scroll.scroll_deadzone = 12
+	leaderboard_scroll.scroll_deadzone = 6
 	leaderboard_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _apply_panel_rect(rect: Rect2) -> void:
@@ -762,15 +770,35 @@ func _should_show_mission_card() -> bool:
 
 func _get_equipped_skin_id() -> String:
 	var player_profile = get_node_or_null("/root/PlayerProfile")
+	if player_profile != null and player_profile.has_method("get_equipped_vehicle_id"):
+		return str(player_profile.get_equipped_vehicle_id())
 	if player_profile != null and player_profile.has_method("get_equipped_skin_id"):
 		return str(player_profile.get_equipped_skin_id())
 	return "default_scout"
 
-func _get_skin_display_name(skin_id: String) -> String:
+func _get_vehicle_display_name(vehicle_id: String) -> String:
 	var helicopter_skins = get_node_or_null("/root/HelicopterSkins")
 	if helicopter_skins != null and helicopter_skins.has_method("get_display_name"):
-		return str(helicopter_skins.get_display_name(skin_id))
+		return str(helicopter_skins.get_display_name(vehicle_id))
+	return vehicle_id
+
+func _get_skin_display_name(vehicle_id: String, skin_id: String) -> String:
+	var helicopter_skins = get_node_or_null("/root/HelicopterSkins")
+	if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_skin_data"):
+		return str(helicopter_skins.get_vehicle_skin_data(vehicle_id, skin_id).get("display_name", skin_id))
 	return skin_id
+
+func _format_unlock_line(unlock_entry: Dictionary) -> String:
+	match str(unlock_entry.get("unlock_type", "")):
+		"vehicle":
+			return "+ %s vehicle" % _get_vehicle_display_name(str(unlock_entry.get("vehicle_id", "")))
+		"vehicle_skin":
+			var vehicle_id := str(unlock_entry.get("vehicle_id", ""))
+			var skin_id := str(unlock_entry.get("skin_id", ""))
+			return "+ %s / %s skin" % [_get_vehicle_display_name(vehicle_id), _get_skin_display_name(vehicle_id, skin_id)]
+		"global_skin_set":
+			return "+ Original Icon skin set"
+	return ""
 
 func _is_online_configured() -> bool:
 	if validation_mode_enabled:

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="648" viewBox="0 0 1536 648">
+  <g fill="none">
+    <path d="M0 648V438l82-32 92 18 78-26 86 34 104-30 90 30 88-28 124 34 86-28 102 24 90-24 118 40 88-34 94 32 114-20 100 40v176Z" fill="#0d3a44" opacity=".88"/>
+    <g fill="#1a5a67" opacity=".9">
+      <polygon points="112,454 150,374 194,454"/>
+      <polygon points="294,446 330,368 374,446"/>
+      <polygon points="540,456 582,362 632,456"/>
+      <polygon points="796,448 838,366 886,448"/>
+      <polygon points="1062,460 1104,372 1150,460"/>
+      <polygon points="1306,452 1344,370 1388,452"/>
+    </g>
+    <g fill="#8fffee" opacity=".58">
+      <polygon points="148,430 166,394 186,430"/>
+      <polygon points="592,430 610,392 632,430"/>
+      <polygon points="1106,434 1124,396 1146,434"/>
+    </g>
+  </g>
+</svg>

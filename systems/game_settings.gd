@@ -2,7 +2,8 @@ extends Node
 
 signal audio_settings_changed(master_volume: float, music_volume: float, sfx_volume: float)
 signal layout_settings_changed(fire_button_side: String, hud_side: String)
-signal haptics_settings_changed(haptics_enabled: bool)
+signal haptics_settings_changed(haptics_enabled: bool, haptics_intensity: float)
+signal performance_settings_changed(frame_rate_setting: String, max_fps: int)
 
 const SETTINGS_PATH := "user://game_settings.cfg"
 const SETTINGS_SECTION := "settings"
@@ -11,6 +12,10 @@ const SIDE_RIGHT := "right"
 const MUSIC_BUS_NAME := "Music"
 const SFX_BUS_NAME := "SFX"
 const MIN_VOLUME_LINEAR := 0.0001
+const FRAME_RATE_BATTERY_SAVER := "battery_saver"
+const FRAME_RATE_SMOOTH := "smooth"
+const FRAME_RATE_ULTRA := "ultra"
+const FRAME_RATE_DEVICE_DEFAULT := "device_default"
 
 var master_volume: float = 1.0
 var music_volume: float = 0.85
@@ -18,6 +23,8 @@ var sfx_volume: float = 1.0
 var fire_button_side: String = SIDE_RIGHT
 var hud_side: String = SIDE_LEFT
 var haptics_enabled: bool = true
+var haptics_intensity: float = 0.75
+var frame_rate_setting: String = FRAME_RATE_DEVICE_DEFAULT
 
 func _ready() -> void:
 	load_settings()
@@ -36,6 +43,8 @@ func load_settings() -> void:
 	fire_button_side = _sanitize_side(str(config.get_value(SETTINGS_SECTION, "fire_button_side", SIDE_RIGHT)))
 	hud_side = _mirror_side(fire_button_side)
 	haptics_enabled = bool(config.get_value(SETTINGS_SECTION, "haptics_enabled", true))
+	haptics_intensity = clampf(float(config.get_value(SETTINGS_SECTION, "haptics_intensity", 0.75)), 0.0, 1.0)
+	frame_rate_setting = _sanitize_frame_rate_setting(str(config.get_value(SETTINGS_SECTION, "frame_rate_setting", FRAME_RATE_DEVICE_DEFAULT)))
 
 func save_settings() -> void:
 	var config := ConfigFile.new()
@@ -45,16 +54,20 @@ func save_settings() -> void:
 	config.set_value(SETTINGS_SECTION, "fire_button_side", fire_button_side)
 	config.set_value(SETTINGS_SECTION, "hud_side", hud_side)
 	config.set_value(SETTINGS_SECTION, "haptics_enabled", haptics_enabled)
+	config.set_value(SETTINGS_SECTION, "haptics_intensity", haptics_intensity)
+	config.set_value(SETTINGS_SECTION, "frame_rate_setting", frame_rate_setting)
 	config.save(SETTINGS_PATH)
 
 func apply_settings(emit_signals: bool = true) -> void:
 	hud_side = _mirror_side(fire_button_side)
 	_ensure_audio_buses()
 	_apply_audio_bus_volumes()
+	_apply_frame_rate_cap()
 	if emit_signals:
 		audio_settings_changed.emit(master_volume, music_volume, sfx_volume)
 		layout_settings_changed.emit(fire_button_side, hud_side)
-		haptics_settings_changed.emit(haptics_enabled)
+		haptics_settings_changed.emit(haptics_enabled, haptics_intensity)
+		performance_settings_changed.emit(frame_rate_setting, get_target_max_fps())
 
 func set_master_volume(value: float) -> void:
 	master_volume = clampf(value, 0.0, 1.0)
@@ -86,7 +99,18 @@ func set_hud_side(side: String) -> void:
 func set_haptics_enabled(enabled: bool) -> void:
 	haptics_enabled = enabled
 	save_settings()
-	haptics_settings_changed.emit(haptics_enabled)
+	haptics_settings_changed.emit(haptics_enabled, haptics_intensity)
+
+func set_haptics_intensity(value: float) -> void:
+	haptics_intensity = clampf(value, 0.0, 1.0)
+	save_settings()
+	haptics_settings_changed.emit(haptics_enabled, haptics_intensity)
+
+func set_frame_rate_setting(value: String) -> void:
+	frame_rate_setting = _sanitize_frame_rate_setting(value)
+	save_settings()
+	_apply_frame_rate_cap()
+	performance_settings_changed.emit(frame_rate_setting, get_target_max_fps())
 
 func get_master_volume() -> float:
 	return master_volume
@@ -106,8 +130,28 @@ func get_hud_side() -> String:
 func is_haptics_enabled() -> bool:
 	return haptics_enabled
 
+func get_haptics_intensity() -> float:
+	return haptics_intensity
+
+func get_frame_rate_setting() -> String:
+	return frame_rate_setting
+
+func get_target_max_fps() -> int:
+	match frame_rate_setting:
+		FRAME_RATE_BATTERY_SAVER:
+			return 60
+		FRAME_RATE_SMOOTH:
+			return 90
+		FRAME_RATE_ULTRA:
+			return 120
+	return 0
+
 func vibrate(duration_ms: int) -> void:
 	if not haptics_enabled:
+		return
+	var haptics_manager = get_node_or_null("/root/HapticsManager")
+	if haptics_manager != null and haptics_manager.has_method("vibrate_legacy"):
+		haptics_manager.vibrate_legacy(duration_ms)
 		return
 	Input.vibrate_handheld(duration_ms)
 
@@ -123,6 +167,8 @@ func _apply_defaults() -> void:
 	fire_button_side = SIDE_RIGHT
 	hud_side = SIDE_LEFT
 	haptics_enabled = true
+	haptics_intensity = 0.75
+	frame_rate_setting = FRAME_RATE_DEVICE_DEFAULT
 
 func _ensure_audio_buses() -> void:
 	_ensure_bus(MUSIC_BUS_NAME)
@@ -150,6 +196,9 @@ func _apply_audio_bus_volumes() -> void:
 	if sfx_index != -1:
 		AudioServer.set_bus_volume_db(sfx_index, _linear_to_db(sfx_volume))
 
+func _apply_frame_rate_cap() -> void:
+	Engine.max_fps = get_target_max_fps()
+
 func _linear_to_db(value: float) -> float:
 	if value <= 0.0:
 		return -80.0
@@ -164,3 +213,9 @@ func _mirror_side(side: String) -> String:
 	if _sanitize_side(side) == SIDE_LEFT:
 		return SIDE_RIGHT
 	return SIDE_LEFT
+
+func _sanitize_frame_rate_setting(value: String) -> String:
+	match value:
+		FRAME_RATE_BATTERY_SAVER, FRAME_RATE_SMOOTH, FRAME_RATE_ULTRA, FRAME_RATE_DEVICE_DEFAULT:
+			return value
+	return FRAME_RATE_DEVICE_DEFAULT

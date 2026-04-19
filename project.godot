@@ -18,6 +18,7 @@ config/icon="res://assets/icons/icon.svg"
 [autoload]
 
 GameSettings="*res://systems/game_settings.gd"
+HapticsManager="*res://systems/haptics_manager.gd"
 MusicPlayer="*res://systems/music_player.gd"
 PushNotifications="*res://systems/push_notifications.gd"
 RunStats="*res://systems/run_stats.gd"

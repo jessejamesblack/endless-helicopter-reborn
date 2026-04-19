@@ -21,8 +21,13 @@ const COMBO_TIMEOUT_SECONDS := 3.5
 const COMBO_EVENTS_PER_STEP := 3
 const COMBO_STEP := 0.25
 const COMBO_MAX_MULTIPLIER := 3.0
+const SURVIVAL_POINTS_PER_SECOND := 10.0
+const SURVIVAL_SCORE_TIME_STEP_SECONDS := 0.001
 
-var score: float = 0.0
+var score: int = 0
+var survival_time_seconds: float = 0.0
+var survival_score: int = 0
+var skill_score: int = 0
 var is_crashed: bool = false
 var is_transitioning_to_game_over: bool = false
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
@@ -53,6 +58,10 @@ func _ready() -> void:
         spawner.reset_for_run()
     reset_combo()
     missile_hit_streak = 0
+    score = 0
+    survival_time_seconds = 0.0
+    survival_score = 0
+    skill_score = 0
 
     var music_player = get_node_or_null("/root/MusicPlayer")
     if music_player != null and music_player.has_method("play_gameplay_music"):
@@ -92,8 +101,9 @@ func _process(delta: float) -> void:
         run_stats.record_survival_time(delta)
     _update_combo_timer(delta)
 
-    # Increase score continuously based on time survived
-    score += delta * 10.0
+    survival_time_seconds += delta
+    survival_score = _calculate_survival_score(survival_time_seconds)
+    score = survival_score + skill_score
     _update_score_ui()
     
     # Gradually increase game speed to make it harder over time!
@@ -113,7 +123,8 @@ func award_skill_score(base_points: int, reason: String, world_position: Vector2
 
     var applied_multiplier := combo_multiplier
     var awarded := int(round(float(maxi(base_points, 0)) * applied_multiplier))
-    score += awarded
+    skill_score += awarded
+    score = survival_score + skill_score
     _update_score_ui()
 
     var run_stats := _get_run_stats()
@@ -127,6 +138,7 @@ func award_skill_score(base_points: int, reason: String, world_position: Vector2
     return awarded
 
 func _register_combo_event() -> void:
+    var previous_multiplier := combo_multiplier
     combo_events += 1
     combo_timer = COMBO_TIMEOUT_SECONDS
     combo_multiplier = _calculate_combo_multiplier(combo_events)
@@ -135,11 +147,18 @@ func _register_combo_event() -> void:
     if run_stats != null and run_stats.has_method("record_combo_state"):
         run_stats.record_combo_state(combo_events, combo_multiplier)
 
+    if combo_multiplier > previous_multiplier:
+        _play_haptic("combo_up")
+
     _update_combo_ui()
 
 func _calculate_combo_multiplier(events: int) -> float:
     var steps := int(floor(float(events) / float(COMBO_EVENTS_PER_STEP)))
     return minf(1.0 + float(steps) * COMBO_STEP, COMBO_MAX_MULTIPLIER)
+
+func _calculate_survival_score(elapsed_seconds: float) -> int:
+    var quantized_elapsed := snappedf(maxf(elapsed_seconds, 0.0), SURVIVAL_SCORE_TIME_STEP_SECONDS)
+    return int(floor(quantized_elapsed * SURVIVAL_POINTS_PER_SECOND))
 
 func _update_combo_timer(delta: float) -> void:
     if combo_events <= 0:
@@ -164,6 +183,7 @@ func record_near_miss(kind: String, world_position: Vector2) -> void:
     if run_stats != null and run_stats.has_method("record_near_miss"):
         run_stats.record_near_miss(kind)
 
+    _play_haptic("near_miss")
     award_skill_score(base_points, "NEAR MISS", world_position, true)
 
 func record_player_missile_hit(_target: Node, world_position: Vector2, base_score: int) -> void:
@@ -176,6 +196,7 @@ func record_player_missile_hit(_target: Node, world_position: Vector2, base_scor
     if run_stats != null and run_stats.has_method("record_missile_hit"):
         run_stats.record_missile_hit(missile_hit_streak)
 
+    _play_haptic("missile_hit")
     award_skill_score(base_score, "HIT", world_position, true)
 
     if missile_hit_streak % MISSILE_STREAK_BONUS_THRESHOLD == 0:
@@ -199,6 +220,7 @@ func record_projectile_intercept(world_position: Vector2, base_score: int) -> vo
     if run_stats != null and run_stats.has_method("record_projectile_intercept"):
         run_stats.record_projectile_intercept()
 
+    _play_haptic("projectile_intercept")
     record_player_missile_hit(null, world_position, base_score + PROJECTILE_INTERCEPT_BONUS)
     _show_floating_text(world_position + Vector2(0, -24), "INTERCEPT", false)
 
@@ -248,6 +270,7 @@ func trigger_crash(crash_pos: Vector2) -> void:
     var game_settings = _get_game_settings()
     if game_settings != null and game_settings.has_method("vibrate"):
         game_settings.vibrate(70)
+    _play_haptic("crash")
     
     spawn_explosion(crash_pos, true)
     
@@ -259,11 +282,54 @@ func game_over() -> void:
     _clear_pause_state()
     var run_stats := _get_run_stats()
     var summary: Dictionary = {}
+    var player_profile = _get_player_profile()
+    var vehicle_id := "default_scout"
+    var vehicle_skin_id := "factory"
+    if player_profile != null and player_profile.has_method("get_equipped_vehicle_id"):
+        vehicle_id = str(player_profile.get_equipped_vehicle_id())
+    elif player_profile != null and player_profile.has_method("get_equipped_skin_id"):
+        vehicle_id = str(player_profile.get_equipped_skin_id())
+    if player_profile != null and player_profile.has_method("get_equipped_vehicle_skin_id"):
+        vehicle_skin_id = str(player_profile.get_equipped_vehicle_skin_id(vehicle_id))
+    var extra_summary := {
+        "survival_time_seconds": survival_time_seconds,
+        "time_survived": survival_time_seconds,
+        "survival_score": survival_score,
+        "skill_score": skill_score,
+        "equipped_vehicle_id": vehicle_id,
+        "equipped_vehicle_skin_id": vehicle_skin_id,
+        "equipped_skin_id": vehicle_id,
+    }
     if run_stats != null and run_stats.has_method("complete_run"):
-        summary = run_stats.complete_run(int(score))
+        summary = run_stats.complete_run(int(score), extra_summary)
     var mission_manager := _get_mission_manager()
+    var mission_result: Dictionary = {}
     if mission_manager != null and mission_manager.has_method("apply_run_summary"):
-        mission_manager.apply_run_summary(summary)
+        mission_result = mission_manager.apply_run_summary(summary)
+    if (mission_result.get("missions_completed_this_run", []) as Array).size() > 0:
+        _play_haptic("mission_complete")
+
+    var unlock_entries: Array[Dictionary] = []
+    if mission_result.has("newly_unlocked_vehicles"):
+        for vehicle_unlock in mission_result.get("newly_unlocked_vehicles", []):
+            unlock_entries.append({
+                "unlock_type": "vehicle",
+                "vehicle_id": str(vehicle_unlock),
+            })
+
+    if player_profile != null and player_profile.has_method("apply_run_skin_progress"):
+        unlock_entries.append_array(player_profile.apply_run_skin_progress(vehicle_id, summary))
+    if player_profile != null and player_profile.has_method("apply_daily_mission_vehicle_credit"):
+        unlock_entries.append_array(player_profile.apply_daily_mission_vehicle_credit(vehicle_id, int((mission_result.get("missions_completed_this_run", []) as Array).size())))
+
+    if mission_manager != null and mission_manager.has_method("merge_recent_run_details") and not unlock_entries.is_empty():
+        mission_manager.merge_recent_run_details({"unlocks": unlock_entries})
+
+    summary["post_run_unlocks"] = unlock_entries.duplicate(true)
+    if not unlock_entries.is_empty():
+        _play_haptic("unlock")
+    if bool(summary.get("is_new_best", false)):
+        _play_haptic("new_best")
     _queue_post_run_sync(summary)
     var error := get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
     if error != OK:
@@ -289,6 +355,7 @@ func trigger_glowing_rock_blast(blast_pos: Vector2, source: Node = null, caused_
         var run_stats := _get_run_stats()
         if run_stats != null and run_stats.has_method("record_glowing_rock_clear"):
             run_stats.record_glowing_rock_clear()
+        _play_haptic("glowing_clear")
 
     spawn_configured_explosion(blast_pos, true, true)
     _play_screen_flash_pulses()
@@ -489,6 +556,11 @@ func set_director_debug_enabled(enabled: bool) -> void:
     _configure_director_debug_overlay()
     _update_director_debug_overlay()
 
+func _play_haptic(preset_id: String) -> void:
+    var haptics_manager = get_node_or_null("/root/HapticsManager")
+    if haptics_manager != null and haptics_manager.has_method("play"):
+        haptics_manager.play(preset_id)
+
 func _get_game_settings():
     return get_node_or_null("/root/GameSettings")
 
@@ -511,21 +583,23 @@ func _queue_post_run_sync(summary: Dictionary) -> void:
 
     var player_profile = _get_player_profile()
     var mission_manager = _get_mission_manager()
-    if player_profile != null and player_profile.has_method("get_profile_summary") and sync_queue.has_method("enqueue_sync_player_profile"):
+    if player_profile != null and player_profile.has_method("get_profile_sync_summary") and sync_queue.has_method("enqueue_sync_player_profile"):
+        sync_queue.enqueue_sync_player_profile(player_profile.get_profile_sync_summary())
+    elif player_profile != null and player_profile.has_method("get_profile_summary") and sync_queue.has_method("enqueue_sync_player_profile"):
         sync_queue.enqueue_sync_player_profile(player_profile.get_profile_summary())
 
     if mission_manager != null and mission_manager.has_method("get_daily_sync_summary") and sync_queue.has_method("enqueue_sync_daily_mission_progress"):
         sync_queue.enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
 
     if OnlineLeaderboardScript.is_configured() and OnlineLeaderboardScript.has_saved_profile() and sync_queue.has_method("enqueue_submit_score_v2"):
-        var equipped_skin_id := "default_scout"
-        if player_profile != null and player_profile.has_method("get_equipped_skin_id"):
-            equipped_skin_id = player_profile.get_equipped_skin_id()
+        var equipped_vehicle_id := str(summary.get("equipped_vehicle_id", "default_scout"))
+        if player_profile != null and player_profile.has_method("get_equipped_vehicle_id"):
+            equipped_vehicle_id = str(player_profile.get_equipped_vehicle_id())
         sync_queue.enqueue_submit_score_v2(
             OnlineLeaderboardScript.load_cached_name(),
             int(summary.get("score", int(score))),
             summary,
-            equipped_skin_id
+            equipped_vehicle_id
         )
 
     if sync_queue.has_method("flush"):

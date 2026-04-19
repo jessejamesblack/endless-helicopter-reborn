@@ -43,8 +43,11 @@ func _validate_autoloads() -> void:
 
 	if player_profile != null:
 		_assert(player_profile.has_method("get_profile_summary"), "PlayerProfile should expose get_profile_summary().")
+		_assert(player_profile.has_method("get_profile_sync_summary"), "PlayerProfile should expose get_profile_sync_summary().")
 		_assert(player_profile.has_method("merge_remote_profile"), "PlayerProfile should expose merge_remote_profile().")
-		_assert(player_profile.has_method("has_skin_access"), "PlayerProfile should expose has_skin_access().")
+		_assert(player_profile.has_method("has_vehicle_access"), "PlayerProfile should expose has_vehicle_access().")
+		_assert(player_profile.has_method("is_vehicle_skin_unlocked"), "PlayerProfile should expose is_vehicle_skin_unlocked().")
+		_assert(player_profile.has_method("unlock_skin_for_all_available_original_icons"), "PlayerProfile should expose unlock_skin_for_all_available_original_icons().")
 		_assert(player_profile.has_method("apply_leaderboard_top_status"), "PlayerProfile should expose apply_leaderboard_top_status().")
 
 	if mission_manager != null:
@@ -125,7 +128,10 @@ func _validate_screen_assets() -> void:
 	var hangar_screen := hangar_screen_scene.instantiate() as Control
 	get_root().add_child(hangar_screen)
 	await process_frame
-	_assert(hangar_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/EquipButton") != null, "Hangar screen should include the equip button.")
+	_assert(hangar_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ContentRow/VehicleListCard/VehicleListScroll/VehicleList") != null, "Hangar screen should include the vehicle list.")
+	_assert(hangar_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ContentRow/SkinListCard/SkinListScroll/SkinList") != null, "Hangar screen should include the skin list.")
+	_assert(hangar_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/EquipVehicleButton") != null, "Hangar screen should include the equip vehicle button.")
+	_assert(hangar_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/EquipSkinButton") != null, "Hangar screen should include the equip skin button.")
 	if hangar_screen.has_method("get_preview_state"):
 		var preview_state: Dictionary = hangar_screen.get_preview_state()
 		var preview_position: Vector2 = preview_state.get("position", Vector2.ZERO)
@@ -140,21 +146,23 @@ func _validate_skin_library() -> void:
 	if helicopter_skins == null:
 		return
 
-	_assert(helicopter_skins.has_skin("pottercar"), "Pottercar should exist in the skin library.")
-	for skin_id in helicopter_skins.get_skin_ids():
-		var texture_path := str(helicopter_skins.get_texture_path(skin_id))
-		_assert(ResourceLoader.exists(texture_path), "Skin texture should exist for %s." % skin_id)
+	_assert(helicopter_skins.has_vehicle("pottercar"), "Pottercar should exist in the vehicle library.")
+	for vehicle_id in helicopter_skins.get_vehicle_ids():
+		var texture_path := str(helicopter_skins.get_texture_path(vehicle_id))
+		_assert(ResourceLoader.exists(texture_path), "Vehicle texture should exist for %s." % vehicle_id)
+		_assert(helicopter_skins.get_vehicle_skin_ids(vehicle_id).has("factory"), "Vehicle %s should expose a Factory skin." % vehicle_id)
 		if helicopter_skins.has_method("get_collision_polygon"):
-			var polygon: PackedVector2Array = helicopter_skins.get_collision_polygon(skin_id)
-			_assert(not polygon.is_empty(), "Skin collision polygon should exist for %s." % skin_id)
+			var polygon: PackedVector2Array = helicopter_skins.get_collision_polygon(vehicle_id)
+			_assert(not polygon.is_empty(), "Vehicle collision polygon should exist for %s." % vehicle_id)
 
 	_validate_imported_skin_transparency(helicopter_skins)
 
-	if helicopter_skins.has_method("get_unlocks_for_completed_missions"):
-		_assert(not (helicopter_skins.get_unlocks_for_completed_missions(999) as Array).has("pottercar"), "Mission unlock helpers should exclude Pottercar.")
-	if helicopter_skins.has_method("get_next_locked_skin"):
-		var next_unlock: Dictionary = helicopter_skins.get_next_locked_skin(999)
-		_assert(str(next_unlock.get("skin_id", "")) != "pottercar", "Next mission unlock should never be Pottercar.")
+	if helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
+		_assert(not (helicopter_skins.get_vehicle_unlocks_for_completed_missions(999) as Array).has("pottercar"), "Mission unlock helpers should exclude Pottercar.")
+	if helicopter_skins.has_method("get_next_locked_vehicle"):
+		var next_unlock: Dictionary = helicopter_skins.get_next_locked_vehicle(999)
+		_assert(str(next_unlock.get("vehicle_id", "")) != "pottercar", "Next mission unlock should never be Pottercar.")
+	_assert(not helicopter_skins.is_original_icon_available("pottercar"), "Pottercar should show Original Icon as unavailable.")
 
 func _validate_imported_skin_transparency(helicopter_skins: Node) -> void:
 	var probe_points := {
@@ -163,6 +171,7 @@ func _validate_imported_skin_transparency(helicopter_skins: Node) -> void:
 		"blackhawk_shadow": [Vector2i(110, 95), Vector2i(2789, 1274)],
 		"apache_strike": [Vector2i(250, 300), Vector2i(2200, 1350)],
 		"chinook_lift": [Vector2i(250, 150), Vector2i(2300, 1150)],
+		"crazytaxi": [Vector2i(180, 150), Vector2i(2100, 1400)],
 		"pottercar": [Vector2i(400, 290), Vector2i(2359, 1529)],
 	}
 
@@ -198,49 +207,50 @@ func _validate_profile_defaults_and_fallbacks() -> void:
 		return
 
 	player_profile.apply_validation_state({
-		"unlocked_skins": ["default_scout"],
-		"equipped_skin_id": "default_scout",
+		"unlocked_vehicles": ["default_scout"],
+		"equipped_vehicle_id": "default_scout",
 		"total_daily_missions_completed": 0,
 		"daily_streak": 0,
 	})
-	_assert(player_profile.is_skin_unlocked("default_scout"), "Default Scout should be unlocked by default.")
-	_assert(player_profile.get_equipped_skin_id() == "default_scout", "Default Scout should be equipped by default.")
+	_assert(player_profile.is_vehicle_unlocked("default_scout"), "Default Scout should be unlocked by default.")
+	_assert(player_profile.get_equipped_vehicle_id() == "default_scout", "Default Scout should be equipped by default.")
+	_assert(player_profile.is_vehicle_skin_unlocked("default_scout", "factory"), "Factory should unlock with the default vehicle.")
 	_assert(player_profile.are_daily_reminders_enabled(), "Daily mission reminders should be enabled by default.")
-	_assert(not player_profile.has_skin_access("pottercar"), "Pottercar should start unavailable without verified top access.")
-	_assert(not (player_profile.get_unlocked_skins() as Array).has("pottercar"), "Pottercar should not be stored as a permanent unlock.")
-	_assert(not player_profile.equip_skin("pottercar"), "Pottercar should not be equippable while unavailable.")
+	_assert(not player_profile.has_vehicle_access("pottercar"), "Pottercar should start unavailable without verified top access.")
+	_assert(not (player_profile.get_unlocked_vehicles() as Array).has("pottercar"), "Pottercar should not be stored as a permanent unlock.")
+	_assert(not player_profile.equip_vehicle("pottercar"), "Pottercar should not be equippable while unavailable.")
 
 	player_profile.apply_validation_state({
-		"unlocked_skins": ["default_scout"],
-		"equipped_skin_id": "blackhawk_shadow",
+		"unlocked_vehicles": ["default_scout"],
+		"equipped_vehicle_id": "blackhawk_shadow",
 		"total_daily_missions_completed": 0,
 		"daily_streak": 0,
 	})
-	_assert(player_profile.get_equipped_skin_id() == "default_scout", "Locked equipped skin should fall back to default_scout.")
-	_assert(not player_profile.equip_skin("apache_strike"), "Locked skins should not be equippable.")
+	_assert(player_profile.get_equipped_vehicle_id() == "default_scout", "Locked equipped vehicle should fall back to default_scout.")
+	_assert(not player_profile.equip_vehicle("apache_strike"), "Locked vehicles should not be equippable.")
 
 	var local_player_id := OnlineLeaderboardScript.load_or_create_player_id()
 	player_profile.apply_validation_state({
-		"unlocked_skins": ["default_scout"],
-		"equipped_skin_id": "default_scout",
+		"unlocked_vehicles": ["default_scout"],
+		"equipped_vehicle_id": "default_scout",
 		"pottercar_access": false,
 	})
 	player_profile.apply_leaderboard_entries([
 		{"player_id": "other-player", "score": 900, "created_at": "2026-04-18T00:00:00Z"},
 		{"player_id": local_player_id, "score": 900, "created_at": "2026-04-18T00:00:01Z"},
 	])
-	_assert(not player_profile.has_skin_access("pottercar"), "Matching the top score without being the first row should not grant Pottercar.")
+	_assert(not player_profile.has_vehicle_access("pottercar"), "Matching the top score without being the first row should not grant Pottercar.")
 
 	player_profile.apply_leaderboard_entries([
 		{"player_id": local_player_id, "score": 900, "created_at": "2026-04-18T00:00:00Z"},
 		{"player_id": "other-player", "score": 800, "created_at": "2026-04-18T00:00:01Z"},
 	])
-	_assert(player_profile.has_skin_access("pottercar"), "Top row ownership should grant Pottercar.")
-	_assert(player_profile.equip_skin("pottercar"), "Pottercar should be equippable while the player is verified as #1.")
-	_assert(not (player_profile.get_unlocked_skins() as Array).has("pottercar"), "Pottercar should still stay out of the permanent unlock list.")
+	_assert(player_profile.has_vehicle_access("pottercar"), "Top row ownership should grant Pottercar.")
+	_assert(player_profile.equip_vehicle("pottercar"), "Pottercar should be equippable while the player is verified as #1.")
+	_assert(not (player_profile.get_unlocked_vehicles() as Array).has("pottercar"), "Pottercar should still stay out of the permanent unlock list.")
 	player_profile.apply_leaderboard_top_status(false)
-	_assert(not player_profile.has_skin_access("pottercar"), "Losing #1 should revoke Pottercar.")
-	_assert(player_profile.get_equipped_skin_id() == "default_scout", "Equipped Pottercar should fall back to Scout when access is revoked.")
+	_assert(not player_profile.has_vehicle_access("pottercar"), "Losing #1 should revoke Pottercar.")
+	_assert(player_profile.get_equipped_vehicle_id() == "default_scout", "Equipped Pottercar should fall back to Scout when access is revoked.")
 
 func _validate_mission_generation_and_progress() -> void:
 	var mission_manager: Node = _get_autoload("MissionManager")
@@ -254,8 +264,8 @@ func _validate_mission_generation_and_progress() -> void:
 	_assert(JSON.stringify(first_set) == JSON.stringify(second_set), "Daily mission generation should be deterministic for a date key.")
 
 	player_profile.apply_validation_state({
-		"unlocked_skins": ["default_scout"],
-		"equipped_skin_id": "default_scout",
+		"unlocked_vehicles": ["default_scout"],
+		"equipped_vehicle_id": "default_scout",
 		"total_daily_missions_completed": 0,
 		"daily_streak": 0,
 	})
@@ -274,8 +284,8 @@ func _validate_mission_generation_and_progress() -> void:
 	})
 	_assert((result.get("missions_completed_this_run", []) as Array).size() == 3, "Applying a fake run summary should complete the expected missions.")
 	_assert(player_profile.get_total_daily_missions_completed() == 3, "Mission completion should increment total daily missions completed.")
-	_assert(player_profile.is_skin_unlocked("bubble_chopper"), "Bubble Chopper should unlock after the first completed daily mission.")
-	_assert(player_profile.is_skin_unlocked("huey_runner"), "Huey Runner should unlock after three completed daily missions.")
+	_assert(player_profile.is_vehicle_unlocked("bubble_chopper"), "Little Bird should unlock after the first completed daily mission.")
+	_assert(player_profile.is_vehicle_unlocked("huey_runner"), "Huey Runner should unlock after three completed daily missions.")
 
 	var second_validation_missions: Array[Dictionary] = [
 		{"id": "daily_2026-04-19_skill_score", "type": "skill_score", "title": "Earn Skill Score", "description": "Earn 5 skill score today.", "target": 5, "progress": 0, "completed": false, "reward_text": "Daily progress"},
@@ -288,6 +298,7 @@ func _validate_mission_generation_and_progress() -> void:
 
 func _validate_supabase_assets() -> void:
 	_assert(FileAccess.file_exists("res://backend/supabase_player_progress_setup.sql"), "Supabase player progress setup SQL should exist.")
+	_assert(FileAccess.file_exists("res://backend/supabase_vehicle_skins_setup.sql"), "Supabase vehicle/skins setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase_daily_mission_push_setup.sql"), "Daily mission push setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase/functions/send-daily-mission-push/index.ts"), "Daily mission push function should exist.")
 
@@ -306,9 +317,17 @@ func _validate_supabase_assets() -> void:
 	_assert(not OnlineLeaderboardScript.get_legacy_fetch_url().contains("equipped_skin_id"), "Legacy leaderboard fetch URL should avoid Sprint 3-only columns.")
 	_assert(OnlineLeaderboardScript.should_fallback_to_legacy_fetch("column family_leaderboard.equipped_skin_id does not exist"), "OnlineLeaderboard should detect when leaderboard fetch must fall back to legacy columns.")
 
-	var body := OnlineLeaderboardScript.make_submit_v2_body("Pilot", 100, {"skill_score": 50}, "default_scout")
+	var body := OnlineLeaderboardScript.make_submit_v2_body("Pilot", 100, {"skill_score": 50, "equipped_vehicle_id": "default_scout", "equipped_vehicle_skin_id": "factory"}, "default_scout")
 	_assert(body.contains("\"p_run_summary\""), "Submit v2 body should include run_summary.")
 	_assert(body.contains("\"p_equipped_skin_id\""), "Submit v2 body should include equipped_skin_id.")
+	var profile_body := OnlineLeaderboardScript.make_sync_player_profile_body({
+		"equipped_vehicle_id": "default_scout",
+		"equipped_vehicle_skin_id": "factory",
+		"unlocked_vehicles": ["default_scout"],
+		"unlocked_vehicle_skins": {"default_scout": ["factory"]},
+	})
+	_assert(profile_body.contains("\"equipped_vehicle_id\""), "Profile sync body should carry the equipped vehicle id in profile_summary.")
+	_assert(profile_body.contains("\"unlocked_vehicle_skins\""), "Profile sync body should carry vehicle skin unlocks in profile_summary.")
 
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
