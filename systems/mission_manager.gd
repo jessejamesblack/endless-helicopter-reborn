@@ -5,26 +5,238 @@ signal missions_changed(summary: Dictionary)
 const EasternTimeScript = preload("res://systems/eastern_time.gd")
 const SAVE_PATH := "user://daily_missions.cfg"
 const SAVE_SECTION := "daily_missions"
+const CORE_MISSION_COUNT := 3
+const BONUS_MISSION_COUNT := 2
+const TOTAL_MISSION_COUNT := CORE_MISSION_COUNT + BONUS_MISSION_COUNT
+const BONUS_BADGE_TEXT := "BONUS"
 
 var validation_mode_enabled: bool = false
 
-const EASY_MISSIONS := [
-	{"type": "play_runs", "title": "Fly 3 Runs", "description": "Complete 3 runs today.", "target": 3},
-	{"type": "survive_seconds_total", "title": "Survive 90 Seconds", "description": "Stay airborne for 90 total seconds today.", "target": 90},
-	{"type": "ammo_pickups", "title": "Collect 5 Ammo Pickups", "description": "Collect 5 ammo pickups today.", "target": 5},
+const CORE_EASY_MISSIONS := [
+	{
+		"type": "play_runs",
+		"title": "Fly 3 Runs",
+		"description": "Complete 3 runs today.",
+		"target": 3,
+		"category": "core_easy",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "survive_seconds_total",
+		"title": "Survive 90 Seconds",
+		"description": "Stay airborne for 90 total seconds today.",
+		"target": 90,
+		"category": "core_easy",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "ammo_pickups",
+		"title": "Collect 5 Ammo Pickups",
+		"description": "Collect 5 ammo pickups today.",
+		"target": 5,
+		"category": "core_easy",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "hostiles_destroyed",
+		"title": "Destroy 10 Hostiles",
+		"description": "Destroy 10 hostiles today.",
+		"target": 10,
+		"category": "core_easy",
+		"progress_mode": "sum",
+	},
 ]
 
-const MEDIUM_MISSIONS := [
-	{"type": "hostiles_destroyed", "title": "Destroy 10 Hostiles", "description": "Destroy 10 hostiles today.", "target": 10},
-	{"type": "missiles_fired", "title": "Fire 12 Missiles", "description": "Fire 12 missiles today.", "target": 12},
-	{"type": "score_total", "title": "Earn 2,000 Score", "description": "Earn 2,000 total score today.", "target": 2000},
+const CORE_COMBAT_MISSIONS := [
+	{
+		"type": "missiles_fired",
+		"title": "Fire 12 Missiles",
+		"description": "Fire 12 missiles today.",
+		"target": 12,
+		"category": "core_combat",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "score_total",
+		"title": "Earn 2,000 Score",
+		"description": "Earn 2,000 total score today.",
+		"target": 2000,
+		"category": "core_combat",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "projectile_intercepts",
+		"title": "Intercept 2 Projectiles",
+		"description": "Blow up 2 enemy projectiles today.",
+		"target": 2,
+		"category": "core_combat",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "glowing_clears",
+		"title": "Trigger 1 Glowing Clear",
+		"description": "Set off 1 glowing-rock clear today.",
+		"target": 1,
+		"category": "core_combat",
+		"progress_mode": "sum",
+	},
 ]
 
-const SKILL_MISSIONS := [
-	{"type": "near_misses", "title": "Get 8 Near Misses", "description": "Thread the needle 8 times today.", "target": 8},
-	{"type": "projectile_intercepts", "title": "Intercept 2 Projectiles", "description": "Blow up 2 enemy projectiles today.", "target": 2},
-	{"type": "max_combo", "title": "Reach Combo x1.50", "description": "Push your combo to x1.50 today.", "target": 150},
-	{"type": "glowing_clears", "title": "Trigger 1 Glowing Clear", "description": "Set off 1 glowing-rock clear today.", "target": 1},
+const CORE_SKILL_MISSIONS := [
+	{
+		"type": "near_misses",
+		"title": "Get 8 Near Misses",
+		"description": "Thread the needle 8 times today.",
+		"target": 8,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "max_combo",
+		"title": "Reach Combo x1.50",
+		"description": "Push your combo to x1.50 today.",
+		"target": 150,
+		"category": "core_skill",
+		"progress_mode": "best",
+	},
+	{
+		"type": "skill_score",
+		"title": "Earn 800 Skill Score",
+		"description": "Stack up 800 skill score today.",
+		"target": 800,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "boundary_recoveries",
+		"title": "Recover 2 Boundary Saves",
+		"description": "Bounce back from the bounds twice today.",
+		"target": 2,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+]
+
+const BONUS_VEHICLE_OR_STRETCH_MISSIONS := [
+	{
+		"type": "vehicle_runs",
+		"title": "Fly 3 Runs with {vehicle}",
+		"description": "Take {vehicle} out for 3 runs today.",
+		"target": 3,
+		"category": "bonus_vehicle",
+		"progress_mode": "sum",
+		"bonus": true,
+		"requires_vehicle": true,
+	},
+	{
+		"type": "vehicle_best_score",
+		"title": "Score 3,500 with {vehicle}",
+		"description": "Set a 3,500-point run with {vehicle}.",
+		"target": 3500,
+		"category": "bonus_vehicle",
+		"progress_mode": "best",
+		"bonus": true,
+		"requires_vehicle": true,
+	},
+	{
+		"type": "vehicle_near_misses",
+		"title": "Get 10 Near Misses with {vehicle}",
+		"description": "Cut it close 10 times while flying {vehicle}.",
+		"target": 10,
+		"category": "bonus_vehicle",
+		"progress_mode": "sum",
+		"bonus": true,
+		"requires_vehicle": true,
+	},
+	{
+		"type": "vehicle_intercepts",
+		"title": "Intercept 4 Projectiles with {vehicle}",
+		"description": "Knock out 4 projectiles while flying {vehicle}.",
+		"target": 4,
+		"category": "bonus_vehicle",
+		"progress_mode": "sum",
+		"bonus": true,
+		"requires_vehicle": true,
+	},
+	{
+		"type": "vehicle_glowing_clears",
+		"title": "Trigger 2 Glowing Clears with {vehicle}",
+		"description": "Set off 2 glowing-rock clears while flying {vehicle}.",
+		"target": 2,
+		"category": "bonus_vehicle",
+		"progress_mode": "sum",
+		"bonus": true,
+		"requires_vehicle": true,
+	},
+	{
+		"type": "vehicle_skill_score",
+		"title": "Earn 1,000 Skill Score with {vehicle}",
+		"description": "Stack 1,000 skill score while flying {vehicle}.",
+		"target": 1000,
+		"category": "bonus_vehicle",
+		"progress_mode": "sum",
+		"bonus": true,
+		"requires_vehicle": true,
+	},
+	{
+		"type": "score_single_run",
+		"title": "Score 3,500 in One Run",
+		"description": "Break 3,500 in a single run today.",
+		"target": 3500,
+		"category": "bonus_stretch",
+		"progress_mode": "best",
+		"bonus": true,
+	},
+]
+
+const BONUS_PRESTIGE_MISSIONS := [
+	{
+		"type": "no_boundary_recovery_run",
+		"title": "Finish Clean",
+		"description": "Complete a run with no boundary recoveries.",
+		"target": 1,
+		"category": "bonus_prestige",
+		"progress_mode": "sum",
+		"bonus": true,
+	},
+	{
+		"type": "no_missile_run_score",
+		"title": "Score 2,500 Without Missiles",
+		"description": "Reach 2,500 in one run without firing missiles.",
+		"target": 2500,
+		"category": "bonus_prestige",
+		"progress_mode": "best",
+		"bonus": true,
+	},
+	{
+		"type": "score_single_run",
+		"title": "Score 5,000 in One Run",
+		"description": "Crack 5,000 in a single run today.",
+		"target": 5000,
+		"category": "bonus_prestige",
+		"progress_mode": "best",
+		"bonus": true,
+	},
+	{
+		"type": "gold_progress",
+		"title": "Push {vehicle} Toward Gold",
+		"description": "Raise {vehicle}'s best score toward its 5,000 gold target.",
+		"target": 5000,
+		"category": "bonus_prestige",
+		"progress_mode": "best",
+		"bonus": true,
+		"requires_vehicle": true,
+		"requires_gold_locked": true,
+	},
+	{
+		"type": "original_icon_progress",
+		"title": "Push Toward Original Icon",
+		"description": "Raise your best score toward the 10,000 Original Icon milestone.",
+		"target": 10000,
+		"category": "bonus_prestige",
+		"progress_mode": "best",
+		"bonus": true,
+	},
 ]
 
 var _today_key: String = ""
@@ -51,7 +263,7 @@ func refresh_daily_missions() -> void:
 
 	_today_key = str(loaded_state.get("today_key", current_key))
 	_missions = _sanitize_missions(loaded_state.get("missions", []), _today_key)
-	if _today_key != current_key or _missions.size() != 3:
+	if _today_key != current_key or _missions.size() != TOTAL_MISSION_COUNT:
 		_today_key = current_key
 		_missions = build_daily_missions_for_key(current_key)
 		_save_state()
@@ -60,12 +272,14 @@ func refresh_daily_missions() -> void:
 		return
 
 func build_daily_missions_for_key(date_key: String) -> Array[Dictionary]:
-	var selected: Array[Dictionary] = []
 	var used_types: Dictionary = {}
-	selected.append(_pick_mission_from_pool(date_key, "easy", EASY_MISSIONS, used_types))
-	selected.append(_pick_mission_from_pool(date_key, "medium", MEDIUM_MISSIONS, used_types))
-	selected.append(_pick_mission_from_pool(date_key, "skill", SKILL_MISSIONS, used_types))
-	return selected
+	return [
+		_pick_mission_for_slot(date_key, "core_easy", CORE_EASY_MISSIONS, used_types),
+		_pick_mission_for_slot(date_key, "core_combat", CORE_COMBAT_MISSIONS, used_types),
+		_pick_mission_for_slot(date_key, "core_skill", CORE_SKILL_MISSIONS, used_types),
+		_pick_mission_for_slot(date_key, "bonus_vehicle_or_stretch", BONUS_VEHICLE_OR_STRETCH_MISSIONS, used_types),
+		_pick_mission_for_slot(date_key, "bonus_prestige", BONUS_PRESTIGE_MISSIONS, used_types),
+	]
 
 func get_daily_missions() -> Array[Dictionary]:
 	refresh_daily_missions()
@@ -73,15 +287,19 @@ func get_daily_missions() -> Array[Dictionary]:
 
 func get_completed_count_today() -> int:
 	refresh_daily_missions()
-	var count := 0
-	for mission in _missions:
-		if bool(mission.get("completed", false)):
-			count += 1
-	return count
+	return _count_completed_missions(false)
 
 func get_total_count_today() -> int:
 	refresh_daily_missions()
 	return _missions.size()
+
+func get_core_completed_count_today() -> int:
+	refresh_daily_missions()
+	return _count_completed_missions(false, true)
+
+func get_bonus_completed_count_today() -> int:
+	refresh_daily_missions()
+	return _count_completed_missions(true)
 
 func get_daily_progress_summary() -> Dictionary:
 	refresh_daily_missions()
@@ -90,10 +308,15 @@ func get_daily_progress_summary() -> Dictionary:
 		"mission_date": _today_key,
 		"completed": get_completed_count_today(),
 		"total": get_total_count_today(),
+		"core_completed": get_core_completed_count_today(),
+		"core_total": CORE_MISSION_COUNT,
+		"bonus_completed": get_bonus_completed_count_today(),
+		"bonus_total": BONUS_MISSION_COUNT,
+		"perfect_day": get_completed_count_today() >= TOTAL_MISSION_COUNT,
 		"missions": get_daily_missions(),
 		"next_unlock": get_next_unlock_progress(),
 		"time_until_reset": get_time_until_next_reset_text(),
-		"daily_streak": profile.get_daily_streak() if profile != null else 0,
+		"daily_streak": profile.get_daily_streak() if profile != null and profile.has_method("get_daily_streak") else 0,
 	}
 
 func get_daily_sync_summary() -> Dictionary:
@@ -103,11 +326,17 @@ func get_daily_sync_summary() -> Dictionary:
 		"missions": get_daily_missions(),
 		"completed_count": get_completed_count_today(),
 		"total_count": get_total_count_today(),
+		"core_completed_count": get_core_completed_count_today(),
+		"core_total_count": CORE_MISSION_COUNT,
+		"bonus_completed_count": get_bonus_completed_count_today(),
+		"bonus_total_count": BONUS_MISSION_COUNT,
 	}
 
 func apply_run_summary(summary: Dictionary) -> Dictionary:
 	refresh_daily_missions()
 	var missions_completed_this_run: Array[String] = []
+	var core_missions_completed_this_run: Array[String] = []
+	var bonus_missions_completed_this_run: Array[String] = []
 	var newly_unlocked_vehicles: Array[String] = []
 	var had_completion_before_run := get_completed_count_today() > 0
 	var profile: Node = _get_player_profile()
@@ -123,29 +352,36 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 		_missions[index] = mission
 
 		if not previous_completed and bool(mission.get("completed", false)):
-			missions_completed_this_run.append(str(mission.get("title", "Mission Complete")))
-			if profile != null:
-				profile.increment_total_daily_missions_completed(1)
-				if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
-					for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
-						if profile.unlock_vehicle(vehicle_id):
-							newly_unlocked_vehicles.append(vehicle_id)
-				elif helicopter_skins != null and helicopter_skins.has_method("get_unlocks_for_completed_missions"):
-					for legacy_vehicle_id in helicopter_skins.get_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
-						if profile.unlock_vehicle(legacy_vehicle_id):
-							newly_unlocked_vehicles.append(legacy_vehicle_id)
+			var title := str(mission.get("title", "Mission Complete"))
+			missions_completed_this_run.append(title)
+			if bool(mission.get("bonus", false)):
+				bonus_missions_completed_this_run.append(title)
+			else:
+				core_missions_completed_this_run.append(title)
+				if profile != null and profile.has_method("increment_total_daily_missions_completed"):
+					profile.increment_total_daily_missions_completed(1)
+					if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
+						for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
+							if profile.unlock_vehicle(vehicle_id):
+								newly_unlocked_vehicles.append(vehicle_id)
 
-	if not missions_completed_this_run.is_empty() and not had_completion_before_run and profile != null:
+	if not missions_completed_this_run.is_empty() and not had_completion_before_run and profile != null and profile.has_method("update_daily_streak"):
 		profile.update_daily_streak(_today_key)
 
 	_save_state()
 	_queue_daily_sync()
 	_recent_run_result = {
 		"missions_completed_this_run": missions_completed_this_run,
+		"core_missions_completed_this_run": core_missions_completed_this_run,
+		"bonus_missions_completed_this_run": bonus_missions_completed_this_run,
 		"newly_unlocked_skins": newly_unlocked_vehicles,
 		"newly_unlocked_vehicles": newly_unlocked_vehicles,
 		"total_completed_today": get_completed_count_today(),
 		"total_missions_today": get_total_count_today(),
+		"core_completed_today": get_core_completed_count_today(),
+		"core_total_today": CORE_MISSION_COUNT,
+		"bonus_completed_today": get_bonus_completed_count_today(),
+		"bonus_total_today": BONUS_MISSION_COUNT,
 		"next_unlock": get_next_unlock_progress(),
 	}
 	_emit_missions_changed()
@@ -208,7 +444,7 @@ func reset_current_daily_progress() -> bool:
 
 func get_next_unlock_progress() -> Dictionary:
 	var profile: Node = _get_player_profile()
-	var total_completed: int = profile.get_total_daily_missions_completed() if profile != null else 0
+	var total_completed: int = profile.get_total_daily_missions_completed() if profile != null and profile.has_method("get_total_daily_missions_completed") else 0
 	var helicopter_skins: Node = _get_helicopter_skins()
 	if helicopter_skins == null:
 		return {}
@@ -216,8 +452,6 @@ func get_next_unlock_progress() -> Dictionary:
 	var next_vehicle: Dictionary = {}
 	if helicopter_skins.has_method("get_next_locked_vehicle"):
 		next_vehicle = helicopter_skins.get_next_locked_vehicle(total_completed)
-	elif helicopter_skins.has_method("get_next_locked_skin"):
-		next_vehicle = helicopter_skins.get_next_locked_skin(total_completed)
 	if next_vehicle.is_empty():
 		return {
 			"display_name": "All Vehicles Unlocked",
@@ -227,7 +461,7 @@ func get_next_unlock_progress() -> Dictionary:
 		}
 
 	return {
-		"vehicle_id": str(next_vehicle.get("vehicle_id", next_vehicle.get("skin_id", ""))),
+		"vehicle_id": str(next_vehicle.get("vehicle_id", "")),
 		"display_name": str(next_vehicle.get("display_name", "Next Unlock")),
 		"completed": total_completed,
 		"required": int(next_vehicle.get("required_completed_missions", total_completed)),
@@ -250,31 +484,81 @@ func apply_validation_state(date_key: String, missions: Array[Dictionary]) -> vo
 	_missions = _sanitize_missions(missions, date_key)
 	_recent_run_result = {}
 
-func _pick_mission_from_pool(date_key: String, slot_name: String, pool: Array, used_types: Dictionary) -> Dictionary:
-	var start_index: int = abs(hash("%s|%s" % [date_key, slot_name])) % pool.size()
+func _pick_mission_for_slot(date_key: String, slot_name: String, pool: Array, used_types: Dictionary) -> Dictionary:
+	var start_index: int = abs(hash("%s|%s" % [date_key, slot_name])) % maxi(pool.size(), 1)
 	for offset in range(pool.size()):
-		var candidate := (pool[(start_index + offset) % pool.size()] as Dictionary).duplicate(true)
-		var mission_type := str(candidate.get("type", ""))
+		var definition := (pool[(start_index + offset) % pool.size()] as Dictionary).duplicate(true)
+		var mission_type := str(definition.get("type", ""))
 		if used_types.has(mission_type):
 			continue
+		var vehicle_id := _resolve_vehicle_for_definition(definition, date_key, slot_name)
+		if bool(definition.get("requires_vehicle", false)) and vehicle_id.is_empty():
+			continue
 		used_types[mission_type] = true
-		return _build_mission_entry(date_key, candidate)
-	return _build_mission_entry(date_key, (pool[0] as Dictionary).duplicate(true))
+		return _build_mission_entry(date_key, slot_name, definition, vehicle_id)
+	var fallback := (pool[0] as Dictionary).duplicate(true)
+	var fallback_vehicle_id := _resolve_vehicle_for_definition(fallback, date_key, slot_name)
+	return _build_mission_entry(date_key, slot_name, fallback, fallback_vehicle_id)
 
-func _build_mission_entry(date_key: String, definition: Dictionary) -> Dictionary:
+func _build_mission_entry(date_key: String, slot_name: String, definition: Dictionary, vehicle_id: String = "") -> Dictionary:
+	var title := str(definition.get("title", "Daily Mission"))
+	var description := str(definition.get("description", ""))
+	if not vehicle_id.is_empty():
+		var vehicle_name := _get_vehicle_display_name(vehicle_id)
+		title = title.replace("{vehicle}", vehicle_name)
+		description = description.replace("{vehicle}", vehicle_name)
 	return {
-		"id": "daily_%s_%s" % [date_key, str(definition.get("type", "mission"))],
+		"id": "daily_%s_%s_%s" % [date_key, slot_name, str(definition.get("type", "mission"))],
+		"slot": slot_name,
 		"type": str(definition.get("type", "")),
-		"title": str(definition.get("title", "Daily Mission")),
-		"description": str(definition.get("description", "")),
+		"category": str(definition.get("category", slot_name)),
+		"bonus": bool(definition.get("bonus", slot_name.begins_with("bonus"))),
+		"badge_text": BONUS_BADGE_TEXT if bool(definition.get("bonus", slot_name.begins_with("bonus"))) else "",
+		"title": title,
+		"description": description,
 		"target": definition.get("target", 1),
 		"progress": 0.0,
 		"completed": false,
-		"reward_text": "Daily progress",
+		"progress_mode": str(definition.get("progress_mode", "sum")),
+		"reward_text": "Bonus hangar credit" if bool(definition.get("bonus", slot_name.begins_with("bonus"))) else "Core unlock progress",
+		"vehicle_id": vehicle_id,
 	}
 
+func _resolve_vehicle_for_definition(definition: Dictionary, date_key: String, slot_name: String) -> String:
+	if not bool(definition.get("requires_vehicle", false)):
+		return ""
+	var candidates := _get_valid_vehicle_targets(bool(definition.get("requires_gold_locked", false)))
+	if candidates.is_empty():
+		return ""
+	var start_index: int = abs(hash("%s|%s|%s" % [date_key, slot_name, str(definition.get("type", ""))])) % candidates.size()
+	return candidates[start_index]
+
+func _get_valid_vehicle_targets(require_gold_locked: bool = false) -> Array[String]:
+	var helicopter_skins: Node = _get_helicopter_skins()
+	var player_profile: Node = _get_player_profile()
+	var candidates: Array[String] = []
+	if helicopter_skins == null or player_profile == null or not helicopter_skins.has_method("get_vehicle_ids"):
+		return candidates
+	for vehicle_id in helicopter_skins.get_vehicle_ids():
+		if not player_profile.has_vehicle_access(vehicle_id):
+			continue
+		if vehicle_id == "pottercar":
+			continue
+		if helicopter_skins.has_method("is_dynamic_vehicle") and helicopter_skins.is_dynamic_vehicle(vehicle_id):
+			continue
+		if require_gold_locked and player_profile.is_vehicle_skin_unlocked(vehicle_id, "gold"):
+			continue
+		candidates.append(vehicle_id)
+	return candidates
+
 func _get_progress_increment_for_mission(mission: Dictionary, summary: Dictionary):
-	match str(mission.get("type", "")):
+	var mission_type := str(mission.get("type", ""))
+	var mission_vehicle_id := str(mission.get("vehicle_id", ""))
+	var run_vehicle_id := str(summary.get("equipped_vehicle_id", summary.get("equipped_skin_id", "")))
+	var vehicle_matches := mission_vehicle_id.is_empty() or mission_vehicle_id == run_vehicle_id
+	var player_profile: Node = _get_player_profile()
+	var run_stats: Node = get_node_or_null("/root/RunStats")
+	match mission_type:
 		"play_runs":
 			return 1
 		"survive_seconds_total":
@@ -301,13 +585,38 @@ func _get_progress_increment_for_mission(mission: Dictionary, summary: Dictionar
 			return int(round(float(summary.get("max_combo_multiplier", 1.0)) * 100.0))
 		"skill_score":
 			return int(summary.get("skill_score", 0))
+		"vehicle_runs":
+			return 1 if vehicle_matches else 0
+		"vehicle_best_score":
+			return int(summary.get("score", 0)) if vehicle_matches else 0
+		"vehicle_near_misses":
+			return int(summary.get("near_misses", 0)) if vehicle_matches else 0
+		"vehicle_intercepts":
+			return int(summary.get("projectile_intercepts", 0)) if vehicle_matches else 0
+		"vehicle_glowing_clears":
+			return int(summary.get("glowing_rocks_triggered", 0)) if vehicle_matches else 0
+		"vehicle_skill_score":
+			return int(summary.get("skill_score", 0)) if vehicle_matches else 0
+		"no_boundary_recovery_run":
+			return 1 if int(summary.get("boundary_bounces", 0)) <= 0 and float(summary.get("time_survived_seconds", 0.0)) > 0.0 else 0
+		"no_missile_run_score":
+			return int(summary.get("score", 0)) if int(summary.get("missiles_fired", 0)) <= 0 else 0
+		"gold_progress":
+			if not vehicle_matches or player_profile == null or not player_profile.has_method("get_vehicle_skin_progress"):
+				return 0
+			var progress: Dictionary = player_profile.get_vehicle_skin_progress(mission_vehicle_id)
+			return maxi(int(progress.get("best_score", 0)), int(summary.get("score", 0)))
+		"original_icon_progress":
+			var local_best := 0
+			if run_stats != null and run_stats.has_method("get_local_best_score"):
+				local_best = int(run_stats.get_local_best_score())
+			return maxi(local_best, int(summary.get("score", 0)))
 	return 0
 
 func _calculate_new_progress(mission: Dictionary, progress_variant):
-	var mission_type := str(mission.get("type", ""))
 	var existing_progress := float(mission.get("progress", 0.0))
-	match mission_type:
-		"score_single_run", "max_combo":
+	match str(mission.get("progress_mode", "sum")):
+		"best":
 			return maxf(existing_progress, float(progress_variant))
 		_:
 			return existing_progress + float(progress_variant)
@@ -315,11 +624,23 @@ func _calculate_new_progress(mission: Dictionary, progress_variant):
 func _get_target_value(mission: Dictionary) -> float:
 	return float(mission.get("target", 1))
 
+func _count_completed_missions(only_bonus: bool, only_core: bool = false) -> int:
+	var count := 0
+	for mission in _missions:
+		if not bool(mission.get("completed", false)):
+			continue
+		var is_bonus := bool(mission.get("bonus", false))
+		if only_core and is_bonus:
+			continue
+		if only_bonus and not is_bonus:
+			continue
+		count += 1
+	return count
+
 func _load_state() -> Dictionary:
 	var config := ConfigFile.new()
 	if config.load(SAVE_PATH) != OK:
 		return {}
-
 	return {
 		"today_key": str(config.get_value(SAVE_SECTION, "today_key", "")),
 		"missions": config.get_value(SAVE_SECTION, "missions", []),
@@ -337,23 +658,26 @@ func _sanitize_missions(raw_value, date_key: String) -> Array[Dictionary]:
 	var sanitized: Array[Dictionary] = []
 	if raw_value is not Array:
 		return sanitized
-
 	for mission_variant in raw_value:
 		if mission_variant is not Dictionary:
 			continue
 		var mission := (mission_variant as Dictionary).duplicate(true)
 		var mission_id := str(mission.get("id", ""))
-		if mission_id.is_empty():
+		if mission_id.is_empty() or not mission_id.begins_with("daily_%s_" % date_key):
 			continue
-		if not mission_id.begins_with("daily_%s_" % date_key):
-			continue
+		mission["slot"] = str(mission.get("slot", "core_easy"))
 		mission["type"] = str(mission.get("type", ""))
+		mission["category"] = str(mission.get("category", mission.get("slot", "core_easy")))
+		mission["bonus"] = bool(mission.get("bonus", str(mission.get("slot", "")).begins_with("bonus")))
+		mission["badge_text"] = str(mission.get("badge_text", BONUS_BADGE_TEXT if bool(mission.get("bonus", false)) else ""))
 		mission["title"] = str(mission.get("title", "Daily Mission"))
 		mission["description"] = str(mission.get("description", ""))
 		mission["target"] = mission.get("target", 1)
 		mission["progress"] = float(mission.get("progress", 0.0))
 		mission["completed"] = bool(mission.get("completed", false))
-		mission["reward_text"] = str(mission.get("reward_text", "Daily progress"))
+		mission["progress_mode"] = str(mission.get("progress_mode", "sum"))
+		mission["reward_text"] = str(mission.get("reward_text", "Core unlock progress"))
+		mission["vehicle_id"] = str(mission.get("vehicle_id", ""))
 		sanitized.append(mission)
 	return sanitized
 
@@ -374,7 +698,7 @@ func _replace_daily_progress_with_summary(summary: Dictionary) -> bool:
 	var remote_missions_variant = summary.get("missions", [])
 	if mission_date == _today_key and remote_missions_variant is Array:
 		var sanitized_remote := _sanitize_missions(remote_missions_variant, _today_key)
-		if sanitized_remote.size() == 3:
+		if sanitized_remote.size() == TOTAL_MISSION_COUNT:
 			replacement_missions = sanitized_remote
 	_missions = replacement_missions
 	_recent_run_result = {}
@@ -384,6 +708,12 @@ func _replace_daily_progress_with_summary(summary: Dictionary) -> bool:
 	_save_state()
 	_emit_missions_changed()
 	return true
+
+func _get_vehicle_display_name(vehicle_id: String) -> String:
+	var helicopter_skins: Node = _get_helicopter_skins()
+	if helicopter_skins != null and helicopter_skins.has_method("get_display_name"):
+		return str(helicopter_skins.get_display_name(vehicle_id))
+	return vehicle_id
 
 func _get_player_profile():
 	return get_node_or_null("/root/PlayerProfile")

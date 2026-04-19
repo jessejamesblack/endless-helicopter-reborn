@@ -5,8 +5,17 @@ import {
   truncate,
 } from "../_shared/common.ts";
 import { postDiscordWebhook } from "../_shared/discord_webhook.ts";
+import {
+  getCurrentVersionCode,
+  getReleaseChannel,
+  getReleaseConfig,
+  isVersionSupported,
+  versionGateResponse,
+} from "../_shared/version_gate.ts";
 
 type FeedbackPayload = {
+  current_version_code?: number | string;
+  release_channel?: string;
   category?: string;
   message?: string;
   bug_report?: string;
@@ -48,6 +57,15 @@ Deno.serve(async (request: Request) => {
   const bugReport = truncate(payload.bug_report ?? "", 8000).trim();
   const context = sanitizeForLogs(payload.context ?? {}) as Record<string, unknown>;
   const supabase = createAdminClient();
+  const releaseConfig = await getReleaseConfig(
+    supabase,
+    getReleaseChannel(payload as Record<string, unknown>, request),
+  );
+  const currentVersionCode = getCurrentVersionCode(payload as Record<string, unknown>, request);
+  if (!isVersionSupported(currentVersionCode, Number(releaseConfig.minimum_supported_version_code ?? 0))) {
+    return versionGateResponse(releaseConfig);
+  }
+
   const insertResponse = await supabase
     .from("family_feedback_reports")
     .insert({

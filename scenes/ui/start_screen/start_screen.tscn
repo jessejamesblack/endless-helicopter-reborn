@@ -149,6 +149,29 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Missions"
 
+[node name="HangarButton" type="Button" parent="." unique_id=1096701853]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -156.0
+offset_top = 144.0
+offset_right = -24.0
+offset_bottom = 192.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Hangar"
+
 [node name="SettingsButton" type="Button" parent="." unique_id=557101392]
 layout_mode = 1
 offset_left = 24.0
@@ -187,6 +210,121 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Debug Menu"
+
+[node name="TipCard" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -220.0
+offset_top = 26.0
+offset_right = 220.0
+offset_bottom = 154.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_button_normal")
+
+[node name="TipMargin" type="MarginContainer" parent="TipCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="TipVBox" type="VBoxContainer" parent="TipCard/TipMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TipTitleLabel" type="Label" parent="TipCard/TipMargin/TipVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "Daily Missions"
+horizontal_alignment = 1
+
+[node name="TipMessageLabel" type="Label" parent="TipCard/TipMargin/TipVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Daily Missions unlock vehicles and paint styles."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TipButtonRow" type="HBoxContainer" parent="TipCard/TipMargin/TipVBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TipActionButton" type="Button" parent="TipCard/TipMargin/TipVBox/TipButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Open"
+
+[node name="TipDismissButton" type="Button" parent="TipCard/TipMargin/TipVBox/TipButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Dismiss"
+
+[node name="NextUnlockCard" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -180.0
+offset_top = 204.0
+offset_right = -24.0
+offset_bottom = 304.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_button_normal")
+
+[node name="NextUnlockMargin" type="MarginContainer" parent="NextUnlockCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="NextUnlockVBox" type="VBoxContainer" parent="NextUnlockCard/NextUnlockMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NextUnlockTitleLabel" type="Label" parent="NextUnlockCard/NextUnlockMargin/NextUnlockVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 16
+text = "Next Unlock"
+horizontal_alignment = 1
+
+[node name="NextUnlockBodyLabel" type="Label" parent="NextUnlockCard/NextUnlockMargin/NextUnlockVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Scout / Gold\nBest: 0 / 5000"
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="PlayButton" type="Button" parent="." unique_id=16473461]
 layout_mode = 1

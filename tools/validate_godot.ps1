@@ -22,6 +22,8 @@ $scripts = @(
     'res://systems/error_reporter.gd',
     'res://systems/achievement_screenshot_manager.gd',
     'res://systems/android_identity.gd',
+    'res://systems/feature_discovery_manager.gd',
+    'res://systems/hangar_navigation_state.gd',
     'res://scenes/background/background_manager.gd',
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',
@@ -201,6 +203,36 @@ Write-Host 'Validating difficulty tuning'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_difficulty_tuning.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot difficulty tuning validation failed'
+}
+
+Write-Host 'Validating Sprint 7 security'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_sprint7_security.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot Sprint 7 security validation failed'
+}
+
+Write-Host 'Validating daily mission expansion'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_daily_mission_expansion.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot daily mission expansion validation failed'
+}
+
+Write-Host 'Validating hangar UI polish'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_hangar_ui_polish.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot hangar UI polish validation failed'
+}
+
+Write-Host 'Validating score display formatting'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_score_display_formatting.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot score display formatting validation failed'
+}
+
+Write-Host 'Validating feature discovery'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_feature_discovery.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot feature discovery validation failed'
 }
 
 Write-Host 'Godot validation completed successfully.'

@@ -537,6 +537,99 @@ func mark_missions_intro_seen() -> void:
 	_missions_intro_seen = true
 	_persist_and_signal(true)
 
+func has_unseen_vehicle_content() -> bool:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins == null or not helicopter_skins.has_method("get_vehicle_ids"):
+		return false
+	for vehicle_id in helicopter_skins.get_vehicle_ids():
+		if not has_vehicle_access(vehicle_id):
+			continue
+		if not has_seen_vehicle_lore(vehicle_id):
+			return true
+	return false
+
+func has_unseen_skin_content() -> bool:
+	var helicopter_skins := _get_helicopter_skins()
+	if helicopter_skins == null or not helicopter_skins.has_method("get_vehicle_ids") or not helicopter_skins.has_method("get_vehicle_skin_ids"):
+		return false
+	for vehicle_id in helicopter_skins.get_vehicle_ids():
+		if not has_vehicle_access(vehicle_id):
+			continue
+		for skin_id in helicopter_skins.get_vehicle_skin_ids(vehicle_id):
+			if not is_vehicle_skin_unlocked(vehicle_id, skin_id):
+				continue
+			if not has_seen_skin_lore(vehicle_id, skin_id):
+				return true
+	return false
+
+func has_unseen_hangar_content() -> bool:
+	return has_unseen_vehicle_content() or has_unseen_skin_content()
+
+func get_next_unlock_preview() -> Dictionary:
+	var helicopter_skins: Node = _get_helicopter_skins()
+	if helicopter_skins == null:
+		return {}
+
+	if helicopter_skins.has_method("get_next_locked_vehicle"):
+		var next_vehicle: Dictionary = helicopter_skins.get_next_locked_vehicle(_total_daily_missions_completed)
+		if not next_vehicle.is_empty():
+			var required := int(next_vehicle.get("required_completed_missions", _total_daily_missions_completed))
+			return {
+				"kind": "vehicle",
+				"title": str(next_vehicle.get("display_name", "Next Unlock")),
+				"detail": "Unlock with daily missions",
+				"progress_text": "%d / %d daily missions" % [_total_daily_missions_completed, required],
+				"completed": _total_daily_missions_completed,
+				"required": required,
+			}
+
+	if not has_unlocked_gold_mastery_bonus_vehicle():
+		var gold_count := get_gold_mastery_vehicle_count()
+		return {
+			"kind": "vehicle",
+			"title": get_display_vehicle_name(GOLD_MASTERY_BONUS_VEHICLE_ID),
+			"detail": "Unlock by earning gold skins",
+			"progress_text": "Gold skins unlocked: %d / 3" % gold_count,
+			"completed": gold_count,
+			"required": 3,
+		}
+
+	if not has_score_milestone(SCORE_MILESTONE_ORIGINAL_ICON):
+		var run_stats := get_node_or_null("/root/RunStats")
+		var local_best := 0
+		if run_stats != null and run_stats.has_method("get_local_best_score"):
+			local_best = int(run_stats.get_local_best_score())
+		return {
+			"kind": "global_skin",
+			"title": "Original Icon",
+			"detail": "Reach 10,000 in one run",
+			"progress_text": "Best: %d / 10000" % local_best,
+			"completed": local_best,
+			"required": 10000,
+		}
+
+	var equipped_vehicle_id := get_equipped_vehicle_id()
+	if not is_vehicle_skin_unlocked(equipped_vehicle_id, "gold"):
+		var progress: Dictionary = get_vehicle_skin_progress(equipped_vehicle_id)
+		var best_score := int(progress.get("best_score", 0))
+		return {
+			"kind": "vehicle_skin",
+			"title": "%s / Gold" % get_display_vehicle_name(equipped_vehicle_id),
+			"detail": "Master this vehicle",
+			"progress_text": "Best: %d / 5000" % best_score,
+			"completed": best_score,
+			"required": 5000,
+		}
+
+	return {
+		"kind": "complete",
+		"title": "Hangar Collection",
+		"detail": "Everything in this build is unlocked",
+		"progress_text": "Collection complete",
+		"completed": 1,
+		"required": 1,
+	}
+
 func refresh_top_player_skin_access() -> void:
 	if validation_mode_enabled or not OnlineLeaderboardScript.is_configured() or _top_skin_request_in_flight:
 		return

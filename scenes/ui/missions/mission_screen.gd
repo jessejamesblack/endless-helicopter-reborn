@@ -3,11 +3,13 @@ extends Control
 const HANGAR_SCENE_PATH := "res://scenes/ui/hangar/hangar_screen.tscn"
 const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const PANEL_MARGIN := 4.0
-const PANEL_DEFAULT_RECT := Rect2(-360.0, -300.0, 720.0, 600.0)
-const PANEL_COMPACT_RECT := Rect2(-336.0, -268.0, 672.0, 536.0)
+const PANEL_DEFAULT_RECT := Rect2(-360.0, -332.0, 720.0, 664.0)
+const PANEL_COMPACT_RECT := Rect2(-336.0, -296.0, 672.0, 592.0)
 const TOUCH_SCROLL_DEADZONE := 10.0
 const TOUCH_SCROLL_AXIS_BIAS := 1.2
 const MOUSE_POINTER_ID := -1000
+const CORE_MISSION_COUNT := 3
+const BONUS_MISSION_COUNT := 2
 
 var validation_mode_enabled: bool = false
 var _validation_summary: Dictionary = {}
@@ -27,6 +29,7 @@ var _scroll_origin: float = 0.0
 @onready var mission_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/MissionCard/MissionScroll
 @onready var mission_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/MissionCard/MissionScroll/MissionList
 @onready var next_unlock_label: Label = $Panel/MarginContainer/VBoxContainer/NextUnlockCard/NextUnlockLabel
+@onready var reward_help_label: Label = $Panel/MarginContainer/VBoxContainer/RewardHelpLabel
 @onready var streak_label: Label = $Panel/MarginContainer/VBoxContainer/StreakLabel
 @onready var button_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ButtonRow
 @onready var back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/BackButton
@@ -54,6 +57,9 @@ func _ready() -> void:
 				player_profile.connect("profile_changed", profile_callback)
 			if player_profile.has_method("has_seen_missions_intro") and not player_profile.has_seen_missions_intro():
 				player_profile.mark_missions_intro_seen()
+		var discovery_manager := get_node_or_null("/root/FeatureDiscoveryManager")
+		if discovery_manager != null and discovery_manager.has_method("mark_tip_seen"):
+			discovery_manager.mark_tip_seen("missions")
 
 		var sync_queue := get_node_or_null("/root/SupabaseSyncQueue")
 		if sync_queue != null and sync_queue.has_method("flush"):
@@ -76,16 +82,25 @@ func _refresh_view() -> void:
 		if mission_manager.has_method("refresh_daily_missions"):
 			mission_manager.refresh_daily_missions()
 		summary = mission_manager.get_daily_progress_summary() if mission_manager.has_method("get_daily_progress_summary") else {}
-	progress_label.text = "%d / %d complete" % [int(summary.get("completed", 0)), int(summary.get("total", 3))]
-	subtitle_label.text = str(summary.get("time_until_reset", "New missions daily"))
+	progress_label.text = "%d / %d complete" % [int(summary.get("completed", 0)), int(summary.get("total", 5))]
+	subtitle_label.text = "Core %d/%d  •  Bonus %d/%d" % [
+		int(summary.get("core_completed", 0)),
+		int(summary.get("core_total", CORE_MISSION_COUNT)),
+		int(summary.get("bonus_completed", 0)),
+		int(summary.get("bonus_total", BONUS_MISSION_COUNT)),
+	]
 	reset_label.text = mission_manager.get_reset_label() if mission_manager != null and mission_manager.has_method("get_reset_label") else "Resets daily at 8:00 AM ET"
-	streak_label.text = "Daily Streak: %d" % int(summary.get("daily_streak", 0))
+	reward_help_label.text = "Complete missions to unlock vehicles, paint styles, and Hangar content."
+	streak_label.text = "Daily Streak: %d%s" % [
+		int(summary.get("daily_streak", 0)),
+		"  •  Perfect day ready" if bool(summary.get("perfect_day", false)) else "",
+	]
 
 	var next_unlock: Dictionary = summary.get("next_unlock", {})
 	if next_unlock.is_empty():
-		next_unlock_label.text = "Next Unlock: Collection complete"
+		next_unlock_label.text = "Next Reward\nCollection complete"
 	else:
-		next_unlock_label.text = "Next Unlock: %s %s" % [
+		next_unlock_label.text = "Next Reward\n%s\n%s" % [
 			str(next_unlock.get("display_name", "Scout")),
 			str(next_unlock.get("progress_text", "")),
 		]
@@ -103,10 +118,35 @@ func _render_mission_rows(missions_variant) -> void:
 		mission_list.add_child(empty_label)
 		return
 
+	var core_missions: Array[Dictionary] = []
+	var bonus_missions: Array[Dictionary] = []
 	for mission_variant in missions_variant:
 		if mission_variant is not Dictionary:
 			continue
-		mission_list.add_child(_create_mission_row(mission_variant as Dictionary))
+		var mission := mission_variant as Dictionary
+		if bool(mission.get("bonus", false)):
+			bonus_missions.append(mission)
+		else:
+			core_missions.append(mission)
+
+	mission_list.add_child(_create_section_label("Core Missions"))
+	for mission in core_missions:
+		mission_list.add_child(_create_mission_row(mission))
+	mission_list.add_child(_create_section_label("Bonus Missions"))
+	for mission in bonus_missions:
+		mission_list.add_child(_create_mission_row(mission))
+
+func _create_section_label(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(0, 30)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	label.add_theme_color_override("font_color", Color(0.964706, 0.843137, 0.54902, 1))
+	label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
+	label.add_theme_constant_override("outline_size", 2)
+	label.add_theme_font_size_override("font_size", 17 if _is_compact_layout() else 18)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
 
 func _create_mission_row(mission: Dictionary) -> PanelContainer:
 	var compact := _is_compact_layout()
@@ -130,7 +170,10 @@ func _create_mission_row(mission: Dictionary) -> PanelContainer:
 	margin.add_child(column)
 
 	var title_label := Label.new()
-	title_label.text = str(mission.get("title", "Daily Mission"))
+	var mission_title := str(mission.get("title", "Daily Mission"))
+	if bool(mission.get("bonus", false)):
+		mission_title = "%s  •  %s" % [str(mission.get("badge_text", "BONUS")), mission_title]
+	title_label.text = mission_title
 	title_label.add_theme_color_override("font_color", Color(0.964706, 0.843137, 0.54902, 1))
 	title_label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
 	title_label.add_theme_constant_override("outline_size", 2)
@@ -198,9 +241,9 @@ func _apply_body_label_theme(label: Label) -> void:
 func _apply_layout_profile() -> void:
 	var compact := _is_compact_layout()
 	margin_container.add_theme_constant_override("margin_left", 22 if compact else 26)
-	margin_container.add_theme_constant_override("margin_top", 12 if compact else 18)
+	margin_container.add_theme_constant_override("margin_top", 18 if compact else 24)
 	margin_container.add_theme_constant_override("margin_right", 22 if compact else 26)
-	margin_container.add_theme_constant_override("margin_bottom", 18 if compact else 24)
+	margin_container.add_theme_constant_override("margin_bottom", 24 if compact else 30)
 	content_vbox.add_theme_constant_override("separation", 8 if compact else 10)
 	title_label.add_theme_font_size_override("font_size", 26 if compact else 32)
 	title_label.add_theme_constant_override("outline_size", 3 if compact else 5)

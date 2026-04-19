@@ -5,7 +5,7 @@ const LEADERBOARD_PAGE_SIZE := 25
 const LEADERBOARD_SCROLL_TRIGGER_PX := 96.0
 const RESULTS_PANEL_RECT := Rect2(-340.0, -354.0, 680.0, 708.0)
 const BOARD_PANEL_RECT := Rect2(-320.0, -310.0, 640.0, 620.0)
-const SETUP_PANEL_RECT := Rect2(-300.0, -270.0, 600.0, 540.0)
+const SETUP_PANEL_RECT := Rect2(-280.0, -220.0, 560.0, 440.0)
 const PANEL_MARGIN := 4.0
 const TOUCH_SCROLL_DEADZONE := 10.0
 const TOUCH_SCROLL_AXIS_BIAS := 1.2
@@ -26,11 +26,7 @@ var has_pending_score: bool = false
 var needs_profile_setup: bool = false
 var pending_player_name: String = ""
 var is_submitting: bool = false
-var is_restoring_profile: bool = false
 var validation_mode_enabled: bool = false
-var _use_v2_submit_api: bool = true
-var _use_v1_submit_api: bool = false
-var _use_legacy_submit_api: bool = false
 var _use_expanded_fetch_fields: bool = true
 var _validation_online_configured: bool = false
 var _validation_saved_profile: bool = false
@@ -49,7 +45,6 @@ var _scroll_origin: float = 0.0
 @onready var panel: Panel = $Panel
 @onready var score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
 @onready var status_label: Label = $Panel/MarginContainer/VBoxContainer/StatusLabel
-@onready var player_id_summary_label: Label = $Panel/MarginContainer/VBoxContainer/PlayerIdSummaryLabel
 @onready var results_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/ResultsCard
 @onready var best_score_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/BestScoreLabel
 @onready var delta_label: Label = $Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox/DeltaLabel
@@ -72,11 +67,11 @@ var _scroll_origin: float = 0.0
 @onready var results_button_row: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow
 @onready var leaderboard_button: Button = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow/LeaderboardButton
 @onready var missions_button: Button = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow/MissionsButton
+@onready var open_hangar_button: Button = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow/OpenHangarButton
 @onready var menu_button: Button = $Panel/MarginContainer/VBoxContainer/ResultsButtonRow/MenuButton
 @onready var setup_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/SetupCard
 @onready var name_help_label: Label = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/NameHelpLabel
 @onready var name_entry: LineEdit = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/NameEntry
-@onready var player_id_entry: LineEdit = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/PlayerIdEntry
 @onready var setup_back_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SetupActionRow/SetupBackButton
 @onready var save_button: Button = $Panel/MarginContainer/VBoxContainer/SetupCard/SetupVBox/SaveButton
 @onready var alert_card: PanelContainer = $Panel/MarginContainer/VBoxContainer/AlertCard
@@ -114,10 +109,8 @@ func _ready() -> void:
 		current_mode = ScreenMode.LEADERBOARD
 
 	name_entry.text = OnlineLeaderboardScript.load_cached_name()
-	player_id_entry.text = OnlineLeaderboardScript.load_manual_player_id_override()
-	name_help_label.text = "Choose a public name once. This device will remember it.\nIf you paste an existing player ID below, we'll check it and restore your unlocks automatically when you submit."
+	name_help_label.text = "Choose a public name once. This device will remember it."
 	alert_label.text = ""
-	_refresh_player_id_ui()
 	_populate_results_summary()
 	_apply_screen_mode()
 	_configure_touch_scroll()
@@ -127,13 +120,13 @@ func _ready() -> void:
 	try_again_button.pressed.connect(_on_try_again_pressed)
 	leaderboard_button.pressed.connect(_on_leaderboard_pressed)
 	missions_button.pressed.connect(_on_missions_pressed)
+	open_hangar_button.pressed.connect(_on_open_hangar_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)
 	save_button.pressed.connect(_on_save_pressed)
 	setup_back_button.pressed.connect(_on_back_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	refresh_button.pressed.connect(_on_refresh_pressed)
 	name_entry.text_submitted.connect(_on_name_submitted)
-	player_id_entry.text_submitted.connect(_on_name_submitted)
 	$FetchRequest.request_completed.connect(_on_fetch_request_completed)
 	$SubmitRequest.request_completed.connect(_on_submit_request_completed)
 	$NotificationRequest.request_completed.connect(_on_notification_request_completed)
@@ -144,6 +137,11 @@ func _ready() -> void:
 		var push_callback := Callable(self, "_on_push_notification_opened")
 		if not push_notifications.is_connected("push_notification_opened", push_callback):
 			push_notifications.connect("push_notification_opened", push_callback)
+	var sync_queue := _get_sync_queue()
+	if sync_queue != null and sync_queue.has_signal("startup_sync_state_changed"):
+		var startup_sync_callback := Callable(self, "_on_startup_sync_state_changed")
+		if not sync_queue.is_connected("startup_sync_state_changed", startup_sync_callback):
+			sync_queue.connect("startup_sync_state_changed", startup_sync_callback)
 
 	if validation_mode_enabled:
 		return
@@ -187,15 +185,13 @@ func fetch_notifications() -> void:
 		_apply_screen_mode()
 		return
 	$NotificationRequest.request(
-		OnlineLeaderboardScript.get_notifications_url(5),
+		OnlineLeaderboardScript.get_notifications_url(),
 		OnlineLeaderboardScript.get_headers(),
-		HTTPClient.METHOD_GET
+		HTTPClient.METHOD_POST,
+		OnlineLeaderboardScript.make_get_notifications_body(5)
 	)
 
 func submit_score() -> void:
-	if is_restoring_profile:
-		set_status("Finish restoring unlocks before submitting a score.")
-		return
 	if not has_pending_score:
 		set_status("Open this screen after a run to save a score.")
 		return
@@ -211,17 +207,17 @@ func submit_score() -> void:
 
 	var player_name := str(validation.get("name", "Player"))
 	name_entry.text = player_name
-	if not await _prepare_player_id_for_online_actions(true):
+	if not await _prepare_player_id_for_online_actions():
 		return
 	pending_player_name = player_name
 	is_submitting = true
 	set_status("Saving your score to the leaderboard..." if current_mode == ScreenMode.RESULTS else "Saving your score...")
 	save_button.disabled = true
 	$SubmitRequest.request(
-		_get_submit_url(),
+		OnlineLeaderboardScript.get_submit_v2_url(),
 		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
 		HTTPClient.METHOD_POST,
-		_get_submit_body(player_name)
+		OnlineLeaderboardScript.make_submit_v2_body(player_name, current_score, current_run_summary, _get_equipped_skin_id())
 	)
 
 func _prepare_results_mode() -> void:
@@ -246,6 +242,11 @@ func _prepare_results_mode() -> void:
 		fetch_notifications()
 		return
 
+	if _is_waiting_for_startup_restore():
+		set_status("Checking cloud progress for this device...")
+		_render_leaderboard_rows([], "Checking cloud progress...")
+		return
+
 	set_status("Open Leaderboard to enter a name and save online.")
 	_render_leaderboard_rows([], "Enter a name to save this run.")
 
@@ -260,8 +261,15 @@ func _prepare_leaderboard_mode(force_refresh: bool = false) -> void:
 		refresh_button.disabled = true
 		return
 
+	if _is_waiting_for_startup_restore():
+		_render_leaderboard_rows([], "Checking cloud progress...")
+		set_status("Checking cloud progress for this device...")
+		save_button.disabled = true
+		return
+
 	if needs_profile_setup:
-		set_status("Enter your name to save this run. Paste a player ID first if you want to restore unlocks.")
+		set_status("Enter your name to save this run.")
+		save_button.disabled = false
 		name_entry.grab_focus()
 		return
 
@@ -285,13 +293,13 @@ func _apply_screen_mode() -> void:
 	mission_card.visible = showing_results and _should_show_mission_card()
 	try_again_button.visible = showing_results
 	results_button_row.visible = showing_results
+	open_hangar_button.visible = showing_results and _has_hangar_unlock_cta()
 	setup_card.visible = current_mode == ScreenMode.LEADERBOARD and needs_profile_setup
 	alert_card.visible = current_mode == ScreenMode.LEADERBOARD and not needs_profile_setup and not alert_label.text.is_empty()
 	leaderboard_card.visible = current_mode == ScreenMode.LEADERBOARD and not needs_profile_setup
 	button_row.visible = current_mode == ScreenMode.LEADERBOARD and not needs_profile_setup
 	refresh_button.disabled = current_mode != ScreenMode.LEADERBOARD or needs_profile_setup or not _is_online_configured()
 	back_button.disabled = current_mode != ScreenMode.LEADERBOARD or needs_profile_setup
-	player_id_summary_label.visible = current_mode == ScreenMode.LEADERBOARD
 	title_label.text = _get_title_text()
 	score_label.text = _get_score_text()
 	title_label.add_theme_font_size_override("font_size", 22 if showing_results else 34)
@@ -330,6 +338,7 @@ func _should_show_profile_setup() -> bool:
 	return current_mode == ScreenMode.LEADERBOARD \
 		and has_pending_score \
 		and _is_online_configured() \
+		and not _is_waiting_for_startup_restore() \
 		and not _has_saved_profile()
 
 func _populate_results_summary() -> void:
@@ -413,6 +422,15 @@ func _on_leaderboard_pressed() -> void:
 func _on_missions_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/missions/mission_screen.tscn")
 
+func _on_open_hangar_pressed() -> void:
+	var unlock_entry := _get_primary_hangar_unlock_entry()
+	if unlock_entry.is_empty():
+		return
+	var hangar_navigation_state := get_node_or_null("/root/HangarNavigationState")
+	if hangar_navigation_state != null and hangar_navigation_state.has_method("set_focus_from_unlock"):
+		hangar_navigation_state.set_focus_from_unlock(unlock_entry)
+	get_tree().change_scene_to_file("res://scenes/ui/hangar/hangar_screen.tscn")
+
 func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen/start_screen.tscn")
 
@@ -464,32 +482,11 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 func _on_submit_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	is_submitting = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		if _handle_upgrade_required_response("submit_score", response_code, body):
+			save_button.disabled = false
+			set_status("This build is too old to submit scores. Please update to continue.")
+			return
 		var error_text := OnlineLeaderboardScript.parse_api_error(body, "Could not submit score.")
-		if _use_v2_submit_api and OnlineLeaderboardScript.should_disable_rpc(error_text, "submit_family_score_v2"):
-			_use_v2_submit_api = false
-			_use_v1_submit_api = true
-			is_submitting = true
-			set_status("Using fallback leaderboard submit path...")
-			$SubmitRequest.request(
-				_get_submit_url(),
-				OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
-				HTTPClient.METHOD_POST,
-				_get_submit_body(pending_player_name)
-			)
-			return
-		if _use_v1_submit_api and not _use_legacy_submit_api and OnlineLeaderboardScript.should_fallback_to_legacy_submit(error_text):
-			_use_v1_submit_api = false
-			_use_legacy_submit_api = true
-			is_submitting = true
-			set_status("Using legacy leaderboard submit path...")
-			$SubmitRequest.request(
-				_get_submit_url(),
-				OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=representation"]),
-				HTTPClient.METHOD_POST,
-				_get_submit_body(pending_player_name)
-			)
-			return
-
 		save_button.disabled = false
 		if current_mode == ScreenMode.RESULTS:
 			set_status("Online save unavailable. Local results saved.")
@@ -524,29 +521,14 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 	fetch_leaderboard(true)
 	fetch_notifications()
 
-func _get_submit_url() -> String:
-	if _use_legacy_submit_api:
-		return OnlineLeaderboardScript.get_legacy_submit_url()
-	if _use_v1_submit_api:
-		return OnlineLeaderboardScript.get_submit_url()
-	if _use_v2_submit_api:
-		return OnlineLeaderboardScript.get_submit_v2_url()
-	return OnlineLeaderboardScript.get_submit_url()
-
 func _get_fetch_url() -> String:
 	if _use_expanded_fetch_fields:
 		return OnlineLeaderboardScript.get_fetch_url_with_mode(LEADERBOARD_PAGE_SIZE, leaderboard_offset, true)
 	return OnlineLeaderboardScript.get_legacy_fetch_url(LEADERBOARD_PAGE_SIZE, leaderboard_offset)
 
-func _get_submit_body(player_name: String) -> String:
-	if _use_legacy_submit_api:
-		return OnlineLeaderboardScript.make_legacy_submit_body(player_name, current_score)
-	if _use_v2_submit_api:
-		return OnlineLeaderboardScript.make_submit_v2_body(player_name, current_score, current_run_summary, _get_equipped_skin_id())
-	return OnlineLeaderboardScript.make_submit_body(player_name, current_score)
-
 func _on_notification_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		_handle_upgrade_required_response("get_notifications", response_code, body)
 		return
 
 	var notifications := OnlineLeaderboardScript.parse_notifications(body)
@@ -561,13 +543,13 @@ func _on_notification_request_completed(result: int, response_code: int, _header
 
 	$MarkNotificationsReadRequest.request(
 		OnlineLeaderboardScript.get_mark_notifications_read_url(ids),
-		OnlineLeaderboardScript.get_headers() + PackedStringArray(["Prefer: return=minimal"]),
-		HTTPClient.METHOD_PATCH,
-		OnlineLeaderboardScript.make_mark_notifications_read_body()
+		OnlineLeaderboardScript.get_headers(),
+		HTTPClient.METHOD_POST,
+		OnlineLeaderboardScript.make_mark_notifications_read_body_for_ids(ids)
 	)
 
-func _on_mark_notifications_read_completed(_result: int, _response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
-	pass
+func _on_mark_notifications_read_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	_handle_upgrade_required_response("mark_notifications_read", response_code, body)
 
 func _on_push_notification_opened(payload: Dictionary) -> void:
 	if str(payload.get("type", "")) != "score_beaten":
@@ -583,6 +565,8 @@ func _update_status_after_fetch() -> void:
 			set_status("Run syncing in the background.")
 		elif is_submitting:
 			set_status("Saving score online...")
+		elif _is_waiting_for_startup_restore():
+			set_status("Checking cloud progress for this device...")
 		elif has_pending_score and not _has_saved_profile():
 			set_status("Open Leaderboard to enter a name and save online.")
 		else:
@@ -590,11 +574,11 @@ func _update_status_after_fetch() -> void:
 		return
 
 	if needs_profile_setup:
-		set_status("Enter your name to save this run. Paste a player ID first if you want to restore unlocks.")
+		set_status("Enter your name to save this run.")
+	elif _is_waiting_for_startup_restore():
+		set_status("Checking cloud progress for this device...")
 	elif is_submitting:
 		set_status("Saving your score...")
-	elif is_restoring_profile:
-		set_status("Pulling saved unlocks...")
 	elif has_submitted:
 		set_status("Score submitted!")
 	elif has_pending_score:
@@ -769,69 +753,24 @@ func _get_empty_board_text() -> String:
 		return "No global scores yet"
 	return "No family scores yet"
 
-func _refresh_player_id_ui() -> void:
-	var player_id_text := OnlineLeaderboardScript.get_player_id_for_display()
-	var source := OnlineLeaderboardScript.get_player_identity_source()
-	var source_suffix := ""
-	if source == OnlineLeaderboardScript.PLAYER_ID_SOURCE_MANUAL_OVERRIDE:
-		source_suffix = " (manual)"
-	player_id_summary_label.text = "Player ID: %s%s" % [player_id_text, source_suffix]
-	if OnlineLeaderboardScript.has_manual_player_id_override() and not player_id_entry.has_focus():
-		player_id_entry.text = OnlineLeaderboardScript.load_manual_player_id_override()
-
-func _prepare_player_id_for_online_actions(allow_current_player_id: bool) -> bool:
-	var entered_player_id := player_id_entry.text.strip_edges()
-	if not entered_player_id.is_empty():
-		var validation := OnlineLeaderboardScript.validate_player_id(entered_player_id)
-		if not bool(validation.get("ok", false)):
-			set_status(str(validation.get("error", "Enter a valid player ID.")))
-			return false
-		var validated_player_id := str(validation.get("player_id", ""))
-		var active_player_id_before_restore := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
-		var previous_player_id := OnlineLeaderboardScript.load_manual_player_id_override()
-		player_id_entry.text = validated_player_id
-		if validated_player_id != active_player_id_before_restore:
-			_clear_pending_sync_jobs()
-		OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
-		_refresh_player_id_ui()
-		var should_check_restore := true
-		if validated_player_id == previous_player_id:
-			should_check_restore = true
-		if should_check_restore:
-			var sync_queue := _get_sync_queue()
-			if sync_queue == null:
-				set_status("Restore service is not available right now.")
-				return false
-			is_restoring_profile = true
-			save_button.disabled = true
-			set_status("Checking that player ID and restoring unlocks...")
-			var restore_result := {
-				"ok": false,
-				"profile_restored": false,
-				"mission_restored": false,
-				"error_message": "Could not check that player ID right now.",
-			}
-			if sync_queue.has_method("pull_remote_profile_state_async"):
-				restore_result = await sync_queue.pull_remote_profile_state_async(true)
-			elif sync_queue.has_method("pull_remote_profile_state"):
-				sync_queue.pull_remote_profile_state(true)
-				restore_result["ok"] = true
-			is_restoring_profile = false
-			if not bool(restore_result.get("ok", false)):
-				save_button.disabled = false
-				set_status(str(restore_result.get("error_message", "Could not check that player ID right now.")))
-				return false
-			if bool(restore_result.get("profile_restored", false)) or bool(restore_result.get("mission_restored", false)):
-				set_status("Unlocks restored. Saving your score next...")
-			else:
-				set_status("No saved unlocks were found for that player ID. Saving your score anyway...")
+func _prepare_player_id_for_online_actions() -> bool:
+	if _is_waiting_for_startup_restore():
+		set_status("Checking cloud progress for this device. Try again in a moment.")
+		return false
+	if not OnlineLeaderboardScript.load_or_create_player_id().strip_edges().is_empty():
 		return true
-	if allow_current_player_id and not OnlineLeaderboardScript.load_or_create_player_id().strip_edges().is_empty():
-		_refresh_player_id_ui()
-		return true
-	set_status("Player ID is required. Paste an existing player ID or try again once this device has one.")
-	_refresh_player_id_ui()
+	set_status("Cloud profile isn't ready yet. Try again in a moment.")
 	return false
+
+func _handle_upgrade_required_response(operation: String, response_code: int, body: PackedByteArray) -> bool:
+	if not OnlineLeaderboardScript.is_upgrade_required_response(response_code, body):
+		return false
+	OnlineLeaderboardScript.handle_upgrade_required(operation, body, {
+		"screen": "leaderboard",
+		"current_mode": current_mode,
+		"has_pending_score": has_pending_score,
+	})
+	return true
 
 func _apply_responsive_panel_rect(rect: Rect2) -> void:
 	if not is_instance_valid(panel):
@@ -851,10 +790,28 @@ func _apply_responsive_panel_rect(rect: Rect2) -> void:
 	panel.offset_right = target_size.x * 0.5
 	panel.offset_bottom = target_size.y * 0.5
 
-func _clear_pending_sync_jobs() -> void:
+func _is_waiting_for_startup_restore() -> bool:
+	if validation_mode_enabled:
+		return false
+	if not has_pending_score or not _is_online_configured() or _has_saved_profile():
+		return false
 	var sync_queue := _get_sync_queue()
-	if sync_queue != null and sync_queue.has_method("clear_pending_jobs"):
-		sync_queue.clear_pending_jobs()
+	if sync_queue == null:
+		return false
+	if sync_queue.has_method("has_completed_startup_sync"):
+		return not bool(sync_queue.has_completed_startup_sync())
+	if sync_queue.has_method("is_startup_sync_in_progress"):
+		return bool(sync_queue.is_startup_sync_in_progress())
+	return false
+
+func _on_startup_sync_state_changed() -> void:
+	if validation_mode_enabled:
+		return
+	name_entry.text = OnlineLeaderboardScript.load_cached_name()
+	if current_mode == ScreenMode.RESULTS:
+		_prepare_results_mode()
+		return
+	_prepare_leaderboard_mode(leaderboard_entries.is_empty())
 
 func _on_viewport_size_changed() -> void:
 	_apply_responsive_panel_rect(_get_active_panel_rect())
@@ -872,9 +829,6 @@ func apply_validation_state(mode: int, summary: Dictionary = {}, online_configur
 	needs_profile_setup = false
 	pending_player_name = ""
 	is_submitting = false
-	_use_legacy_submit_api = false
-	_use_v2_submit_api = true
-	_use_v1_submit_api = false
 	_use_expanded_fetch_fields = true
 	leaderboard_entries.clear()
 	leaderboard_offset = 0
@@ -882,9 +836,7 @@ func apply_validation_state(mode: int, summary: Dictionary = {}, online_configur
 	leaderboard_fetch_in_flight = false
 	alert_label.text = "Validation alert" if show_alert else ""
 	name_entry.text = "Pilot"
-	player_id_entry.text = ""
 	save_button.disabled = false
-	_refresh_player_id_ui()
 	_populate_results_summary()
 
 	if current_mode == ScreenMode.RESULTS:
@@ -957,6 +909,20 @@ func _format_unlock_line(unlock_entry: Dictionary) -> String:
 		"global_skin_set":
 			return "+ Original Icon skin set"
 	return ""
+
+func _has_hangar_unlock_cta() -> bool:
+	return not _get_primary_hangar_unlock_entry().is_empty()
+
+func _get_primary_hangar_unlock_entry() -> Dictionary:
+	var unlock_entries: Array = current_run_summary.get("post_run_unlocks", []) if current_run_summary.has("post_run_unlocks") else []
+	for unlock_variant in unlock_entries:
+		if unlock_variant is not Dictionary:
+			continue
+		var unlock_entry := unlock_variant as Dictionary
+		match str(unlock_entry.get("unlock_type", "")):
+			"vehicle", "vehicle_skin", "global_skin_set":
+				return unlock_entry
+	return {}
 
 func _is_online_configured() -> bool:
 	if validation_mode_enabled:

@@ -10,7 +10,11 @@ const VIEWPORT_SIZES := [
 ]
 const MISSION_SUMMARY := {
 	"completed": 0,
-	"total": 3,
+	"total": 5,
+	"core_completed": 0,
+	"core_total": 3,
+	"bonus_completed": 0,
+	"bonus_total": 2,
 	"time_until_reset": "02h 17m until new missions",
 	"daily_streak": 0,
 	"next_unlock": {
@@ -44,6 +48,28 @@ const MISSION_SUMMARY := {
 			"target": 2,
 			"progress": 0,
 			"completed": false,
+		},
+		{
+			"id": "daily_2026-04-18_vehicle_runs",
+			"type": "vehicle_runs",
+			"title": "Fly 3 Runs with Bubble Chopper",
+			"description": "Take Bubble Chopper out for 3 runs today.",
+			"target": 3,
+			"progress": 0,
+			"completed": false,
+			"bonus": true,
+			"badge_text": "BONUS",
+		},
+		{
+			"id": "daily_2026-04-18_no_missile_run_score",
+			"type": "no_missile_run_score",
+			"title": "Score 2,500 Without Missiles",
+			"description": "Reach 2,500 without firing missiles.",
+			"target": 2500,
+			"progress": 0,
+			"completed": false,
+			"bonus": true,
+			"badge_text": "BONUS",
 		},
 	],
 }
@@ -114,7 +140,6 @@ func _validate_setup_mode(viewport_size: Vector2i) -> void:
 	await process_frame
 	_assert_visible((screen.get("setup_card") as Control).visible, "Setup card should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("name_entry") as Control).visible, "Name entry should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
-	_assert_visible((screen.get("player_id_entry") as Control).visible, "Player ID entry should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("setup_back_button") as Control).visible, "Setup back button should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_visible((screen.get("save_button") as Control).visible, "Save button should be visible in setup mode at %s." % _format_viewport_size(viewport_size))
 	_assert_within_panel(screen, "setup", viewport_size)
@@ -230,7 +255,10 @@ func _destroy_screen(screen: Node) -> void:
 
 func _assert_within_panel(screen: Control, mode_name: String, viewport_size: Vector2i) -> void:
 	var panel := screen.get("panel") as Control
-	var panel_rect: Rect2 = panel.get_global_rect()
+	var bounds_control := panel
+	if mode_name == "mission screen" and screen.get("margin_container") is Control:
+		bounds_control = screen.get("margin_container") as Control
+	var panel_rect: Rect2 = bounds_control.get_global_rect()
 	var tolerance := 1.0
 	var allowed_rect := Rect2(
 		panel_rect.position - Vector2.ONE * tolerance,

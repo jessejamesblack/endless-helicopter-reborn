@@ -34,12 +34,16 @@ func _validate_autoloads() -> void:
 	var mission_manager: Node = _get_autoload("MissionManager")
 	var sync_queue: Node = _get_autoload("SupabaseSyncQueue")
 	var push_notifications: Node = _get_autoload("PushNotifications")
+	var feature_discovery_manager: Node = _get_autoload("FeatureDiscoveryManager")
+	var hangar_navigation_state: Node = _get_autoload("HangarNavigationState")
 
 	_assert(player_profile != null, "PlayerProfile autoload should exist.")
 	_assert(helicopter_skins != null, "HelicopterSkins autoload should exist.")
 	_assert(mission_manager != null, "MissionManager autoload should exist.")
 	_assert(sync_queue != null, "SupabaseSyncQueue autoload should exist.")
 	_assert(push_notifications != null, "PushNotifications autoload should exist.")
+	_assert(feature_discovery_manager != null, "FeatureDiscoveryManager autoload should exist.")
+	_assert(hangar_navigation_state != null, "HangarNavigationState autoload should exist.")
 
 	if player_profile != null:
 		_assert(player_profile.has_method("get_profile_summary"), "PlayerProfile should expose get_profile_summary().")
@@ -87,10 +91,15 @@ func _validate_screen_assets() -> void:
 
 	var scores_button := start_screen.get_node_or_null("ScoresButton") as Control
 	var missions_button := start_screen.get_node_or_null("MissionsButton") as Control
+	var hangar_button := start_screen.get_node_or_null("HangarButton") as Control
+	var next_unlock_card := start_screen.get_node_or_null("NextUnlockCard") as Control
 	_assert(scores_button != null, "Start screen should still include ScoresButton.")
 	_assert(missions_button != null, "Start screen should include MissionsButton.")
-	if scores_button != null and missions_button != null:
+	_assert(hangar_button != null, "Start screen should expose Hangar as a top-level destination.")
+	_assert(next_unlock_card != null, "Start screen should expose a Next Unlock card.")
+	if scores_button != null and missions_button != null and hangar_button != null:
 		_assert(missions_button.get_global_rect().position.y >= scores_button.get_global_rect().end.y - 1.0, "MissionsButton should sit below ScoresButton.")
+		_assert(hangar_button.get_global_rect().position.y >= missions_button.get_global_rect().position.y - 1.0, "HangarButton should stay top-level and near Missions.")
 
 	start_screen.free()
 	await process_frame
@@ -103,6 +112,7 @@ func _validate_screen_assets() -> void:
 	get_root().add_child(mission_screen)
 	await process_frame
 	_assert(mission_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/ReminderButton") == null, "Mission screen should no longer include a reminder button.")
+	_assert(mission_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/RewardHelpLabel") != null, "Mission screen should explain that missions unlock hangar rewards.")
 	mission_screen.free()
 	await process_frame
 
@@ -262,19 +272,34 @@ func _validate_mission_generation_and_progress() -> void:
 
 	var first_set: Array[Dictionary] = mission_manager.build_daily_missions_for_key("2026-04-18")
 	var second_set: Array[Dictionary] = mission_manager.build_daily_missions_for_key("2026-04-18")
-	_assert(first_set.size() == 3, "Daily mission generation should return exactly 3 missions.")
+	_assert(first_set.size() == 5, "Daily mission generation should return exactly 5 missions.")
 	_assert(JSON.stringify(first_set) == JSON.stringify(second_set), "Daily mission generation should be deterministic for a date key.")
+	var seen_types: Dictionary = {}
+	var core_count := 0
+	var bonus_count := 0
+	for mission in first_set:
+		var mission_type := str(mission.get("type", ""))
+		_assert(not seen_types.has(mission_type), "Daily mission generation should avoid duplicate mission types.")
+		seen_types[mission_type] = true
+		if bool(mission.get("bonus", false)):
+			bonus_count += 1
+		else:
+			core_count += 1
+	_assert(core_count == 3, "Daily mission generation should include 3 core missions.")
+	_assert(bonus_count == 2, "Daily mission generation should include 2 bonus missions.")
 
 	player_profile.apply_validation_state({
-		"unlocked_vehicles": ["default_scout"],
+		"unlocked_vehicles": ["default_scout", "bubble_chopper"],
 		"equipped_vehicle_id": "default_scout",
 		"total_daily_missions_completed": 0,
 		"daily_streak": 0,
 	})
 	var first_validation_missions: Array[Dictionary] = [
-		{"id": "daily_2026-04-18_play_runs", "type": "play_runs", "title": "Fly 1 Run", "description": "Complete 1 run today.", "target": 1, "progress": 0, "completed": false, "reward_text": "Daily progress"},
-		{"id": "daily_2026-04-18_near_misses", "type": "near_misses", "title": "Get 2 Near Misses", "description": "Get 2 near misses today.", "target": 2, "progress": 0, "completed": false, "reward_text": "Daily progress"},
-		{"id": "daily_2026-04-18_max_combo", "type": "max_combo", "title": "Reach Combo x1.25", "description": "Reach combo x1.25 today.", "target": 125, "progress": 0, "completed": false, "reward_text": "Daily progress"},
+		{"id": "daily_2026-04-18_core_easy_play_runs", "slot": "core_easy", "category": "core_easy", "type": "play_runs", "title": "Fly 1 Run", "description": "Complete 1 run today.", "target": 1, "progress": 0, "completed": false, "bonus": false, "progress_mode": "sum", "reward_text": "Core unlock progress", "vehicle_id": ""},
+		{"id": "daily_2026-04-18_core_combat_near_misses", "slot": "core_combat", "category": "core_combat", "type": "near_misses", "title": "Get 2 Near Misses", "description": "Get 2 near misses today.", "target": 2, "progress": 0, "completed": false, "bonus": false, "progress_mode": "sum", "reward_text": "Core unlock progress", "vehicle_id": ""},
+		{"id": "daily_2026-04-18_core_skill_max_combo", "slot": "core_skill", "category": "core_skill", "type": "max_combo", "title": "Reach Combo x1.25", "description": "Reach combo x1.25 today.", "target": 125, "progress": 0, "completed": false, "bonus": false, "progress_mode": "best", "reward_text": "Core unlock progress", "vehicle_id": ""},
+		{"id": "daily_2026-04-18_bonus_vehicle_runs", "slot": "bonus_vehicle_or_stretch", "category": "bonus_vehicle", "type": "vehicle_runs", "title": "Fly 1 Run with Bubble Chopper", "description": "Take Bubble Chopper out today.", "target": 1, "progress": 0, "completed": false, "bonus": true, "badge_text": "BONUS", "progress_mode": "sum", "reward_text": "Bonus hangar credit", "vehicle_id": "bubble_chopper"},
+		{"id": "daily_2026-04-18_bonus_prestige_nomissile", "slot": "bonus_prestige", "category": "bonus_prestige", "type": "no_missile_run_score", "title": "Score 200 Without Missiles", "description": "Reach 200 without missiles.", "target": 200, "progress": 0, "completed": false, "bonus": true, "badge_text": "BONUS", "progress_mode": "best", "reward_text": "Bonus hangar credit", "vehicle_id": ""},
 	]
 	mission_manager.apply_validation_state("2026-04-18", first_validation_missions)
 
@@ -283,16 +308,25 @@ func _validate_mission_generation_and_progress() -> void:
 		"time_survived_seconds": 12.5,
 		"near_misses": 2,
 		"max_combo_multiplier": 1.25,
+		"missiles_fired": 0,
+		"equipped_vehicle_id": "bubble_chopper",
 	})
-	_assert((result.get("missions_completed_this_run", []) as Array).size() == 3, "Applying a fake run summary should complete the expected missions.")
+	_assert((result.get("missions_completed_this_run", []) as Array).size() == 5, "Applying a fake run summary should complete the expected missions.")
+	_assert((result.get("core_missions_completed_this_run", []) as Array).size() == 3, "Core mission tracking should stay separate from bonus missions.")
+	_assert((result.get("bonus_missions_completed_this_run", []) as Array).size() == 2, "Bonus mission tracking should stay separate from core missions.")
 	_assert(player_profile.get_total_daily_missions_completed() == 3, "Mission completion should increment total daily missions completed.")
 	_assert(player_profile.is_vehicle_unlocked("bubble_chopper"), "Little Bird should unlock after the first completed daily mission.")
 	_assert(player_profile.is_vehicle_unlocked("huey_runner"), "Huey Runner should unlock after three completed daily missions.")
+	var summary: Dictionary = mission_manager.get_daily_progress_summary()
+	_assert(int(summary.get("core_completed", 0)) == 3, "Daily mission summary should report completed core missions.")
+	_assert(int(summary.get("bonus_completed", 0)) == 2, "Daily mission summary should report completed bonus missions.")
 
 	var second_validation_missions: Array[Dictionary] = [
-		{"id": "daily_2026-04-19_skill_score", "type": "skill_score", "title": "Earn Skill Score", "description": "Earn 5 skill score today.", "target": 5, "progress": 0, "completed": false, "reward_text": "Daily progress"},
-		{"id": "daily_2026-04-19_glowing_clears", "type": "glowing_clears", "title": "Trigger 1 Glowing Clear", "description": "Trigger one glowing clear today.", "target": 1, "progress": 0, "completed": false, "reward_text": "Daily progress"},
-		{"id": "daily_2026-04-19_ammo_pickups", "type": "ammo_pickups", "title": "Collect Ammo", "description": "Collect one ammo pickup today.", "target": 1, "progress": 0, "completed": false, "reward_text": "Daily progress"},
+		{"id": "daily_2026-04-19_core_easy_skill_score", "slot": "core_easy", "category": "core_easy", "type": "skill_score", "title": "Earn Skill Score", "description": "Earn 5 skill score today.", "target": 5, "progress": 0, "completed": false, "bonus": false, "progress_mode": "sum", "reward_text": "Core unlock progress", "vehicle_id": ""},
+		{"id": "daily_2026-04-19_core_combat_glowing_clears", "slot": "core_combat", "category": "core_combat", "type": "glowing_clears", "title": "Trigger 1 Glowing Clear", "description": "Trigger one glowing clear today.", "target": 1, "progress": 0, "completed": false, "bonus": false, "progress_mode": "sum", "reward_text": "Core unlock progress", "vehicle_id": ""},
+		{"id": "daily_2026-04-19_core_skill_ammo_pickups", "slot": "core_skill", "category": "core_skill", "type": "ammo_pickups", "title": "Collect Ammo", "description": "Collect one ammo pickup today.", "target": 1, "progress": 0, "completed": false, "bonus": false, "progress_mode": "sum", "reward_text": "Core unlock progress", "vehicle_id": ""},
+		{"id": "daily_2026-04-19_bonus_vehicle_near_misses", "slot": "bonus_vehicle_or_stretch", "category": "bonus_vehicle", "type": "vehicle_near_misses", "title": "Get 1 Near Miss with Bubble Chopper", "description": "Thread one near miss with Bubble Chopper.", "target": 1, "progress": 0, "completed": false, "bonus": true, "badge_text": "BONUS", "progress_mode": "sum", "reward_text": "Bonus hangar credit", "vehicle_id": "bubble_chopper"},
+		{"id": "daily_2026-04-19_bonus_prestige_original_icon", "slot": "bonus_prestige", "category": "bonus_prestige", "type": "original_icon_progress", "title": "Push Toward Original Icon", "description": "Raise your best score.", "target": 10000, "progress": 0, "completed": false, "bonus": true, "badge_text": "BONUS", "progress_mode": "best", "reward_text": "Bonus hangar credit", "vehicle_id": ""},
 	]
 	mission_manager.apply_validation_state("2026-04-19", second_validation_missions)
 	var missing_keys_result: Dictionary = mission_manager.apply_run_summary({})
@@ -301,8 +335,10 @@ func _validate_mission_generation_and_progress() -> void:
 func _validate_supabase_assets() -> void:
 	_assert(FileAccess.file_exists("res://backend/supabase_player_progress_setup.sql"), "Supabase player progress setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase_vehicle_skins_setup.sql"), "Supabase vehicle/skins setup SQL should exist.")
+	_assert(FileAccess.file_exists("res://backend/supabase_sprint7_security_setup.sql"), "Sprint 7 security setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase_daily_mission_push_setup.sql"), "Daily mission push setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase/functions/send-daily-mission-push/index.ts"), "Daily mission push function should exist.")
+	_assert(FileAccess.file_exists("res://backend/supabase/functions/_shared/version_gate.ts"), "Version gate helper should exist.")
 
 	var sql_text := FileAccess.get_file_as_string("res://backend/supabase_player_progress_setup.sql")
 	_assert(sql_text.contains("family_player_profiles"), "Supabase player progress SQL should include family_player_profiles.")
@@ -312,9 +348,9 @@ func _validate_supabase_assets() -> void:
 	_assert(sql_text.contains("sync_player_profile"), "Supabase player progress SQL should include sync_player_profile.")
 	_assert(sql_text.contains("sync_daily_mission_progress"), "Supabase player progress SQL should include sync_daily_mission_progress.")
 
-	_assert(OnlineLeaderboardScript.get_submit_v2_url().contains("submit_family_score_v2"), "OnlineLeaderboard should expose submit v2 URL.")
-	_assert(OnlineLeaderboardScript.get_sync_player_profile_url().contains("sync_player_profile"), "OnlineLeaderboard should expose player profile sync URL.")
-	_assert(OnlineLeaderboardScript.get_sync_daily_mission_progress_url().contains("sync_daily_mission_progress"), "OnlineLeaderboard should expose mission sync URL.")
+	_assert(OnlineLeaderboardScript.get_submit_v2_url().contains("submit-score"), "OnlineLeaderboard should expose the Sprint 7 submit-score Edge Function URL.")
+	_assert(OnlineLeaderboardScript.get_sync_player_profile_url().contains("sync-player-profile"), "OnlineLeaderboard should expose the Sprint 7 player profile sync URL.")
+	_assert(OnlineLeaderboardScript.get_sync_daily_mission_progress_url().contains("sync-daily-mission-progress"), "OnlineLeaderboard should expose the Sprint 7 mission sync URL.")
 	_assert(OnlineLeaderboardScript.get_legacy_fetch_url().contains("select=player_id,name,score,created_at,updated_at"), "OnlineLeaderboard should expose a legacy leaderboard fetch URL.")
 	_assert(not OnlineLeaderboardScript.get_legacy_fetch_url().contains("equipped_skin_id"), "Legacy leaderboard fetch URL should avoid Sprint 3-only columns.")
 	_assert(OnlineLeaderboardScript.should_fallback_to_legacy_fetch("column family_leaderboard.equipped_skin_id does not exist"), "OnlineLeaderboard should detect when leaderboard fetch must fall back to legacy columns.")
@@ -322,6 +358,7 @@ func _validate_supabase_assets() -> void:
 	var body := OnlineLeaderboardScript.make_submit_v2_body("Pilot", 100, {"skill_score": 50, "equipped_vehicle_id": "default_scout", "equipped_vehicle_skin_id": "factory"}, "default_scout")
 	_assert(body.contains("\"p_run_summary\""), "Submit v2 body should include run_summary.")
 	_assert(body.contains("\"p_equipped_skin_id\""), "Submit v2 body should include equipped_skin_id.")
+	_assert(body.contains("\"current_version_code\""), "Submit v2 body should include current_version_code for version gating.")
 	var profile_body := OnlineLeaderboardScript.make_sync_player_profile_body({
 		"equipped_vehicle_id": "default_scout",
 		"equipped_vehicle_skin_id": "factory",
@@ -330,6 +367,7 @@ func _validate_supabase_assets() -> void:
 	})
 	_assert(profile_body.contains("\"equipped_vehicle_id\""), "Profile sync body should carry the equipped vehicle id in profile_summary.")
 	_assert(profile_body.contains("\"unlocked_vehicle_skins\""), "Profile sync body should carry vehicle skin unlocks in profile_summary.")
+	_assert(profile_body.contains("\"current_version_code\""), "Profile sync body should include current_version_code for version gating.")
 
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
