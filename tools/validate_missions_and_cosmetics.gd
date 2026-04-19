@@ -1,8 +1,9 @@
 extends SceneTree
 
-const START_SCREEN_SCENE := preload("res://scenes/ui/start_screen/start_screen.tscn")
-const MISSION_SCREEN_SCENE := preload("res://scenes/ui/missions/mission_screen.tscn")
-const HANGAR_SCREEN_SCENE := preload("res://scenes/ui/hangar/hangar_screen.tscn")
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
+const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
+const MISSION_SCREEN_SCENE_PATH := "res://scenes/ui/missions/mission_screen.tscn"
+const HANGAR_SCREEN_SCENE_PATH := "res://scenes/ui/hangar/hangar_screen.tscn"
 
 var _failures: Array[String] = []
 
@@ -61,10 +62,14 @@ func _validate_autoloads() -> void:
 		_assert(push_notifications.has_method("consume_open_leaderboard_request"), "PushNotifications should still expose consume_open_leaderboard_request().")
 
 func _validate_screen_assets() -> void:
-	_assert(ResourceLoader.exists("res://scenes/ui/missions/mission_screen.tscn"), "Mission screen scene should exist.")
-	_assert(ResourceLoader.exists("res://scenes/ui/hangar/hangar_screen.tscn"), "Hangar screen scene should exist.")
+	_assert(ResourceLoader.exists(MISSION_SCREEN_SCENE_PATH), "Mission screen scene should exist.")
+	_assert(ResourceLoader.exists(HANGAR_SCREEN_SCENE_PATH), "Hangar screen scene should exist.")
 
-	var start_screen := START_SCREEN_SCENE.instantiate() as Control
+	var start_screen_scene := load(START_SCREEN_SCENE_PATH) as PackedScene
+	_assert(start_screen_scene != null, "Start screen scene should load.")
+	if start_screen_scene == null:
+		return
+	var start_screen := start_screen_scene.instantiate() as Control
 	get_root().add_child(start_screen)
 	await process_frame
 	await process_frame
@@ -79,14 +84,22 @@ func _validate_screen_assets() -> void:
 	start_screen.free()
 	await process_frame
 
-	var mission_screen := MISSION_SCREEN_SCENE.instantiate() as Control
+	var mission_screen_scene := load(MISSION_SCREEN_SCENE_PATH) as PackedScene
+	_assert(mission_screen_scene != null, "Mission screen scene should load.")
+	if mission_screen_scene == null:
+		return
+	var mission_screen := mission_screen_scene.instantiate() as Control
 	get_root().add_child(mission_screen)
 	await process_frame
 	_assert(mission_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/ReminderButton") != null, "Mission screen should include the reminder button.")
 	mission_screen.free()
 	await process_frame
 
-	var hangar_screen := HANGAR_SCREEN_SCENE.instantiate() as Control
+	var hangar_screen_scene := load(HANGAR_SCREEN_SCENE_PATH) as PackedScene
+	_assert(hangar_screen_scene != null, "Hangar screen scene should load.")
+	if hangar_screen_scene == null:
+		return
+	var hangar_screen := hangar_screen_scene.instantiate() as Control
 	get_root().add_child(hangar_screen)
 	await process_frame
 	_assert(hangar_screen.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow/EquipButton") != null, "Hangar screen should include the equip button.")
@@ -182,7 +195,7 @@ func _validate_profile_defaults_and_fallbacks() -> void:
 	_assert(player_profile.get_equipped_skin_id() == "default_scout", "Locked equipped skin should fall back to default_scout.")
 	_assert(not player_profile.equip_skin("apache_strike"), "Locked skins should not be equippable.")
 
-	var local_player_id := OnlineLeaderboard.load_or_create_player_id()
+	var local_player_id := OnlineLeaderboardScript.load_or_create_player_id()
 	player_profile.apply_validation_state({
 		"unlocked_skins": ["default_scout"],
 		"equipped_skin_id": "default_scout",
@@ -262,14 +275,14 @@ func _validate_supabase_assets() -> void:
 	_assert(sql_text.contains("sync_player_profile"), "Supabase player progress SQL should include sync_player_profile.")
 	_assert(sql_text.contains("sync_daily_mission_progress"), "Supabase player progress SQL should include sync_daily_mission_progress.")
 
-	_assert(OnlineLeaderboard.get_submit_v2_url().contains("submit_family_score_v2"), "OnlineLeaderboard should expose submit v2 URL.")
-	_assert(OnlineLeaderboard.get_sync_player_profile_url().contains("sync_player_profile"), "OnlineLeaderboard should expose player profile sync URL.")
-	_assert(OnlineLeaderboard.get_sync_daily_mission_progress_url().contains("sync_daily_mission_progress"), "OnlineLeaderboard should expose mission sync URL.")
-	_assert(OnlineLeaderboard.get_legacy_fetch_url().contains("select=player_id,name,score,created_at,updated_at"), "OnlineLeaderboard should expose a legacy leaderboard fetch URL.")
-	_assert(not OnlineLeaderboard.get_legacy_fetch_url().contains("equipped_skin_id"), "Legacy leaderboard fetch URL should avoid Sprint 3-only columns.")
-	_assert(OnlineLeaderboard.should_fallback_to_legacy_fetch("column family_leaderboard.equipped_skin_id does not exist"), "OnlineLeaderboard should detect when leaderboard fetch must fall back to legacy columns.")
+	_assert(OnlineLeaderboardScript.get_submit_v2_url().contains("submit_family_score_v2"), "OnlineLeaderboard should expose submit v2 URL.")
+	_assert(OnlineLeaderboardScript.get_sync_player_profile_url().contains("sync_player_profile"), "OnlineLeaderboard should expose player profile sync URL.")
+	_assert(OnlineLeaderboardScript.get_sync_daily_mission_progress_url().contains("sync_daily_mission_progress"), "OnlineLeaderboard should expose mission sync URL.")
+	_assert(OnlineLeaderboardScript.get_legacy_fetch_url().contains("select=player_id,name,score,created_at,updated_at"), "OnlineLeaderboard should expose a legacy leaderboard fetch URL.")
+	_assert(not OnlineLeaderboardScript.get_legacy_fetch_url().contains("equipped_skin_id"), "Legacy leaderboard fetch URL should avoid Sprint 3-only columns.")
+	_assert(OnlineLeaderboardScript.should_fallback_to_legacy_fetch("column family_leaderboard.equipped_skin_id does not exist"), "OnlineLeaderboard should detect when leaderboard fetch must fall back to legacy columns.")
 
-	var body := OnlineLeaderboard.make_submit_v2_body("Pilot", 100, {"skill_score": 50}, "default_scout")
+	var body := OnlineLeaderboardScript.make_submit_v2_body("Pilot", 100, {"skill_score": 50}, "default_scout")
 	_assert(body.contains("\"p_run_summary\""), "Submit v2 body should include run_summary.")
 	_assert(body.contains("\"p_equipped_skin_id\""), "Submit v2 body should include equipped_skin_id.")
 

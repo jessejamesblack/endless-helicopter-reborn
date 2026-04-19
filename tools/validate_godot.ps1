@@ -30,6 +30,12 @@ $scripts = @(
     'res://scenes/effects/floating_score_text.gd'
 )
 
+Write-Host 'Importing project resources'
+& $GodotBin --headless --path $projectRoot --import
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot resource import failed'
+}
+
 foreach ($script in $scripts) {
     Write-Host "Validating $script"
     & $GodotBin --headless --path $projectRoot --check-only --script $script
