@@ -62,6 +62,13 @@ func _validate_autoloads() -> void:
 		_assert(push_notifications.has_method("consume_open_missions_request"), "PushNotifications should expose consume_open_missions_request().")
 		_assert(push_notifications.has_method("consume_open_leaderboard_request"), "PushNotifications should still expose consume_open_leaderboard_request().")
 
+	var push_notifications_script := load("res://systems/push_notifications.gd") as GDScript
+	_assert(push_notifications_script != null, "PushNotifications script should load.")
+	if push_notifications_script != null:
+		var push_notifications_probe: Node = push_notifications_script.new()
+		_assert(bool(push_notifications_probe.call("_get_daily_reminders_enabled")), "PushNotifications should default daily mission registration to enabled when PlayerProfile is not yet available.")
+		push_notifications_probe.free()
+
 func _validate_screen_assets() -> void:
 	_assert(ResourceLoader.exists(MISSION_SCREEN_SCENE_PATH), "Mission screen scene should exist.")
 	_assert(ResourceLoader.exists(HANGAR_SCREEN_SCENE_PATH), "Hangar screen scene should exist.")

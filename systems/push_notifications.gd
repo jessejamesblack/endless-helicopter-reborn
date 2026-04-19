@@ -55,6 +55,7 @@ func _notification(what: int) -> void:
 
 func _bootstrap() -> void:
 	_refresh_plugin_reference()
+	_connect_player_profile()
 	if not is_push_supported():
 		_last_registration_message = get_diagnostics_text()
 		_emit_diagnostics()
@@ -75,6 +76,14 @@ func _bootstrap() -> void:
 	register_device_for_push()
 	_schedule_registration_retries()
 	_emit_diagnostics()
+
+func _connect_player_profile() -> void:
+	var player_profile = get_node_or_null("/root/PlayerProfile")
+	if player_profile == null or not player_profile.has_signal("profile_changed"):
+		return
+	var profile_callback := Callable(self, "_on_profile_changed")
+	if not player_profile.is_connected("profile_changed", profile_callback):
+		player_profile.connect("profile_changed", profile_callback)
 
 func is_push_supported() -> bool:
 	if not OnlineLeaderboardScript.is_configured():
@@ -443,6 +452,11 @@ func _on_registration_retry_timeout() -> void:
 	if _remaining_registration_retries > 0:
 		_registration_retry_timer.start(REGISTRATION_RETRY_SECONDS)
 
+func _on_profile_changed(_summary: Dictionary) -> void:
+	if not is_push_supported():
+		return
+	register_device_for_push()
+
 func _refresh_plugin_reference() -> void:
 	if _plugin == null and Engine.has_singleton(PLUGIN_SINGLETON):
 		_plugin = Engine.get_singleton(PLUGIN_SINGLETON)
@@ -589,7 +603,9 @@ func _yes_no(value: bool) -> String:
 	return "yes" if value else "no"
 
 func _get_daily_reminders_enabled() -> bool:
+	if not is_inside_tree():
+		return true
 	var player_profile = get_node_or_null("/root/PlayerProfile")
 	if player_profile != null and player_profile.has_method("are_daily_reminders_enabled"):
 		return bool(player_profile.are_daily_reminders_enabled())
-	return false
+	return true
