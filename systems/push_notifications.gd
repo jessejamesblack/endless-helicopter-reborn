@@ -11,6 +11,8 @@ const ANDROID_RUNTIME_SINGLETON := "AndroidRuntime"
 const JAVA_CLASS_WRAPPER_SINGLETON := "JavaClassWrapper"
 const COMPAT_BRIDGE_CLASS := "com.endlesshelicopter.push.FcmPushBridgeCompat"
 const LEADERBOARD_SCENE_PATH := "res://scenes/ui/leaderboard/leaderboard_screen.tscn"
+const MISSION_SCENE_PATH := "res://scenes/ui/missions/mission_screen.tscn"
+const START_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const REGISTRATION_RETRY_SECONDS := 1.5
 const REGISTRATION_RETRY_ATTEMPTS := 5
 
@@ -21,6 +23,7 @@ var _android_runtime: Object = null
 var _java_class_wrapper: Object = null
 var _compat_bridge = null
 var _pending_open_leaderboard: bool = false
+var _pending_open_missions: bool = false
 var _pending_notification_payload: Dictionary = {}
 var _is_registering_device: bool = false
 var _pending_registration_token: String = ""
@@ -235,6 +238,11 @@ func consume_open_leaderboard_request() -> bool:
 	_pending_open_leaderboard = false
 	return should_open
 
+func consume_open_missions_request() -> bool:
+	var should_open := _pending_open_missions
+	_pending_open_missions = false
+	return should_open
+
 func _consume_launch_payload() -> void:
 	var payload_json := ""
 	if _compat_bridge != null:
@@ -277,7 +285,8 @@ func _register_device_token(token: String) -> void:
 		token,
 		_load_or_create_device_id(),
 		notifications_enabled,
-		"Android"
+		"Android",
+		_get_daily_reminders_enabled()
 	)
 	_is_registering_device = true
 	_pending_registration_token = token
@@ -310,9 +319,13 @@ func _handle_notification_payload(payload_json: String) -> void:
 	var payload: Dictionary = parsed
 	_pending_notification_payload = payload
 	push_notification_opened.emit(payload)
-	if str(payload.get("type", "")) == "score_beaten":
-		_pending_open_leaderboard = true
-		_route_to_leaderboard_if_possible()
+	match str(payload.get("type", "")):
+		"score_beaten":
+			_pending_open_leaderboard = true
+			_route_to_leaderboard_if_possible()
+		"daily_missions":
+			_pending_open_missions = true
+			_route_to_missions_if_possible()
 
 func _route_to_leaderboard_if_possible() -> void:
 	if not _pending_open_leaderboard:
@@ -329,6 +342,25 @@ func _route_to_leaderboard_if_possible() -> void:
 
 	_pending_open_leaderboard = false
 	tree.change_scene_to_file(LEADERBOARD_SCENE_PATH)
+
+func _route_to_missions_if_possible() -> void:
+	if not _pending_open_missions:
+		return
+
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return
+
+	var current_scene := tree.current_scene
+	if current_scene.scene_file_path == MISSION_SCENE_PATH:
+		_pending_open_missions = false
+		return
+
+	if current_scene.scene_file_path != START_SCENE_PATH:
+		return
+
+	_pending_open_missions = false
+	tree.change_scene_to_file(MISSION_SCENE_PATH)
 
 func _load_or_create_device_id() -> String:
 	return AndroidIdentityScript.load_or_create_device_id()
@@ -376,7 +408,8 @@ func _retry_register_device_by_token(token: String) -> void:
 		token,
 		_load_or_create_device_id(),
 		notifications_enabled,
-		"Android"
+		"Android",
+		_get_daily_reminders_enabled()
 	)
 	var error := _http_request.request(
 		OnlineLeaderboardScript.get_push_device_update_by_token_url(token),
@@ -554,3 +587,9 @@ func _token_preview(token: String) -> String:
 
 func _yes_no(value: bool) -> String:
 	return "yes" if value else "no"
+
+func _get_daily_reminders_enabled() -> bool:
+	var player_profile = get_node_or_null("/root/PlayerProfile")
+	if player_profile != null and player_profile.has_method("are_daily_reminders_enabled"):
+		return bool(player_profile.are_daily_reminders_enabled())
+	return false

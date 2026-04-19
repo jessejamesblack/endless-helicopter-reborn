@@ -1,6 +1,7 @@
 class_name Main
 extends Node2D
 
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const HUD_SIDE_LEFT := "left"
 const FIRE_SIDE_LEFT := "left"
 const SCORE_PANEL_LEFT_RECT := Rect2(20, 20, 212, 56)
@@ -16,7 +17,7 @@ const NEAR_MISS_PROJECTILE_SCORE := 25
 const PROJECTILE_INTERCEPT_BONUS := 25
 const MISSILE_STREAK_BONUS_THRESHOLD := 3
 const MISSILE_STREAK_BONUS := 75
-const COMBO_TIMEOUT_SECONDS := 3.0
+const COMBO_TIMEOUT_SECONDS := 3.5
 const COMBO_EVENTS_PER_STEP := 3
 const COMBO_STEP := 0.25
 const COMBO_MAX_MULTIPLIER := 3.0
@@ -250,8 +251,13 @@ func trigger_crash(crash_pos: Vector2) -> void:
 func game_over() -> void:
     _clear_pause_state()
     var run_stats := _get_run_stats()
+    var summary: Dictionary = {}
     if run_stats != null and run_stats.has_method("complete_run"):
-        run_stats.complete_run(int(score))
+        summary = run_stats.complete_run(int(score))
+    var mission_manager := _get_mission_manager()
+    if mission_manager != null and mission_manager.has_method("apply_run_summary"):
+        mission_manager.apply_run_summary(summary)
+    _queue_post_run_sync(summary)
     var error := get_tree().change_scene_to_file("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
     if error != OK:
         push_error("Could not change to leaderboard screen after death. Error code: %d" % error)
@@ -433,3 +439,39 @@ func _get_game_settings():
 
 func _get_run_stats() -> Node:
     return get_node_or_null("/root/RunStats")
+
+func _get_mission_manager() -> Node:
+    return get_node_or_null("/root/MissionManager")
+
+func _get_player_profile():
+    return get_node_or_null("/root/PlayerProfile")
+
+func _get_sync_queue():
+    return get_node_or_null("/root/SupabaseSyncQueue")
+
+func _queue_post_run_sync(summary: Dictionary) -> void:
+    var sync_queue = _get_sync_queue()
+    if sync_queue == null:
+        return
+
+    var player_profile = _get_player_profile()
+    var mission_manager = _get_mission_manager()
+    if player_profile != null and player_profile.has_method("get_profile_summary") and sync_queue.has_method("enqueue_sync_player_profile"):
+        sync_queue.enqueue_sync_player_profile(player_profile.get_profile_summary())
+
+    if mission_manager != null and mission_manager.has_method("get_daily_sync_summary") and sync_queue.has_method("enqueue_sync_daily_mission_progress"):
+        sync_queue.enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
+
+    if OnlineLeaderboardScript.is_configured() and OnlineLeaderboardScript.has_saved_profile() and sync_queue.has_method("enqueue_submit_score_v2"):
+        var equipped_skin_id := "default_scout"
+        if player_profile != null and player_profile.has_method("get_equipped_skin_id"):
+            equipped_skin_id = player_profile.get_equipped_skin_id()
+        sync_queue.enqueue_submit_score_v2(
+            OnlineLeaderboardScript.load_cached_name(),
+            int(summary.get("score", int(score))),
+            summary,
+            equipped_skin_id
+        )
+
+    if sync_queue.has_method("flush"):
+        sync_queue.flush()

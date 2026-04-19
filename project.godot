@@ -21,6 +21,10 @@ GameSettings="*res://systems/game_settings.gd"
 MusicPlayer="*res://systems/music_player.gd"
 PushNotifications="*res://systems/push_notifications.gd"
 RunStats="*res://systems/run_stats.gd"
+PlayerProfile="*res://systems/player_profile.gd"
+HelicopterSkins="*res://systems/helicopter_skins.gd"
+MissionManager="*res://systems/mission_manager.gd"
+SupabaseSyncQueue="*res://systems/supabase_sync_queue.gd"
 
 [display]
 

@@ -13,10 +13,16 @@
 - `scenes/ui/settings/`: reusable settings dialog
 - `scenes/ui/pause/`: in-game pause menu
 - `scenes/ui/leaderboard/`: post-run results and leaderboard UI
+- `scenes/ui/missions/`: daily mission screen
+- `scenes/ui/hangar/`: cosmetic helicopter equip screen
 - `systems/game_settings.gd`: persistent audio, layout, and haptics settings
 - `systems/music_player.gd`: shared music playback service for menu and gameplay loops
 - `systems/online_leaderboard.gd`: shared leaderboard service
 - `systems/run_stats.gd`: live run stats, local best score persistence, and the last completed run summary
+- `systems/player_profile.gd`: local-first cosmetic progression and reminder preference
+- `systems/helicopter_skins.gd`: helicopter cosmetic metadata and sprite application
+- `systems/mission_manager.gd`: deterministic daily missions, run-to-mission progress, and post-run mission summary handoff
+- `systems/supabase_sync_queue.gd`: best-effort background sync for profile, missions, and v2 score submits
 - `systems/push_notifications.gd`: Android push registration and deep-link routing
 
 ## Gameplay Flow
@@ -28,9 +34,11 @@
 5. Near misses, direct missile hits, projectile intercepts, and hit streaks feed a combo-based skill-score loop with floating feedback and a compact combo HUD.
 6. During gameplay, `Pause` can resume, open settings, or quit cleanly back to the menu.
 7. On crash, `main.gd` finalizes the run in `RunStats` and transitions to `leaderboard_screen.tscn`.
-8. The post-run screen shows score, local best, delta-to-best, Sprint 1 run stats, and Sprint 2 skill stats with `Try Again` as the primary action.
-9. The same screen can switch into leaderboard mode, submit the run if configured, and show shared scores.
-10. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode.
+8. The post-run flow finalizes `RunStats`, applies mission progress once, queues best-effort Supabase sync, and transitions to the results screen.
+9. The post-run screen shows score, local best, Sprint 1 and Sprint 2 stats, a compact daily mission summary, and keeps `Try Again` as the primary action.
+10. The player can open the mission screen from the menu or the post-run screen, inspect today's progress, toggle reminder preference, and open the hangar to equip unlocked helicopters.
+11. The same results screen can still switch into leaderboard mode, submit the run if manual name setup is needed, and show shared scores.
+12. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode. If a daily-mission push is opened from the menu or app launch, it routes to the mission screen.
 
 ## Enemy Roles
 
@@ -50,6 +58,9 @@
 - Scenes own gameplay behavior and local presentation.
 - `systems/` owns non-scene shared runtime services.
 - `run_stats.gd` owns run-level counters, combo/skill summary data, and local best persistence instead of scene tree metadata.
+- `player_profile.gd` owns local cosmetic progression and merges remote profile data conservatively.
+- `mission_manager.gd` owns today's mission state and the compact post-run mission summary instead of scene-tree metadata.
+- `supabase_sync_queue.gd` owns retryable outbound sync jobs plus the startup pull/merge of profile and today's mission progress.
 - `backend/` owns external service bootstrap files.
 - `docs/` owns human/agent-readable project knowledge.
 
@@ -73,6 +84,7 @@
 ## Important External Integration
 
 - Supabase powers the shared leaderboard.
+- Supabase also stores synced player profiles, daily mission progress, best-run expanded stats, and append-only run history.
 - Supabase Edge Functions and Firebase Cloud Messaging power Android push notifications.
 - GitHub Actions builds Android APK artifacts.
 

@@ -13,6 +13,7 @@ const ENGINE_SILENT_VOLUME_DB := -40.0
 const ENGINE_CROSSFADE_SECONDS := 0.22
 
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var engine_sound: AudioStreamPlayer = $EngineSound
 
 var missile_scene: PackedScene = preload("res://scenes/projectiles/missile.tscn")
@@ -27,6 +28,7 @@ var _boundary_recovery_timer: float = 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 func _ready() -> void:
+    _apply_equipped_skin()
     _setup_engine_audio()
 
 func _physics_process(delta: float) -> void:
@@ -119,6 +121,26 @@ func _record_boundary_recovery_feedback() -> void:
     var game_settings = get_node_or_null("/root/GameSettings")
     if game_settings != null and game_settings.has_method("vibrate"):
         game_settings.vibrate(20)
+
+func _apply_equipped_skin() -> void:
+    if sprite == null:
+        return
+
+    var profile := get_node_or_null("/root/PlayerProfile")
+    var skins := get_node_or_null("/root/HelicopterSkins")
+    if profile == null or skins == null:
+        return
+
+    var skin_id := "default_scout"
+    if profile.has_method("get_equipped_skin_id"):
+        skin_id = profile.get_equipped_skin_id()
+
+    if skins.has_method("apply_skin_to_player"):
+        skins.apply_skin_to_player(sprite, collision_polygon, skin_id)
+        return
+
+    if skins.has_method("apply_skin_to_sprite"):
+        skins.apply_skin_to_sprite(sprite, skin_id)
 
 func _setup_engine_audio() -> void:
     if engine_sound == null or engine_sound.stream == null:
