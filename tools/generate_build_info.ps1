@@ -36,8 +36,12 @@ function Unquote-Value {
 $presetsText = Get-Content -Raw $ExportPresetsPath
 $versionCode = [int](Get-PresetValue -Text $presetsText -Key "version/code")
 $versionName = Unquote-Value (Get-PresetValue -Text $presetsText -Key "version/name")
+$appPackageName = Unquote-Value (Get-PresetValue -Text $presetsText -Key "package/unique_name")
 if ([string]::IsNullOrWhiteSpace($versionName)) {
     $versionName = "0.0.0"
+}
+if ([string]::IsNullOrWhiteSpace($appPackageName)) {
+    $appPackageName = "com.jessejamesblack.endlesshelicopterreborn"
 }
 
 if ([string]::IsNullOrWhiteSpace($BuildSha)) {
@@ -59,6 +63,7 @@ const VERSION_NAME := "$versionName"
 const BUILD_SHA := "$BuildSha"
 const BUILD_DATE := "$BuildDate"
 const RELEASE_CHANNEL := "$ReleaseChannel"
+const APP_PACKAGE_NAME := "$appPackageName"
 
 static func get_summary() -> Dictionary:
 	return {
@@ -67,6 +72,7 @@ static func get_summary() -> Dictionary:
 		"build_sha": BUILD_SHA,
 		"build_date": BUILD_DATE,
 		"release_channel": RELEASE_CHANNEL,
+		"app_package_name": APP_PACKAGE_NAME,
 	}
 
 static func get_version_label() -> String:

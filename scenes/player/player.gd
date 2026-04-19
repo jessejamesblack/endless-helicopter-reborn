@@ -9,8 +9,6 @@ extends CharacterBody2D
 @export var boundary_inset: float = 44.0
 
 const ENGINE_TARGET_VOLUME_DB := -14.0
-const ENGINE_SILENT_VOLUME_DB := -40.0
-const ENGINE_CROSSFADE_SECONDS := 0.22
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
@@ -18,10 +16,6 @@ const ENGINE_CROSSFADE_SECONDS := 0.22
 
 var missile_scene: PackedScene = preload("res://scenes/projectiles/missile.tscn")
 var ammo: int = 2
-var _engine_overlap_sound: AudioStreamPlayer
-var _engine_loop_timer: Timer
-var _engine_loop_length: float = 0.0
-var _engine_primary_is_active: bool = true
 var _boundary_recovery_timer: float = 0.0
 
 # Get gravity from project settings so it syncs with standard physics behavior
@@ -173,61 +167,17 @@ func _setup_engine_audio() -> void:
 
     var engine_stream_mp3 := engine_sound.stream as AudioStreamMP3
     if engine_stream_mp3 != null:
-        engine_stream_mp3.loop = false
+        engine_stream_mp3.loop = true
 
     var engine_stream_wav := engine_sound.stream as AudioStreamWAV
     if engine_stream_wav != null:
-        engine_stream_wav.loop_mode = AudioStreamWAV.LOOP_DISABLED
+        engine_stream_wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+        engine_stream_wav.loop_begin = 0
+        engine_stream_wav.loop_end = -1
 
-    _engine_loop_length = engine_sound.stream.get_length()
     engine_sound.volume_db = ENGINE_TARGET_VOLUME_DB
-    _engine_overlap_sound = AudioStreamPlayer.new()
-    _engine_overlap_sound.stream = engine_sound.stream
-    _engine_overlap_sound.bus = engine_sound.bus
-    _engine_overlap_sound.volume_db = ENGINE_SILENT_VOLUME_DB
-    add_child(_engine_overlap_sound)
-
-    _engine_loop_timer = Timer.new()
-    _engine_loop_timer.one_shot = true
-    _engine_loop_timer.timeout.connect(_crossfade_engine_loop)
-    add_child(_engine_loop_timer)
-
-    _engine_primary_is_active = true
     engine_sound.stop()
-    _engine_overlap_sound.stop()
     engine_sound.play()
-    _schedule_engine_crossfade()
-
-func _schedule_engine_crossfade() -> void:
-    if _engine_loop_timer == null:
-        return
-
-    var wait_time := _engine_loop_length - ENGINE_CROSSFADE_SECONDS
-    if wait_time <= 0.05:
-        wait_time = max(0.1, _engine_loop_length * 0.5)
-    _engine_loop_timer.start(wait_time)
-
-func _crossfade_engine_loop() -> void:
-    if engine_sound == null or _engine_overlap_sound == null:
-        return
-
-    var from_player := engine_sound if _engine_primary_is_active else _engine_overlap_sound
-    var to_player := _engine_overlap_sound if _engine_primary_is_active else engine_sound
-
-    to_player.stop()
-    to_player.volume_db = ENGINE_SILENT_VOLUME_DB
-    to_player.play()
-
-    var tween := create_tween()
-    tween.tween_property(from_player, "volume_db", ENGINE_SILENT_VOLUME_DB, ENGINE_CROSSFADE_SECONDS)
-    tween.parallel().tween_property(to_player, "volume_db", ENGINE_TARGET_VOLUME_DB, ENGINE_CROSSFADE_SECONDS)
-    tween.finished.connect(func() -> void:
-        from_player.stop()
-        from_player.volume_db = ENGINE_TARGET_VOLUME_DB
-    )
-
-    _engine_primary_is_active = not _engine_primary_is_active
-    _schedule_engine_crossfade()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Fire missile on 'X' key

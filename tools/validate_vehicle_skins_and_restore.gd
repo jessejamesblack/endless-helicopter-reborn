@@ -147,6 +147,8 @@ func _run_validation() -> void:
 	_assert(identity_text.contains("has_pending_remote_identity_migration"), "AndroidIdentity should expose pending remote migration checks.")
 	_assert(identity_text.contains("finalize_remote_identity_migration"), "AndroidIdentity should persist canonical Android identities after migration.")
 	_assert(identity_text.contains("\"remote_ready\""), "AndroidIdentity should track when remote identities are safe to use.")
+	_assert(identity_text.contains("android.provider.Settings$Secure"), "AndroidIdentity should include a direct Android ID fallback for stable identity resolution.")
+	_assert(identity_text.contains("HashingContext.HASH_SHA256"), "AndroidIdentity should hash stable Android identities deterministically.")
 
 	var leaderboard_text := Helper.read_text("res://systems/online_leaderboard.gd")
 	_assert(leaderboard_text.contains("migrate_player_identity"), "OnlineLeaderboard should expose the identity migration RPC.")
@@ -160,6 +162,9 @@ func _run_validation() -> void:
 	_assert(sql_text.contains("create or replace function public.migrate_player_identity"), "Supabase restore SQL should define migrate_player_identity.")
 	_assert(sql_text.contains("family_push_devices"), "Identity migration should update push device ownership.")
 	_assert(sql_text.contains("family_daily_mission_progress"), "Identity migration should merge daily mission progress.")
+
+	var build_info_text := Helper.read_text("res://systems/build_info.gd")
+	_assert(build_info_text.contains("APP_PACKAGE_NAME"), "BuildInfo should expose the canonical Android package name for stable identity fallback.")
 
 	_finish()
 

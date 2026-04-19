@@ -6,6 +6,7 @@ const VERSION_NAME := "1.6.0"
 const BUILD_SHA := "dev"
 const BUILD_DATE := "2026-04-19T00:00:00Z"
 const RELEASE_CHANNEL := "dev"
+const APP_PACKAGE_NAME := "com.jessejamesblack.endlesshelicopterreborn"
 
 static func get_summary() -> Dictionary:
 	return {
@@ -14,6 +15,7 @@ static func get_summary() -> Dictionary:
 		"build_sha": BUILD_SHA,
 		"build_date": BUILD_DATE,
 		"release_channel": RELEASE_CHANNEL,
+		"app_package_name": APP_PACKAGE_NAME,
 	}
 
 static func get_version_label() -> String:
