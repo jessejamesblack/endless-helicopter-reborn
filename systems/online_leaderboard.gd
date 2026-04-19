@@ -76,10 +76,10 @@ static func get_top_entry_url() -> String:
 	]
 
 static func get_submit_v2_url() -> String:
-	return get_edge_function_url("submit-score")
+	return get_edge_function_url("save-score")
 
 static func get_submit_url() -> String:
-	return get_edge_function_url("submit-score")
+	return get_edge_function_url("save-score")
 
 static func get_legacy_submit_url() -> String:
 	return "%s/rest/v1/%s" % [SUPABASE_URL, TABLE_NAME]

@@ -4,6 +4,7 @@ const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 
 const PROTECTED_FUNCTIONS := [
 	"res://backend/supabase/functions/submit-score/index.ts",
+	"res://backend/supabase/functions/save-score/index.ts",
 	"res://backend/supabase/functions/sync-player-profile/index.ts",
 	"res://backend/supabase/functions/sync-daily-mission-progress/index.ts",
 	"res://backend/supabase/functions/get-player-profile/index.ts",
@@ -51,7 +52,7 @@ func _run_validation() -> void:
 	_assert(security_sql.contains("revoke execute on function public.get_daily_mission_progress"), "Sprint 7 security SQL should revoke direct mission restore RPC access.")
 
 	var leaderboard_text := Helper.read_text("res://systems/online_leaderboard.gd")
-	_assert(leaderboard_text.contains("submit-score"), "OnlineLeaderboard should target the submit-score Edge Function.")
+	_assert(leaderboard_text.contains("save-score"), "OnlineLeaderboard should target the live score save Edge Function.")
 	_assert(leaderboard_text.contains("sync-player-profile"), "OnlineLeaderboard should target the sync-player-profile Edge Function.")
 	_assert(leaderboard_text.contains("sync-daily-mission-progress"), "OnlineLeaderboard should target the sync-daily-mission-progress Edge Function.")
 	_assert(leaderboard_text.contains("get-player-profile"), "OnlineLeaderboard should target the get-player-profile Edge Function.")

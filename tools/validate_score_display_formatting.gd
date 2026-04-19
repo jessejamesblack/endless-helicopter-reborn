@@ -9,8 +9,8 @@ func _initialize() -> void:
 
 func _run_validation() -> void:
 	var main_text := Helper.read_text("res://scenes/game/main/main.gd")
-	_assert(main_text.contains("AmmoLabel.text = str(ammo)"), "Ammo HUD should show plain numbers with no padding.")
-	_assert(main_text.contains("ScoreLabel.text = str(int(score))"), "Score HUD should show plain numbers with no padding.")
+	_assert(main_text.contains('AmmoLabel.text = "MISSILES %d" % ammo'), "Ammo HUD should show the MISSILES label with an unpadded current count.")
+	_assert(main_text.contains('ScoreLabel.text = "SCORE %d" % int(score)'), "Score HUD should show the SCORE label with an unpadded current count.")
 	_assert(not main_text.contains("pad_zeros"), "Gameplay HUD should not use padded zero formatting.")
 
 	Helper.finish(self, _failures, "Sprint 7 score display validation completed successfully.")

@@ -104,7 +104,7 @@ theme_override_colors/font_color = Color(1, 0.862745, 0.47451, 1)
 theme_override_colors/font_outline_color = Color(0.0470588, 0.109804, 0.180392, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 30
-text = "SCORE 0000"
+text = "SCORE 0"
 vertical_alignment = 1
 
 [node name="AmmoPanel" type="Panel" parent="UI" unique_id=1235352095]
@@ -128,7 +128,7 @@ theme_override_colors/font_color = Color(0.819608, 0.92549, 1, 1)
 theme_override_colors/font_outline_color = Color(0.0470588, 0.109804, 0.180392, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 24
-text = "MISSILES 02"
+text = "MISSILES 0"
 vertical_alignment = 1
 
 [node name="ComboPanel" type="Panel" parent="UI"]

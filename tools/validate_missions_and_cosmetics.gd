@@ -348,7 +348,7 @@ func _validate_supabase_assets() -> void:
 	_assert(sql_text.contains("sync_player_profile"), "Supabase player progress SQL should include sync_player_profile.")
 	_assert(sql_text.contains("sync_daily_mission_progress"), "Supabase player progress SQL should include sync_daily_mission_progress.")
 
-	_assert(OnlineLeaderboardScript.get_submit_v2_url().contains("submit-score"), "OnlineLeaderboard should expose the Sprint 7 submit-score Edge Function URL.")
+	_assert(OnlineLeaderboardScript.get_submit_v2_url().contains("save-score"), "OnlineLeaderboard should expose the live score save Edge Function URL.")
 	_assert(OnlineLeaderboardScript.get_sync_player_profile_url().contains("sync-player-profile"), "OnlineLeaderboard should expose the Sprint 7 player profile sync URL.")
 	_assert(OnlineLeaderboardScript.get_sync_daily_mission_progress_url().contains("sync-daily-mission-progress"), "OnlineLeaderboard should expose the Sprint 7 mission sync URL.")
 	_assert(OnlineLeaderboardScript.get_legacy_fetch_url().contains("select=player_id,name,score,created_at,updated_at"), "OnlineLeaderboard should expose a legacy leaderboard fetch URL.")

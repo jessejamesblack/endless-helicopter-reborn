@@ -62,7 +62,7 @@ func _run_validation() -> void:
 
 	var start_screen_text := Helper.read_text("res://scenes/ui/start_screen/start_screen.gd")
 	_assert(start_screen_text.contains("get_next_unlock_preview"), "Start screen should render next-unlock preview data.")
-	_assert(start_screen_text.contains("_decorate_button_text"), "Start screen should decorate menu buttons with NEW badges.")
+	_assert(not start_screen_text.contains(" NEW"), "Start screen should not decorate menu buttons with NEW badges.")
 
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("replay_all_tips"), "Settings should let players replay feature discovery tips.")

@@ -106,9 +106,8 @@ func _update_missions_button() -> void:
         var summary: Dictionary = mission_manager.get_daily_progress_summary()
         completed = int(summary.get("completed", 0))
         total = int(summary.get("total", 5))
-    var badges := _get_menu_badges()
-    missions_button.text = _decorate_button_text("Missions %d/%d" % [completed, total], bool(badges.get("missions", false)))
-    hangar_button.text = _decorate_button_text("Hangar", bool(badges.get("hangar", false)))
+    missions_button.text = "Missions %d/%d" % [completed, total]
+    hangar_button.text = "Hangar"
 
 func _update_next_unlock_card() -> void:
     var player_profile := get_node_or_null("/root/PlayerProfile")
@@ -137,15 +136,6 @@ func _refresh_tip_card() -> void:
     tip_card.set_meta("tip_id", str(tip.get("id", "")))
     tip_card.set_meta("tip_target", str(tip.get("target", "")))
     tip_card.visible = true
-
-func _get_menu_badges() -> Dictionary:
-    var discovery_manager := get_node_or_null("/root/FeatureDiscoveryManager")
-    if discovery_manager != null and discovery_manager.has_method("get_menu_badges"):
-        return discovery_manager.get_menu_badges()
-    return {"missions": false, "hangar": false}
-
-func _decorate_button_text(base_text: String, show_badge: bool) -> String:
-    return "%s  NEW" % base_text if show_badge else base_text
 
 func _on_tip_action_pressed() -> void:
     var tip_target := str(tip_card.get_meta("tip_target", "")).strip_edges()

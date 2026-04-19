@@ -117,11 +117,11 @@ func _process(delta: float) -> void:
 
 func update_ammo_ui(ammo: int) -> void:
     if has_node("UI/AmmoPanel/AmmoLabel"):
-        $UI/AmmoPanel/AmmoLabel.text = str(ammo)
+        $UI/AmmoPanel/AmmoLabel.text = "MISSILES %d" % ammo
 
 func _update_score_ui() -> void:
     if has_node("UI/ScorePanel/ScoreLabel"):
-        $UI/ScorePanel/ScoreLabel.text = str(int(score))
+        $UI/ScorePanel/ScoreLabel.text = "SCORE %d" % int(score)
 
 func award_skill_score(base_points: int, reason: String, world_position: Vector2 = Vector2.ZERO, builds_combo: bool = true) -> int:
     if is_crashed or is_transitioning_to_game_over or get_tree().paused:
