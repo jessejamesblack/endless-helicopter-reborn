@@ -34,20 +34,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _transition_started:
 		return
 	if event is InputEventMouseButton and event.pressed:
-		_continue_to_start_screen()
-		get_viewport().set_input_as_handled()
+		_handle_continue_input()
 		return
 	if event is InputEventScreenTouch and event.pressed:
-		_continue_to_start_screen()
-		get_viewport().set_input_as_handled()
+		_handle_continue_input()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		_continue_to_start_screen()
-		get_viewport().set_input_as_handled()
+		_handle_continue_input()
 		return
 	if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
-		_continue_to_start_screen()
-		get_viewport().set_input_as_handled()
+		_handle_continue_input()
 
 func _auto_continue() -> void:
 	await get_tree().create_timer(AUTO_CONTINUE_SECONDS).timeout
@@ -64,6 +60,12 @@ func _continue_to_start_screen() -> void:
 		return
 	_transition_started = true
 	get_tree().change_scene_to_file(START_SCREEN_SCENE_PATH)
+
+func _handle_continue_input() -> void:
+	var viewport := get_viewport()
+	if viewport != null:
+		viewport.set_input_as_handled()
+	_continue_to_start_screen()
 
 func _refresh_title_layout() -> void:
 	var viewport_size := get_viewport_rect().size
