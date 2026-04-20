@@ -9,6 +9,8 @@ const MAX_QUEUE_SIZE := 10
 const COOLDOWN_SECONDS := 60
 const MAX_UPLOAD_BYTES := 5 * 1024 * 1024
 const JPEG_QUALITY := 0.85
+const CAPTURE_MODE_SHARE_CARD := "share_card"
+const CAPTURE_MODE_RESULTS_SCREEN := "results_screen"
 
 var _queue: Array[Dictionary] = []
 var _posted_one_time_ids: Array[String] = []
@@ -17,10 +19,15 @@ var _is_processing: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process(true)
 	_load_state()
 	call_deferred("_process_queue")
 
-func queue_event(event_id: String, title: String, description: String, details: Dictionary = {}, one_time: bool = false) -> void:
+func _process(_delta: float) -> void:
+	if not _queue.is_empty() and not _is_processing:
+		_process_queue()
+
+func queue_event(event_id: String, title: String, description: String, details: Dictionary = {}, one_time: bool = false, capture_mode: String = CAPTURE_MODE_SHARE_CARD) -> void:
 	if event_id.strip_edges().is_empty() or title.strip_edges().is_empty():
 		return
 	if one_time and _posted_one_time_ids.has(event_id):
@@ -31,6 +38,7 @@ func queue_event(event_id: String, title: String, description: String, details: 
 		"description": description,
 		"details": details.duplicate(true),
 		"one_time": one_time,
+		"capture_mode": _normalize_capture_mode(capture_mode),
 		"queued_at": Time.get_datetime_string_from_system(true),
 	})
 	while _queue.size() > MAX_QUEUE_SIZE:
@@ -51,14 +59,23 @@ func _process_queue() -> void:
 	var current_scene := get_tree().current_scene
 	if current_scene == null:
 		return
+	var item: Dictionary = _queue[0]
+	var capture_mode := _normalize_capture_mode(str(item.get("capture_mode", CAPTURE_MODE_SHARE_CARD)))
+	if not _is_capture_target_ready(capture_mode, current_scene):
+		return
 	_is_processing = true
 	await get_tree().process_frame
-	var item: Dictionary = _queue[0]
-	var card := SHARE_CARD_SCENE.instantiate()
-	current_scene.add_child(card)
-	if card.has_method("configure"):
-		card.configure(item)
-	await get_tree().process_frame
+	current_scene = get_tree().current_scene
+	if not _is_capture_target_ready(capture_mode, current_scene):
+		_is_processing = false
+		return
+	var card: Control = null
+	if capture_mode == CAPTURE_MODE_SHARE_CARD:
+		card = SHARE_CARD_SCENE.instantiate()
+		current_scene.add_child(card)
+		if card.has_method("configure"):
+			card.configure(item)
+		await get_tree().process_frame
 	await get_tree().process_frame
 	var image := get_viewport().get_texture().get_image()
 	if is_instance_valid(card):
@@ -111,6 +128,17 @@ func _process_queue() -> void:
 	_is_processing = false
 	if not _queue.is_empty():
 		call_deferred("_process_queue")
+
+func _normalize_capture_mode(capture_mode: String) -> String:
+	var clean_mode := capture_mode.strip_edges().to_lower()
+	return clean_mode if clean_mode == CAPTURE_MODE_RESULTS_SCREEN else CAPTURE_MODE_SHARE_CARD
+
+func _is_capture_target_ready(capture_mode: String, current_scene: Node) -> bool:
+	if current_scene == null:
+		return false
+	if capture_mode != CAPTURE_MODE_RESULTS_SCREEN:
+		return true
+	return current_scene.has_method("is_ready_for_achievement_screenshot") and bool(current_scene.is_ready_for_achievement_screenshot())
 
 func _encode_jpeg_bytes(image: Image) -> PackedByteArray:
 	if image == null or image.is_empty():
