@@ -10,6 +10,8 @@ The delivery path is:
 4. The Edge Function sends Firebase Cloud Messaging notifications to registered Android devices.
 5. Tapping the notification opens the game and routes the player to the leaderboard screen, the mission screen, or the update prompt, depending on the payload type.
 
+For `score_beaten`, the database now inserts at most one notification row per score submit: the highest family score that the new run actually beat. One run does not fan out into multiple Discord/mobile score-beaten notifications just because it passed several lower scores.
+
 This works with sideloaded APKs. You do not need Play Store publishing, but the device must have Google Play Services.
 
 ## Files Involved
