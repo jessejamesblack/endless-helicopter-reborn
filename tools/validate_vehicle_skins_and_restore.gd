@@ -148,6 +148,7 @@ func _run_validation() -> void:
 	_assert(identity_text.contains("finalize_remote_identity_migration"), "AndroidIdentity should persist canonical Android identities after migration.")
 	_assert(identity_text.contains("\"remote_ready\""), "AndroidIdentity should track when remote identities are safe to use.")
 	_assert(identity_text.contains("android.provider.Settings$Secure"), "AndroidIdentity should include a direct Android ID fallback for stable identity resolution.")
+	_assert(identity_text.contains("OS.get_unique_id()"), "AndroidIdentity should try Godot's Android unique ID before lower-level Android ID wrappers.")
 	_assert(identity_text.contains("HashingContext.HASH_SHA256"), "AndroidIdentity should hash stable Android identities deterministically.")
 	_assert(identity_text.contains("IDENTITY_SOURCE_ANDROID_PENDING"), "AndroidIdentity should expose a pending Android identity source while stable IDs are still starting.")
 	_assert(not identity_text.contains("var fallback_value := _generate_random_id()"), "AndroidIdentity should no longer generate random Android fallback IDs for remote identity.")

@@ -480,6 +480,41 @@ func apply_validation_state(summary: Dictionary) -> void:
 func get_total_daily_missions_completed() -> int:
 	return _total_daily_missions_completed
 
+func has_meaningful_local_progress() -> bool:
+	if _unlocked_vehicles.size() > 1:
+		return true
+	if _total_daily_missions_completed > 0 or _daily_streak > 0:
+		return true
+	if not _last_completed_daily_date.is_empty() or _missions_intro_seen:
+		return true
+	if not _seen_vehicle_lore.is_empty() or not _seen_skin_lore.is_empty():
+		return true
+	for milestone_value in _best_score_milestones.values():
+		if bool(milestone_value):
+			return true
+	for global_unlock in _global_skin_unlocks:
+		if str(global_unlock).strip_edges() != "":
+			return true
+	for vehicle_id in _unlocked_vehicle_skins.keys():
+		var unlocked_for_vehicle := _sanitize_string_array(_unlocked_vehicle_skins.get(vehicle_id, []))
+		if unlocked_for_vehicle.size() > 1:
+			return true
+		if unlocked_for_vehicle.size() == 1 and str(unlocked_for_vehicle[0]) != DEFAULT_SKIN_ID:
+			return true
+	for progress_value in _vehicle_skin_progress.values():
+		if progress_value is not Dictionary:
+			continue
+		var progress := progress_value as Dictionary
+		if int(progress.get("runs_completed", 0)) > 0:
+			return true
+		if int(progress.get("near_misses", 0)) > 0:
+			return true
+		if int(progress.get("projectile_intercepts", 0)) > 0:
+			return true
+		if int(progress.get("best_score", 0)) > 0:
+			return true
+	return false
+
 func increment_total_daily_missions_completed(amount: int = 1) -> void:
 	var safe_amount := maxi(amount, 0)
 	if safe_amount <= 0:

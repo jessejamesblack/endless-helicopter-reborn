@@ -3,7 +3,6 @@ extends SceneTree
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 
 const PROTECTED_FUNCTIONS := [
-	"res://backend/supabase/functions/submit-score/index.ts",
 	"res://backend/supabase/functions/save-score/index.ts",
 	"res://backend/supabase/functions/sync-player-profile/index.ts",
 	"res://backend/supabase/functions/sync-daily-mission-progress/index.ts",
@@ -11,6 +10,8 @@ const PROTECTED_FUNCTIONS := [
 	"res://backend/supabase/functions/get-daily-mission-progress/index.ts",
 	"res://backend/supabase/functions/get-notifications/index.ts",
 	"res://backend/supabase/functions/mark-notifications-read/index.ts",
+	"res://backend/supabase/functions/link-account-profile/index.ts",
+	"res://backend/supabase/functions/get-account-profile/index.ts",
 	"res://backend/supabase/functions/report-feedback/index.ts",
 	"res://backend/supabase/functions/post-achievement-screenshot/index.ts",
 ]
@@ -22,8 +23,12 @@ func _initialize() -> void:
 
 func _run_validation() -> void:
 	Helper.assert_file_exists(_failures, "res://backend/supabase/functions/_shared/version_gate.ts")
+	Helper.assert_file_exists(_failures, "res://backend/supabase/functions/_shared/account_linking.ts")
 	Helper.assert_file_exists(_failures, "res://backend/supabase_sprint7_security_setup.sql")
+	Helper.assert_file_exists(_failures, "res://backend/supabase_account_linking_setup.sql")
 	Helper.assert_file_exists(_failures, "res://backend/supabase/functions/register-push-device/index.ts")
+	Helper.assert_file_exists(_failures, "res://backend/supabase/functions/link-account-profile/index.ts")
+	Helper.assert_file_exists(_failures, "res://backend/supabase/functions/get-account-profile/index.ts")
 
 	var version_gate_text := Helper.read_text("res://backend/supabase/functions/_shared/version_gate.ts")
 	_assert(version_gate_text.contains("426"), "Version gate helper should return HTTP 426 for outdated builds.")
@@ -36,6 +41,11 @@ func _run_validation() -> void:
 		_assert(function_text.contains("getReleaseConfig"), "%s should read the release config." % path)
 		_assert(function_text.contains("isVersionSupported"), "%s should enforce minimum supported version checks." % path)
 		_assert(function_text.contains("versionGateResponse"), "%s should return versionGateResponse() for stale builds." % path)
+		if path != "res://backend/supabase/functions/report-feedback/index.ts" \
+			and path != "res://backend/supabase/functions/post-achievement-screenshot/index.ts" \
+			and path != "res://backend/supabase/functions/link-account-profile/index.ts" \
+			and path != "res://backend/supabase/functions/get-account-profile/index.ts":
+			_assert(function_text.contains("resolvePlayerContext"), "%s should resolve canonical player context." % path)
 
 	var push_registration_text := Helper.read_text("res://backend/supabase/functions/register-push-device/index.ts")
 	_assert(not push_registration_text.contains("versionGateResponse"), "register-push-device should stay available for outdated builds.")
@@ -59,6 +69,8 @@ func _run_validation() -> void:
 	_assert(leaderboard_text.contains("get-daily-mission-progress"), "OnlineLeaderboard should target the get-daily-mission-progress Edge Function.")
 	_assert(leaderboard_text.contains("get-notifications"), "OnlineLeaderboard should target the get-notifications Edge Function.")
 	_assert(leaderboard_text.contains("mark-notifications-read"), "OnlineLeaderboard should target the mark-notifications-read Edge Function.")
+	_assert(leaderboard_text.contains("get_link_account_profile_url"), "OnlineLeaderboard should target the link-account-profile Edge Function.")
+	_assert(leaderboard_text.contains("get_account_profile_url"), "OnlineLeaderboard should target the get-account-profile Edge Function.")
 	_assert(leaderboard_text.contains("is_upgrade_required_response"), "OnlineLeaderboard should expose upgrade-required response handling.")
 
 	var queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")

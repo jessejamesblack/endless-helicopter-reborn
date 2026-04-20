@@ -21,7 +21,8 @@ For push-notification debugging, the exported app now reports:
 - whether the plugin singleton loaded
 - whether the compat bridge is available
 - whether Android runtime objects were exposed to GDScript
-- whether player and device identity are using `android_stable`, `legacy_cache`, or `local_fallback`
+- whether player and device identity are using `linked_account`, `android_stable`, `legacy_cache`, or `local_fallback`
+- whether account linking is signed out, connected, or linked
 - whether Firebase initialized successfully
 - whether an FCM token was obtained and registered with Supabase
 
@@ -74,6 +75,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - For upgradeable installs between CI builds, use repository secrets for a stable keystore.
 - The workflow writes artifacts to `build/android/`.
 - The GitHub release is updated automatically on each successful build.
+
+## Supabase Rollout Notes
+
+When account-linking changes land, remember to:
+
+- apply [backend/supabase_account_linking_setup.sql](../backend/supabase_account_linking_setup.sql)
+- redeploy `link-account-profile` and `get-account-profile`
+- redeploy any protected progression Edge Functions that now resolve linked accounts server-side
 
 ## MCP Servers
 

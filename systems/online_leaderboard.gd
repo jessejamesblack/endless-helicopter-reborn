@@ -18,6 +18,7 @@ const PLAYER_ID_OVERRIDE_CACHE_PATH := "user://player_id_override.save"
 const MAX_NAME_LENGTH := 12
 const MAX_PLAYER_ID_LENGTH := 96
 const PLAYER_ID_SOURCE_MANUAL_OVERRIDE := "manual_override"
+const PLAYER_ID_SOURCE_LINKED_ACCOUNT := "linked_account"
 const PLAYER_ID_SOURCE_ANDROID_PENDING := "android_pending"
 const PLAYER_ID_SOURCE_ANDROID_STABLE := "android_stable"
 const PLAYER_ID_SOURCE_LEGACY_CACHE := "legacy_cache"
@@ -45,6 +46,13 @@ static func is_configured() -> bool:
 	return not SUPABASE_URL.is_empty() and not SUPABASE_ANON_KEY.is_empty() and not FAMILY_ID.is_empty() and FAMILY_ID != "your-family"
 
 static func get_headers() -> PackedStringArray:
+	var access_token := _get_account_access_token()
+	if not access_token.is_empty():
+		return PackedStringArray([
+			"apikey: %s" % SUPABASE_ANON_KEY,
+			"Authorization: Bearer %s" % access_token,
+			"Content-Type: application/json",
+		])
 	return PackedStringArray([
 		"apikey: %s" % SUPABASE_ANON_KEY,
 		"Authorization: Bearer %s" % SUPABASE_ANON_KEY,
@@ -99,6 +107,12 @@ static func get_get_player_profile_url() -> String:
 
 static func get_get_daily_mission_progress_url() -> String:
 	return get_edge_function_url("get-daily-mission-progress")
+
+static func get_link_account_profile_url() -> String:
+	return get_edge_function_url("link-account-profile")
+
+static func get_account_profile_url() -> String:
+	return get_edge_function_url("get-account-profile")
 
 static func get_notifications_url(_limit: int = 10) -> String:
 	return get_edge_function_url("get-notifications")
@@ -269,12 +283,20 @@ static func has_saved_profile() -> bool:
 	return not load_cached_name().is_empty()
 
 static func load_or_create_player_id() -> String:
+	var linked_player_id := _get_linked_account_player_id()
+	if not linked_player_id.is_empty():
+		return linked_player_id
+	return get_local_player_id_for_account_linking()
+
+static func get_local_player_id_for_account_linking() -> String:
 	var manual_override := load_manual_player_id_override()
 	if not manual_override.is_empty():
 		return manual_override
 	return AndroidIdentityScript.load_or_create_player_id()
 
 static func get_player_identity_source() -> String:
+	if not _get_linked_account_player_id().is_empty():
+		return PLAYER_ID_SOURCE_LINKED_ACCOUNT
 	if has_manual_player_id_override():
 		return PLAYER_ID_SOURCE_MANUAL_OVERRIDE
 	return AndroidIdentityScript.get_player_identity_source()
@@ -292,6 +314,12 @@ static func is_remote_identity_ready() -> bool:
 	return AndroidIdentityScript.is_remote_identity_ready()
 
 static func is_remote_profile_identity_ready() -> bool:
+	var account_manager = _get_account_manager()
+	if account_manager != null:
+		if account_manager.has_method("is_bootstrap_in_progress") and bool(account_manager.is_bootstrap_in_progress()):
+			return false
+		if account_manager.has_method("has_linked_profile") and bool(account_manager.has_linked_profile()):
+			return not str(account_manager.get_linked_player_id()).strip_edges().is_empty()
 	if has_manual_player_id_override():
 		return true
 	if OS.get_name() != "Android":
@@ -316,6 +344,9 @@ static func finalize_remote_identity_migration() -> void:
 
 static func get_player_id_for_display() -> String:
 	var player_id := load_or_create_player_id().strip_edges()
+	var account_manager = _get_account_manager()
+	if account_manager != null and account_manager.has_method("is_bootstrap_in_progress") and bool(account_manager.is_bootstrap_in_progress()):
+		return "(checking linked account)"
 	if OS.get_name() == "Android" and not has_manual_player_id_override() and not is_remote_profile_identity_ready():
 		return "(waiting for stable Android ID)"
 	if player_id.is_empty():
@@ -341,6 +372,8 @@ static func validate_player_id(player_id: String) -> Dictionary:
 
 static func get_identity_source_label(source: String) -> String:
 	match source:
+		PLAYER_ID_SOURCE_LINKED_ACCOUNT:
+			return "Linked account"
 		PLAYER_ID_SOURCE_MANUAL_OVERRIDE:
 			return "Manual override"
 		PLAYER_ID_SOURCE_ANDROID_STABLE:
@@ -375,6 +408,8 @@ static func make_mark_notifications_read_body_for_ids(ids: Array[int]) -> String
 	return JSON.stringify({
 		"current_version_code": int(BuildInfoScript.VERSION_CODE),
 		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
+		"family_id": FAMILY_ID,
+		"player_id": load_or_create_player_id(),
 		"ids": ids.duplicate(),
 		"read_at": Time.get_datetime_string_from_system(true),
 	})
@@ -452,6 +487,21 @@ static func make_get_daily_mission_progress_body(mission_date: String) -> String
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
 		"p_mission_date": mission_date,
+	})
+
+static func make_link_account_profile_body(player_id: String) -> String:
+	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
+		"family_id": FAMILY_ID,
+		"player_id": player_id.strip_edges(),
+	})
+
+static func make_get_account_profile_body(mission_date: String = "") -> String:
+	return JSON.stringify({
+		"current_version_code": int(BuildInfoScript.VERSION_CODE),
+		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
+		"mission_date": mission_date.strip_edges(),
 	})
 
 static func parse_submit_name(body: PackedByteArray) -> String:
@@ -645,3 +695,21 @@ static func _normalize_for_filter(name: String) -> String:
 		if is_lower or is_number:
 			normalized += character
 	return normalized
+
+static func _get_account_manager():
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null("AccountManager")
+
+static func _get_account_access_token() -> String:
+	var account_manager = _get_account_manager()
+	if account_manager != null and account_manager.has_method("get_access_token") and account_manager.has_method("is_signed_in") and bool(account_manager.is_signed_in()):
+		return str(account_manager.get_access_token()).strip_edges()
+	return ""
+
+static func _get_linked_account_player_id() -> String:
+	var account_manager = _get_account_manager()
+	if account_manager != null and account_manager.has_method("has_linked_profile") and bool(account_manager.has_linked_profile()):
+		return str(account_manager.get_linked_player_id()).strip_edges()
+	return ""

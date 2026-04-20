@@ -49,6 +49,7 @@ func _run_validation() -> void:
 	_assert(start_screen.get_node_or_null("HangarButton") != null, "Start screen should expose Hangar in one tap.")
 	_assert(start_screen.get_node_or_null("NextUnlockCard") != null, "Start screen should expose a Next Unlock card.")
 	_assert(start_screen.get_node_or_null("TipCard") != null, "Start screen should expose a one-time tip card.")
+	_assert(start_screen.get_node_or_null("AccountCard/AccountMargin/AccountPanel") != null, "Start screen should expose the account-linking panel.")
 	start_screen.free()
 	await process_frame
 
@@ -66,6 +67,8 @@ func _run_validation() -> void:
 
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("replay_all_tips"), "Settings should let players replay feature discovery tips.")
+	var settings_scene_text := Helper.read_text("res://scenes/ui/settings/settings_menu.tscn")
+	_assert(settings_scene_text.contains("AccountSection"), "Settings should expose the account section.")
 
 	var discovery_text := Helper.read_text("res://systems/feature_discovery_manager.gd")
 	_assert(discovery_text.contains("Daily Missions unlock vehicles and paint styles."), "Feature discovery should teach what Missions unlock.")

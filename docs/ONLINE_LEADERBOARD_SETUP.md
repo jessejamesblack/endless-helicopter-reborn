@@ -61,7 +61,7 @@ If you want one world-wide board for everyone who installs the app, set:
 
 ## What The Leaderboard Does
 
-- Android devices derive a reinstall-stable player id from the signed app package plus the device's Android-backed stable id.
+- Android devices derive a reinstall-stable player id from the signed app package plus the device's Android-backed stable id, first through the Android bridge and then through Godot's own Android unique-ID fallback if needed.
 - Existing legacy Android installs migrate old cached player ids to the canonical stable id the first time the stable id resolves.
 - Each device saves a public player name locally after the first submitted run.
 - Player names use a simple profanity filter.
@@ -75,3 +75,16 @@ If you want one world-wide board for everyone who installs the app, set:
 - Anyone with the app and your `FAMILY_ID` can submit scores to that board.
 - For a casual shared board, this is fine.
 - For cheat-resistant competition, you would eventually want accounts or signed server-side score validation.
+
+## Optional Account Linking
+
+Sprint account linking adds **Supabase Auth email OTP** on top of the existing profile tables.
+
+For that rollout:
+
+- apply [backend/supabase_account_linking_setup.sql](../backend/supabase_account_linking_setup.sql)
+- deploy `link-account-profile`
+- deploy `get-account-profile`
+- redeploy the protected profile, mission, score, notification, and push-device Edge Functions
+
+See [docs/ACCOUNT_LINKING_SETUP.md](ACCOUNT_LINKING_SETUP.md) for the full setup steps.

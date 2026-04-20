@@ -11,6 +11,7 @@ $scripts = @(
     'res://systems/haptics_manager.gd',
     'res://systems/background_catalog.gd',
     'res://systems/helicopter_skins.gd',
+    'res://systems/account_manager.gd',
     'res://systems/online_leaderboard.gd',
     'res://systems/player_profile.gd',
     'res://systems/run_stats.gd',
@@ -28,6 +29,7 @@ $scripts = @(
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
+    'res://scenes/ui/account/account_panel.gd',
     'res://scenes/ui/debug/debug_menu.gd',
     'res://scenes/ui/settings/settings_menu.gd',
     'res://scenes/ui/update/update_prompt.gd',
@@ -209,6 +211,12 @@ Write-Host 'Validating Sprint 7 security'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_sprint7_security.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot Sprint 7 security validation failed'
+}
+
+Write-Host 'Validating account linking'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_account_linking.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot account linking validation failed'
 }
 
 Write-Host 'Validating daily mission expansion'

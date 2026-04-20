@@ -286,6 +286,10 @@ static func _build_gdscript_stable_id(identity_purpose: String, stable_prefix: S
 	return stable_prefix + hashing_context.finish().hex_encode().substr(0, 24)
 
 static func _resolve_android_id_via_gdscript() -> String:
+	var engine_unique_id := _sanitize_android_id(str(OS.get_unique_id()).strip_edges())
+	if not engine_unique_id.is_empty():
+		return engine_unique_id
+
 	var context = _get_android_context()
 	if context == null or not context.has_method("getContentResolver"):
 		return ""

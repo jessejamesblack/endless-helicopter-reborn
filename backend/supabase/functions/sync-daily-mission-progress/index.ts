@@ -1,4 +1,5 @@
 import { createAdminClient, jsonResponse } from "../_shared/common.ts";
+import { resolvePlayerContext } from "../_shared/account_linking.ts";
 import {
   getCurrentVersionCode,
   getReleaseChannel,
@@ -40,9 +41,17 @@ Deno.serve(async (request: Request) => {
     return versionGateResponse(releaseConfig);
   }
 
+  const playerContext = await resolvePlayerContext(supabase, request, payload as Record<string, unknown>);
+  if (!playerContext.ok) {
+    return playerContext.response ?? jsonResponse({ error: "Could not resolve player context." }, 500);
+  }
+  if (playerContext.family_id === "" || playerContext.player_id === "") {
+    return jsonResponse({ error: "Family id and player id are required." }, 400);
+  }
+
   const response = await supabase.rpc("sync_daily_mission_progress", {
-    p_family_id: payload.p_family_id,
-    p_player_id: payload.p_player_id,
+    p_family_id: playerContext.family_id,
+    p_player_id: playerContext.player_id,
     p_mission_date: payload.p_mission_date,
     p_missions: payload.p_missions ?? [],
     p_completed_count: payload.p_completed_count ?? 0,

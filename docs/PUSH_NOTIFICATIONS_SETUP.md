@@ -205,7 +205,7 @@ The Android push bridge now uses two paths on purpose:
 - the normal Godot plugin singleton: `FCMPushBridge`
 - a static compatibility bridge: `com.endlesshelicopter.push.FcmPushBridgeCompat`
 
-The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available.
+The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available. The GDScript fallback now also tries Godot's own Android unique ID before using lower-level `Settings.Secure` wrappers, so reinstall-stable identity can still resolve even when the Java wrapper path is delayed or unavailable.
 
 In practice, this means:
 

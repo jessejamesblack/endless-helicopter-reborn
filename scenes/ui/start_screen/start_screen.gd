@@ -7,6 +7,7 @@ extends Control
 @onready var missions_button = $MissionsButton
 @onready var hangar_button = $HangarButton
 @onready var play_button = $PlayButton
+@onready var account_panel = $AccountCard/AccountMargin/AccountPanel
 @onready var update_prompt = $UpdatePrompt
 @onready var next_unlock_title_label = $NextUnlockCard/NextUnlockMargin/NextUnlockVBox/NextUnlockTitleLabel
 @onready var next_unlock_body_label = $NextUnlockCard/NextUnlockMargin/NextUnlockVBox/NextUnlockBodyLabel
@@ -38,6 +39,8 @@ func _ready() -> void:
                 update_manager.request_open_prompt()
 
     play_button.pressed.connect(_on_start_pressed)
+    if account_panel != null and account_panel.has_signal("play_offline_requested"):
+        account_panel.play_offline_requested.connect(_on_play_offline_requested)
     scores_button.pressed.connect(_on_scores_pressed)
     missions_button.pressed.connect(_on_missions_pressed)
     hangar_button.pressed.connect(_on_hangar_pressed)
@@ -76,6 +79,9 @@ func _on_hangar_pressed() -> void:
 
 func _on_settings_pressed() -> void:
     settings_menu.open_menu()
+
+func _on_play_offline_requested() -> void:
+    _on_start_pressed()
 
 func _on_debug_pressed() -> void:
     if debug_menu != null:

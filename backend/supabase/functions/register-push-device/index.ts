@@ -1,4 +1,5 @@
 import { createAdminClient, jsonResponse, safeChannel, toInt, truncate } from "../_shared/common.ts";
+import { resolvePlayerContext } from "../_shared/account_linking.ts";
 
 type RegisterPushDevicePayload = {
   family_id?: string;
@@ -28,15 +29,22 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: "Invalid payload." }, 400);
   }
 
-  const familyId = String(payload.family_id ?? "").trim();
-  const playerId = String(payload.player_id ?? "").trim();
   const deviceId = String(payload.device_id ?? "").trim();
   const fcmToken = String(payload.fcm_token ?? "").trim();
-  if (familyId === "" || playerId === "" || deviceId === "" || fcmToken === "") {
-    return jsonResponse({ error: "family_id, player_id, device_id, and fcm_token are required." }, 400);
+  if (deviceId === "" || fcmToken === "") {
+    return jsonResponse({ error: "device_id and fcm_token are required." }, 400);
   }
 
   const supabase = createAdminClient();
+  const playerContext = await resolvePlayerContext(supabase, request, payload as Record<string, unknown>);
+  if (!playerContext.ok) {
+    return playerContext.response ?? jsonResponse({ error: "Could not resolve player context." }, 500);
+  }
+  const familyId = playerContext.family_id;
+  const playerId = playerContext.player_id;
+  if (familyId === "" || playerId === "") {
+    return jsonResponse({ error: "family_id and player_id are required." }, 400);
+  }
   const row = {
     family_id: familyId,
     player_id: playerId,

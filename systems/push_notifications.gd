@@ -60,6 +60,7 @@ func _bootstrap() -> void:
 	_refresh_plugin_reference()
 	_connect_player_profile()
 	_connect_sync_queue()
+	_connect_account_manager()
 	if not is_push_supported():
 		_last_registration_message = get_diagnostics_text()
 		_emit_diagnostics()
@@ -97,6 +98,14 @@ func _connect_sync_queue() -> void:
 	var sync_callback := Callable(self, "_on_startup_sync_state_changed")
 	if not sync_queue.is_connected("startup_sync_state_changed", sync_callback):
 		sync_queue.connect("startup_sync_state_changed", sync_callback)
+
+func _connect_account_manager() -> void:
+	var account_manager = get_node_or_null("/root/AccountManager")
+	if account_manager == null or not account_manager.has_signal("account_state_changed"):
+		return
+	var account_callback := Callable(self, "_on_account_state_changed")
+	if not account_manager.is_connected("account_state_changed", account_callback):
+		account_manager.connect("account_state_changed", account_callback)
 
 func is_push_supported() -> bool:
 	if not OnlineLeaderboardScript.is_configured():
@@ -186,8 +195,10 @@ func get_diagnostics() -> Dictionary:
 		"compat_bridge_available": _compat_bridge != null,
 		"player_identity_source": OnlineLeaderboardScript.get_player_identity_source(),
 		"device_identity_source": OnlineLeaderboardScript.get_device_identity_source(),
-		"remote_identity_ready": OnlineLeaderboardScript.is_remote_identity_ready(),
+		"remote_identity_ready": _is_remote_identity_ready_for_registration(),
 		"identity_migration_pending": OnlineLeaderboardScript.has_pending_remote_identity_migration(),
+		"account_signed_in": _is_account_signed_in(),
+		"account_linked": _is_account_linked(),
 		"android_runtime_available": _android_runtime != null,
 		"bridge_supports_firebase_status": bridge_supports_firebase_status,
 		"plugin_method_names": plugin_method_names,
@@ -248,6 +259,8 @@ func get_debug_report() -> String:
 		"Android runtime available: %s" % _yes_no(bool(status["android_runtime_available"])),
 		"Player identity source: %s" % str(status["player_identity_source"]),
 		"Device identity source: %s" % str(status["device_identity_source"]),
+		"Account signed in: %s" % _yes_no(bool(status.get("account_signed_in", false))),
+		"Account linked: %s" % _yes_no(bool(status.get("account_linked", false))),
 		"Remote identity ready: %s" % _yes_no(bool(status.get("remote_identity_ready", false))),
 		"Identity migration pending: %s" % _yes_no(bool(status.get("identity_migration_pending", false))),
 		"Bridge diagnostics available: %s" % _yes_no(bool(status["bridge_supports_firebase_status"])),
@@ -517,6 +530,12 @@ func _on_startup_sync_state_changed() -> void:
 	_notify_sync_queue_identity_state_changed()
 	register_device_for_push()
 
+func _on_account_state_changed(_summary: Dictionary) -> void:
+	if not is_push_supported():
+		return
+	_notify_sync_queue_identity_state_changed()
+	register_device_for_push()
+
 func _refresh_plugin_reference() -> void:
 	if _plugin == null and Engine.has_singleton(PLUGIN_SINGLETON):
 		_plugin = Engine.get_singleton(PLUGIN_SINGLETON)
@@ -687,9 +706,15 @@ func _get_effective_release_channel() -> String:
 	return str(BuildInfoScript.RELEASE_CHANNEL)
 
 func _is_remote_identity_ready_for_registration() -> bool:
+	var account_manager = get_node_or_null("/root/AccountManager")
+	if account_manager != null and account_manager.has_method("is_bootstrap_in_progress") and bool(account_manager.is_bootstrap_in_progress()):
+		return false
 	return OnlineLeaderboardScript.is_remote_identity_ready() and not OnlineLeaderboardScript.has_pending_remote_identity_migration()
 
 func _remote_identity_block_reason() -> String:
+	var account_manager = get_node_or_null("/root/AccountManager")
+	if account_manager != null and account_manager.has_method("is_bootstrap_in_progress") and bool(account_manager.is_bootstrap_in_progress()):
+		return "Push waiting for your account restore to finish before registering this device."
 	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
 		return "Push waiting for Android identity migration to finish before registering this device."
 	return "Push waiting for a stable Android identity before registering this device."
@@ -703,3 +728,11 @@ func _notify_sync_queue_identity_state_changed() -> void:
 	var sync_queue = get_node_or_null("/root/SupabaseSyncQueue")
 	if sync_queue != null and sync_queue.has_method("notify_identity_state_changed"):
 		sync_queue.notify_identity_state_changed()
+
+func _is_account_signed_in() -> bool:
+	var account_manager = get_node_or_null("/root/AccountManager")
+	return account_manager != null and account_manager.has_method("is_signed_in") and bool(account_manager.is_signed_in())
+
+func _is_account_linked() -> bool:
+	var account_manager = get_node_or_null("/root/AccountManager")
+	return account_manager != null and account_manager.has_method("has_linked_profile") and bool(account_manager.has_linked_profile())
