@@ -8,6 +8,7 @@ const CACHE_PATH := "user://app_release_info.json"
 
 var _request: HTTPRequest
 var _request_in_flight: bool = false
+var _refresh_requested_after_current_request: bool = false
 var _state: Dictionary = {}
 var _pending_open_prompt: bool = false
 var _has_optional_prompted: bool = false
@@ -23,10 +24,12 @@ func _ready() -> void:
 		var callback := Callable(self, "_on_release_channel_override_changed")
 		if not settings.is_connected("release_channel_override_changed", callback):
 			settings.connect("release_channel_override_changed", callback)
-	call_deferred("refresh_release_info")
+	if not OnlineLeaderboardScript.is_validation_run():
+		call_deferred("refresh_release_info")
 
 func refresh_release_info(force: bool = false) -> void:
-	if _request_in_flight and not force:
+	if _request_in_flight:
+		_refresh_requested_after_current_request = _refresh_requested_after_current_request or force
 		return
 	if not OnlineLeaderboardScript.is_configured():
 		_emit_state(_build_state({}, "offline", "Supabase is not configured."))
@@ -87,12 +90,16 @@ func mark_optional_prompt_shown() -> void:
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	_request_in_flight = false
+	var should_refresh_again := _refresh_requested_after_current_request
+	_refresh_requested_after_current_request = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		var error_text := OnlineLeaderboardScript.parse_api_error(body, "Could not refresh release info.")
 		var reporter := get_node_or_null("/root/ErrorReporter")
 		if reporter != null and reporter.has_method("report_warning"):
 			reporter.report_warning("app_update", error_text, {"response_code": response_code})
 		_emit_state(_build_state(_state.get("release_info", {}), "offline", error_text))
+		if should_refresh_again:
+			call_deferred("refresh_release_info", true)
 		return
 
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
@@ -102,6 +109,8 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 	var next_state := _build_state(release_info, "network", "")
 	_save_cached_state(next_state)
 	_emit_state(next_state)
+	if should_refresh_again:
+		call_deferred("refresh_release_info", true)
 
 func _build_state(release_info: Dictionary, source: String, error_text: String) -> Dictionary:
 	var latest_version_code := int(release_info.get("latest_version_code", 0))

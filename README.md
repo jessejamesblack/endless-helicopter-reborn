@@ -42,7 +42,7 @@ res://
 
 1. Install Godot `4.6.x`.
 2. Open the repository root in Godot.
-3. The main scene is [scenes/ui/start_screen/start_screen.tscn](scenes/ui/start_screen/start_screen.tscn).
+3. The boot scene is [scenes/ui/title_screen/title_screen.tscn](scenes/ui/title_screen/title_screen.tscn), which continues into [scenes/ui/start_screen/start_screen.tscn](scenes/ui/start_screen/start_screen.tscn).
 
 ## Settings And Pause
 
@@ -88,10 +88,12 @@ The game can use Supabase for a shared leaderboard.
 
 Current leaderboard/profile behavior:
 
-- Android installs derive a reinstall-stable `player_id` from the signed app package plus Android-backed device identity.
-- Returning players on the same phone should restore automatically after reinstall once their profile has been migrated onto that stable id.
-- Manual support restore by old `player_id` is still available in Settings, and current builds try to permanently migrate that old profile onto the phone's canonical stable id so future reinstalls on that device restore automatically.
+- Android installs derive a reinstall-stable app `player_id` from the signed app package plus an Android-backed source identity.
+- The raw Android source value stays internal; the app hashes it into its own stable `player_id` and `device_id` instead of exposing the system identifier directly.
+- Returning players on the same phone should restore automatically after reinstall once their profile has been migrated onto that canonical app-owned id.
+- Manual support restore by old `player_id` is still available in Settings, and current builds try to permanently migrate that old profile onto the phone's canonical Android-backed app id so future reinstalls on that device restore automatically.
 - A public name is only required for leaderboard submission. Cloud profile restore and progression sync can exist before the player picks a public leaderboard name.
+- Android exports now leave user data backup enabled and request data retention on uninstall, so local profile/config files still have a platform backup safety net.
 
 ## Android Push Notifications
 

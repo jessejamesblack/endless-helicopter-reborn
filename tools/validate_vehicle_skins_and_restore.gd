@@ -131,6 +131,7 @@ func _run_validation() -> void:
 		"best_score_milestones": {"score_10000": false},
 		"seen_vehicle_lore": ["bubble_chopper"],
 		"seen_skin_lore": ["bubble_chopper:desert"],
+		"daily_reminders_enabled": false,
 	})
 	_assert(remote_changed, "Remote profile merge should report changes when new vehicles or lore arrive.")
 	_assert(player_profile.is_vehicle_unlocked("bubble_chopper"), "Remote merge should add newly unlocked vehicles.")
@@ -138,6 +139,7 @@ func _run_validation() -> void:
 	_assert(player_profile.has_score_milestone("score_10000"), "Remote merge should never clear a local score milestone.")
 	_assert(player_profile.has_seen_vehicle_lore("bubble_chopper"), "Remote merge should restore seen vehicle lore.")
 	_assert(player_profile.has_seen_skin_lore("bubble_chopper", "desert"), "Remote merge should restore seen skin lore.")
+	_assert(not player_profile.are_daily_reminders_enabled(), "Remote profile merge should restore the cloud reminder preference.")
 
 	_assert(not helicopter_skins.get_vehicle_skin_ids("pottercar").has("gold"), "Pottercar should stay out of the standard skin progression ladder.")
 	_assert(not helicopter_skins.get_vehicle_skin_ids("pottercar").has("arctic"), "Pottercar should stay out of the standard mission skin ladder.")
@@ -158,7 +160,8 @@ func _run_validation() -> void:
 	_assert(leaderboard_text.contains("load_canonical_player_id"), "OnlineLeaderboard should expose the canonical player ID for permanent restore rebinding.")
 	_assert(leaderboard_text.contains("profile_summary"), "OnlineLeaderboard should still parse profile summaries.")
 	_assert(leaderboard_text.contains("if not parsed.has(resolved_key)"), "OnlineLeaderboard should flatten nested profile_summary fields for restore merges.")
-	_assert(leaderboard_text.contains("Waiting for stable Android ID"), "OnlineLeaderboard should surface stable Android identity wait states clearly.")
+	_assert(leaderboard_text.contains("Waiting for Android-backed ID"), "OnlineLeaderboard should surface Android-backed identity wait states clearly.")
+	_assert(leaderboard_text.contains("\"p_daily_reminders_enabled\": bool(profile_summary.get(\"daily_reminders_enabled\", true))"), "OnlineLeaderboard profile sync should default reminder sync to enabled when sparse summaries are used.")
 
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("migrate_player_identity_async"), "Settings restore should migrate pasted legacy player IDs onto the phone's canonical player ID.")
@@ -175,9 +178,10 @@ func _run_validation() -> void:
 	_assert(sql_text.contains("family_daily_mission_progress"), "Identity migration should merge daily mission progress.")
 	_assert(sql_text.contains("set player_id = p_new_player_id"), "Identity migration should rebind leaderboard rows in place when the old row wins.")
 	_assert(sql_text.contains("delete from public.family_leaderboard"), "Identity migration should clear conflicting target leaderboard rows before rebinding the old row.")
-	_assert(sql_text.contains("where fcm_token = device_row.fcm_token"), "Identity migration should clear conflicting push-device rows that already own the same FCM token.")
+	_assert(sql_text.contains("bool_or(coalesce(notifications_enabled, false))"), "Identity migration should preserve enabled push notifications when duplicate device rows are merged.")
+	_assert(sql_text.contains("bool_or(coalesce(daily_missions_enabled, false))"), "Identity migration should preserve enabled daily mission reminders when duplicate device rows are merged.")
 	_assert(sql_text.contains("update public.family_push_devices"), "Identity migration should rebind push-device rows in place instead of inserting duplicate token rows.")
-	_assert(sql_text.contains("where id = device_row.id"), "Identity migration should update the existing push-device row by id during migration.")
+	_assert(sql_text.contains("where id = merged_device_row_id"), "Identity migration should update the merged push-device winner by id during migration.")
 
 	var build_info_text := Helper.read_text("res://systems/build_info.gd")
 	_assert(build_info_text.contains("APP_PACKAGE_NAME"), "BuildInfo should expose the canonical Android package name for stable identity fallback.")

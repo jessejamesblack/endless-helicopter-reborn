@@ -7,6 +7,7 @@ This repo ships a project-scoped Codex MCP configuration in [`.codex/config.toml
 - `supabase`
   Scoped to project `lxvniafwjlwatbiblwyi`
   Runs in read-only mode on purpose
+  Authenticates from `SUPABASE_ACCESS_TOKEN` when that environment variable is set
 - `openaiDeveloperDocs`
   Public OpenAI documentation MCP server
 - `context7`
@@ -18,20 +19,34 @@ This project already points at a live Supabase project in runtime code. Supabase
 
 If you need write-capable Supabase MCP access later, duplicate the `supabase` entry locally and remove `read_only=true` from the URL in your own uncommitted config.
 
+## Local Write Override
+
+For normal Codex and VS Code work, keep the repo config in read-only mode.
+
+When you need to validate or apply a live migration deliberately:
+
+1. Keep `SUPABASE_ACCESS_TOKEN` available in your shell or IDE process.
+2. Use a local-only override that points to `https://mcp.supabase.com/mcp?project_ref=lxvniafwjlwatbiblwyi` without `read_only=true`.
+3. Prefer deterministic scripts that wrap any synthetic writes in `begin; ... rollback;`.
+
+This repo now includes [tools/validate_supabase_reinstall_restore.ps1](../tools/validate_supabase_reinstall_restore.ps1), which uses that write-capable endpoint only for a transaction-wrapped reinstall/restore validation and leaves no persistent test data behind.
+
 ## First-Time Setup
 
 ### Codex CLI / Codex IDE extension
 
 1. Trust the project if prompted.
 2. Run `codex mcp list`.
-3. Run `codex mcp login supabase`.
+3. Ensure `SUPABASE_ACCESS_TOKEN` is available in your shell or user environment.
 4. Restart the Codex client if the new tools do not appear immediately.
+
+If you do not have a personal access token available yet, create one in your Supabase account settings and export it as `SUPABASE_ACCESS_TOKEN`. This project intentionally uses the hosted read-only MCP endpoint, so a token is enough and no project-local secret file is needed.
 
 ### VS Code MCP
 
 1. Open the workspace in VS Code.
-2. Open the MCP configuration UI if prompted by your agent extension.
-3. Authenticate the `supabase` server when VS Code offers the OAuth flow.
+2. Ensure `SUPABASE_ACCESS_TOKEN` is available to the VS Code process.
+3. Open the MCP configuration UI if prompted by your agent extension.
 4. Reload the window if the tools do not appear immediately.
 
 ## Context7 Notes

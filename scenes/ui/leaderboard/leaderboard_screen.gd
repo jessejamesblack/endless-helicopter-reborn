@@ -882,7 +882,7 @@ func _prepare_player_id_for_online_actions() -> bool:
 		return false
 	if OnlineLeaderboardScript.is_current_player_id_ready_for_cloud():
 		return true
-	set_status("This phone is still waiting for its stable Android player ID. Try again in a moment.")
+	set_status("This phone is still waiting for its Android-backed player ID. Try again in a moment.")
 	return false
 
 func _handle_upgrade_required_response(operation: String, response_code: int, body: PackedByteArray) -> bool:

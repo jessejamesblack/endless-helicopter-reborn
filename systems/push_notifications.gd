@@ -246,8 +246,8 @@ func get_debug_report() -> String:
 		"Plugin loaded: %s" % _yes_no(bool(status["plugin_loaded"])),
 		"Compat bridge available: %s" % _yes_no(bool(status["compat_bridge_available"])),
 		"Android runtime available: %s" % _yes_no(bool(status["android_runtime_available"])),
-		"Player identity source: %s" % str(status["player_identity_source"]),
-		"Device identity source: %s" % str(status["device_identity_source"]),
+		"Player ID source: %s" % OnlineLeaderboardScript.get_identity_source_label(str(status["player_identity_source"])),
+		"Device ID source: %s" % OnlineLeaderboardScript.get_identity_source_label(str(status["device_identity_source"])),
 		"Remote identity ready: %s" % _yes_no(bool(status.get("remote_identity_ready", false))),
 		"Identity migration pending: %s" % _yes_no(bool(status.get("identity_migration_pending", false))),
 		"Bridge diagnostics available: %s" % _yes_no(bool(status["bridge_supports_firebase_status"])),
@@ -691,8 +691,8 @@ func _is_remote_identity_ready_for_registration() -> bool:
 
 func _remote_identity_block_reason() -> String:
 	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
-		return "Push waiting for Android identity migration to finish before registering this device."
-	return "Push waiting for a stable Android identity before registering this device."
+		return "Push waiting for Android-backed ID migration to finish before registering this device."
+	return "Push waiting for this device's Android-backed ID before registering with Supabase."
 
 func _report_registration_issue(category: String, message: String, context: Dictionary = {}) -> void:
 	var reporter = get_node_or_null("/root/ErrorReporter")

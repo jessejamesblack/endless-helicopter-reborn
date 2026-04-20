@@ -367,6 +367,7 @@ func _validate_supabase_assets() -> void:
 	})
 	_assert(profile_body.contains("\"equipped_vehicle_id\""), "Profile sync body should carry the equipped vehicle id in profile_summary.")
 	_assert(profile_body.contains("\"unlocked_vehicle_skins\""), "Profile sync body should carry vehicle skin unlocks in profile_summary.")
+	_assert(profile_body.contains("\"p_daily_reminders_enabled\":true"), "Profile sync body should default daily reminders to enabled when a sparse profile summary is synced.")
 	_assert(profile_body.contains("\"current_version_code\""), "Profile sync body should include current_version_code for version gating.")
 
 func _assert(condition: bool, message: String) -> void:

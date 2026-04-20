@@ -14,6 +14,7 @@ const PLAYER_PROFILE_TABLE_NAME := "family_player_profiles"
 const DAILY_MISSION_PROGRESS_TABLE_NAME := "family_daily_mission_progress"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
+const CLOUD_PROFILE_CACHE_PATH := "user://cloud_profile_present.save"
 const PLAYER_ID_OVERRIDE_CACHE_PATH := "user://player_id_override.save"
 const MAX_NAME_LENGTH := 12
 const MAX_PLAYER_ID_LENGTH := 96
@@ -28,6 +29,7 @@ const BLOCKED_TERMS := [
 	"bitch",
 	"cock",
 	"cunt",
+	"debugsave",
 	"dick",
 	"fag",
 	"faggot",
@@ -43,6 +45,12 @@ const BLOCKED_TERMS := [
 
 static func is_configured() -> bool:
 	return not SUPABASE_URL.is_empty() and not SUPABASE_ANON_KEY.is_empty() and not FAMILY_ID.is_empty() and FAMILY_ID != "your-family"
+
+static func is_validation_run() -> bool:
+	for argument in OS.get_cmdline_args():
+		if str(argument).contains("res://tools/validate_"):
+			return true
+	return false
 
 static func get_headers() -> PackedStringArray:
 	return PackedStringArray([
@@ -229,17 +237,28 @@ static func validate_player_name(name: String) -> Dictionary:
 		return {"ok": false, "error": "Enter a player name."}
 
 	var safe_name := raw_name.substr(0, MAX_NAME_LENGTH)
-	var normalized := _normalize_for_filter(safe_name)
-	for blocked_term in BLOCKED_TERMS:
-		if normalized.contains(blocked_term):
-			return {"ok": false, "error": "Choose a more family-friendly name."}
+	if _is_blocked_player_name(safe_name):
+		return {"ok": false, "error": "Choose a more family-friendly name."}
 
 	return {"ok": true, "name": safe_name}
 
 static func save_cached_name(name: String) -> void:
+	var validation := validate_player_name(name)
+	if not bool(validation.get("ok", false)):
+		clear_cached_name()
+		return
 	var file := FileAccess.open(NAME_CACHE_PATH, FileAccess.WRITE)
 	if file != null:
-		file.store_string(sanitize_name(name))
+		file.store_string(str(validation.get("name", "")))
+
+static func mark_cloud_profile_present() -> void:
+	var file := FileAccess.open(CLOUD_PROFILE_CACHE_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string("1")
+
+static func clear_cloud_profile_presence() -> void:
+	if FileAccess.file_exists(CLOUD_PROFILE_CACHE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(CLOUD_PROFILE_CACHE_PATH))
 
 static func save_manual_player_id_override(player_id: String) -> void:
 	var validation := validate_player_id(player_id)
@@ -276,10 +295,27 @@ static func load_cached_name() -> String:
 	if file == null:
 		return ""
 
-	return sanitize_name(file.get_as_text())
+	var cached_name := sanitize_name(file.get_as_text())
+	if cached_name.is_empty() or _is_blocked_player_name(cached_name):
+		clear_cached_name()
+		return ""
+	return cached_name
+
+static func has_saved_player_name() -> bool:
+	return not load_cached_name().is_empty()
+
+static func has_cloud_profile() -> bool:
+	if has_saved_player_name():
+		return true
+	if not FileAccess.file_exists(CLOUD_PROFILE_CACHE_PATH):
+		return false
+	var file := FileAccess.open(CLOUD_PROFILE_CACHE_PATH, FileAccess.READ)
+	if file == null:
+		return false
+	return not str(file.get_as_text()).strip_edges().is_empty()
 
 static func has_saved_profile() -> bool:
-	return not load_cached_name().is_empty()
+	return has_saved_player_name()
 
 static func load_or_create_player_id() -> String:
 	var manual_override := load_manual_player_id_override()
@@ -344,9 +380,9 @@ static func finalize_remote_identity_migration() -> void:
 static func get_player_id_for_display() -> String:
 	var player_id := load_or_create_player_id().strip_edges()
 	if OS.get_name() == "Android" and not has_manual_player_id_override() and not is_remote_profile_identity_ready():
-		return "(waiting for stable Android ID)"
+		return "(waiting for Android-backed player ID)"
 	if player_id.is_empty():
-		return "(waiting for stable Android ID)" if OS.get_name() == "Android" and not has_manual_player_id_override() else "(not ready yet)"
+		return "(waiting for Android-backed player ID)" if OS.get_name() == "Android" and not has_manual_player_id_override() else "(not ready yet)"
 	return player_id
 
 static func validate_player_id(player_id: String) -> Dictionary:
@@ -371,13 +407,13 @@ static func get_identity_source_label(source: String) -> String:
 		PLAYER_ID_SOURCE_MANUAL_OVERRIDE:
 			return "Manual override"
 		PLAYER_ID_SOURCE_ANDROID_STABLE:
-			return "Stable Android ID"
+			return "Android-backed derived ID"
 		PLAYER_ID_SOURCE_LEGACY_CACHE:
-			return "Legacy install ID"
+			return "Legacy cached app ID"
 		PLAYER_ID_SOURCE_ANDROID_PENDING:
-			return "Waiting for stable Android ID"
+			return "Waiting for Android-backed ID"
 		PLAYER_ID_SOURCE_LOCAL_FALLBACK:
-			return "Local fallback"
+			return "Local fallback app ID"
 	return source.replace("_", " ").capitalize()
 
 static func get_migrate_player_identity_url() -> String:
@@ -456,7 +492,7 @@ static func make_sync_player_profile_body(profile_summary: Dictionary) -> String
 		"p_total_daily_missions_completed": int(profile_summary.get("total_daily_missions_completed", 0)),
 		"p_daily_streak": int(profile_summary.get("daily_streak", 0)),
 		"p_last_completed_daily_date": str(profile_summary.get("last_completed_daily_date", "")),
-		"p_daily_reminders_enabled": bool(profile_summary.get("daily_reminders_enabled", false)),
+		"p_daily_reminders_enabled": bool(profile_summary.get("daily_reminders_enabled", true)),
 		"p_profile_summary": profile_summary,
 	})
 
@@ -680,3 +716,10 @@ static func _normalize_for_filter(name: String) -> String:
 		if is_lower or is_number:
 			normalized += character
 	return normalized
+
+static func _is_blocked_player_name(name: String) -> bool:
+	var normalized := _normalize_for_filter(name)
+	for blocked_term in BLOCKED_TERMS:
+		if normalized.contains(blocked_term):
+			return true
+	return false

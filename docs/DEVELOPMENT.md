@@ -8,6 +8,14 @@
 powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
 
+### Validate live reinstall and restore migration
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\validate_supabase_reinstall_restore.ps1
+```
+
+This live Supabase check requires `SUPABASE_ACCESS_TOKEN`. It uses the Supabase MCP endpoint in write-capable mode, inserts only synthetic rows inside a transaction, verifies reinstall/restore migration behavior, and rolls the transaction back before exit.
+
 ### Export Android locally
 
 ```powershell
@@ -21,7 +29,7 @@ For push-notification debugging, the exported app now reports:
 - whether the plugin singleton loaded
 - whether the compat bridge is available
 - whether Android runtime objects were exposed to GDScript
-- whether player and device identity are using `android_stable`, `legacy_cache`, or `android_pending` on Android
+- whether player and device identity are using the Android-backed derived, legacy cached, or waiting-for-Android-backed path on Android
 - whether Firebase initialized successfully
 - whether an FCM token was obtained and registered with Supabase
 
@@ -72,7 +80,9 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - The Firebase config file belongs at `android/plugins/fcm_push_bridge/google-services.json` and is intentionally ignored by git.
 - CI can build temporary debug artifacts for pull requests without a permanent keystore.
 - Pushes to `main` can still publish a debug build if repository signing secrets are missing.
-- For upgradeable installs between CI builds, use repository secrets for a stable keystore.
+- `export_presets.cfg` now enables Android user-data backup and retain-data-on-uninstall as a local safety net for settings/profile files.
+- For progression-safe installs between CI builds, use repository secrets for either the stable release keystore or the optional stable debug keystore.
+- Temporary-key CI artifacts are test-only and can change the Android-backed player identity across builds.
 - The workflow writes artifacts to `build/android/`.
 - The GitHub release is updated automatically on each successful build.
 

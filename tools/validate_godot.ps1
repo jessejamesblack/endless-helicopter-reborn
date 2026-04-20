@@ -27,6 +27,7 @@ $scripts = @(
     'res://scenes/background/background_manager.gd',
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',
+    'res://scenes/ui/title_screen/title_screen.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
     'res://scenes/ui/debug/debug_menu.gd',
     'res://scenes/ui/settings/settings_menu.gd',
@@ -89,6 +90,12 @@ Write-Host 'Validating vehicle skins and restore'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_vehicle_skins_and_restore.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot vehicle skins and restore validation failed'
+}
+
+Write-Host 'Validating restore resume flow'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_restore_resume_flow.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot restore resume validation failed'
 }
 
 Write-Host 'Validating vehicle lore'

@@ -38,7 +38,8 @@ func _ready() -> void:
 	add_child(_identity_retry_timer)
 	_load_queue()
 	_last_identity_snapshot = _get_identity_snapshot()
-	call_deferred("_startup_sync")
+	if not OnlineLeaderboardScript.is_validation_run():
+		call_deferred("_startup_sync")
 
 func enqueue_submit_score_v2(name: String, score: int, run_summary: Dictionary, equipped_skin_id: String) -> void:
 	if name.strip_edges().is_empty():
@@ -172,6 +173,7 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		"ok": false,
 		"profile_restored": false,
 		"mission_restored": false,
+		"best_score_restored": false,
 		"error_message": "",
 	}
 	if not OnlineLeaderboardScript.is_configured():
@@ -208,6 +210,8 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		var player_profile := get_node_or_null("/root/PlayerProfile")
 		outcome["profile_restored"] = not remote_profile.is_empty()
 		if outcome["profile_restored"]:
+			OnlineLeaderboardScript.mark_cloud_profile_present()
+			outcome["best_score_restored"] = _apply_restored_best_score_from_profile(remote_profile) or bool(outcome.get("best_score_restored", false))
 			var remote_name := str(remote_profile.get("name", "")).strip_edges()
 			if not remote_name.is_empty():
 				OnlineLeaderboardScript.save_cached_name(remote_name)
@@ -242,7 +246,25 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 	else:
 		request_failures.append(_response_error_text(mission_response))
 
-	if not request_failures.is_empty() and not bool(outcome.get("profile_restored", false)) and not bool(outcome.get("mission_restored", false)):
+	var personal_best_response := await _request_json(
+		_pull_request,
+		OnlineLeaderboardScript.get_personal_best_url(),
+		HTTPClient.METHOD_GET
+	)
+	if _handle_upgrade_required_response("get_personal_best", personal_best_response):
+		outcome["ok"] = false
+		outcome["error_message"] = _cloud_access_blocked_reason
+		return outcome
+	if _is_success_response(personal_best_response):
+		var personal_best_entries := OnlineLeaderboardScript.parse_entries(personal_best_response.body)
+		outcome["best_score_restored"] = _apply_restored_personal_best(personal_best_entries) or bool(outcome.get("best_score_restored", false))
+	else:
+		request_failures.append(_response_error_text(personal_best_response))
+
+	if not request_failures.is_empty() \
+		and not bool(outcome.get("profile_restored", false)) \
+		and not bool(outcome.get("mission_restored", false)) \
+		and not bool(outcome.get("best_score_restored", false)):
 		outcome["ok"] = false
 		outcome["error_message"] = request_failures[0]
 	return outcome
@@ -340,6 +362,12 @@ func _on_identity_retry_timeout() -> void:
 
 func _handle_startup_identity_retry() -> void:
 	if _identity_retry_attempts_remaining <= 0:
+		if OS.get_name() == "Android":
+			_report_identity_issue("android_identity_pending", "Android-backed identity did not resolve before startup sync timed out.", {
+				"player_source": OnlineLeaderboardScript.get_player_identity_source(),
+				"device_source": OnlineLeaderboardScript.get_device_identity_source(),
+				"identity_snapshot": _get_identity_snapshot(),
+			})
 		_finish_startup_sync()
 		return
 	_startup_sync_in_progress = false
@@ -406,6 +434,7 @@ func _process_profile_sync_job(job: Dictionary) -> String:
 	if _handle_upgrade_required_response("sync_player_profile", response):
 		return "drop"
 	if _is_success_response(response):
+		OnlineLeaderboardScript.mark_cloud_profile_present()
 		return "success"
 	return "retry" if _is_retryable_response(response) else "drop"
 
@@ -536,7 +565,7 @@ func _drop_all_jobs_for_upgrade_required() -> void:
 	_emit_queue_changed()
 
 func _should_replace_local_state_on_startup() -> bool:
-	return not OnlineLeaderboardScript.has_saved_profile()
+	return not OnlineLeaderboardScript.has_cloud_profile()
 
 func _get_identity_snapshot() -> String:
 	var player_info := AndroidIdentityScript.get_player_identity_info()
@@ -546,11 +575,42 @@ func _get_identity_snapshot() -> String:
 		"player_source": str(player_info.get("source", "")),
 		"player_remote_ready": bool(player_info.get("remote_ready", false)),
 		"player_needs_migration": bool(player_info.get("needs_migration", false)),
-		"stable_player_id": str(player_info.get("stable_value", "")),
+		"canonical_player_id": str(player_info.get("stable_value", "")),
 		"device_id": str(device_info.get("value", "")),
 		"device_source": str(device_info.get("source", "")),
 		"device_remote_ready": bool(device_info.get("remote_ready", false)),
 		"device_needs_migration": bool(device_info.get("needs_migration", false)),
-		"stable_device_id": str(device_info.get("stable_value", "")),
+		"canonical_device_id": str(device_info.get("stable_value", "")),
 		"manual_override": OnlineLeaderboardScript.has_manual_player_id_override(),
 	})
+
+func _apply_restored_best_score_from_profile(summary: Dictionary) -> bool:
+	if summary.is_empty():
+		return false
+	var restored_best_score := maxi(int(summary.get("best_score", -1)), -1)
+	var vehicle_skin_progress = summary.get("vehicle_skin_progress", {})
+	if vehicle_skin_progress is Dictionary:
+		for progress_value in (vehicle_skin_progress as Dictionary).values():
+			if progress_value is not Dictionary:
+				continue
+			restored_best_score = maxi(restored_best_score, int((progress_value as Dictionary).get("best_score", 0)))
+	if restored_best_score < 0:
+		return false
+	var run_stats := get_node_or_null("/root/RunStats")
+	return run_stats != null \
+		and run_stats.has_method("restore_local_best_score") \
+		and bool(run_stats.restore_local_best_score(restored_best_score))
+
+func _apply_restored_personal_best(entries: Array[Dictionary]) -> bool:
+	if entries.is_empty():
+		return false
+	var best_entries := OnlineLeaderboardScript.get_best_entries(entries)
+	if best_entries.is_empty():
+		return false
+	var best_score := int(best_entries[0].get("score", -1))
+	if best_score < 0:
+		return false
+	var run_stats := get_node_or_null("/root/RunStats")
+	return run_stats != null \
+		and run_stats.has_method("restore_local_best_score") \
+		and bool(run_stats.restore_local_best_score(best_score))

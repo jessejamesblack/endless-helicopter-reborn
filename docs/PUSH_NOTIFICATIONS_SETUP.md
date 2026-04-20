@@ -207,7 +207,7 @@ The Android push bridge now uses two paths on purpose:
 - the normal Godot plugin singleton: `FCMPushBridge`
 - a static compatibility bridge: `com.endlesshelicopter.push.FcmPushBridgeCompat`
 
-The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available. The GDScript fallback now also tries Godot's own Android unique ID before using lower-level `Settings.Secure` wrappers, so reinstall-stable identity can still resolve even when the Java wrapper path is delayed or unavailable.
+The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available. The GDScript fallback now also tries Godot's own Android unique ID before using lower-level `Settings.Secure` wrappers, so the app can still resolve the raw Android-backed source identity even when the Java wrapper path is delayed or unavailable.
 
 In practice, this means:
 
@@ -215,9 +215,10 @@ In practice, this means:
 - `Compat bridge available: yes` is the stronger signal that the APK contains the current push bridge implementation
 - `Android runtime available: yes` means Godot exposed Android runtime objects directly to GDScript for this session
 - push can still work even if `Android runtime available` is `no`, because the compat bridge also keeps its own cached context fallback
-- fresh Android installs now derive both `player_id` and `device_id` from a hashed Android-backed stable id, so reinstalls on the same signed app keep push and leaderboard identity aligned
-- Android no longer creates random fallback cloud identities; if the stable Android id is not ready yet, remote restore/save/push registration waits instead of minting a new account
-- existing installs with legacy cached ids now wait for the stable Android id, migrate server-side ownership to the canonical stable ids, and then resume restore/sync/push registration
+- fresh Android installs now derive both `player_id` and `device_id` from a hashed Android-backed source id, so reinstalls on the same signed app keep push and leaderboard identity aligned
+- the raw Android source id stays internal; push registration only sees the app-owned derived `player_id` and `device_id`
+- Android no longer creates random fallback cloud identities; if the Android-backed source id is not ready yet, remote restore/save/push registration waits instead of minting a new account
+- existing installs with legacy cached ids now wait for the Android-backed source id, migrate server-side ownership to the canonical app ids, and then resume restore/sync/push registration
 
 ## 8. Export Or Download The APK
 
@@ -248,8 +249,8 @@ For first-pass verification on a single device, open the in-game debug or settin
 
 - `Plugin loaded: yes`
 - `Compat bridge available: yes`
-- `Player identity source: android_stable` on a fresh Android install
-- `Device identity source: android_stable` on a fresh Android install
+- `Player ID source: Android-backed derived ID` on a fresh Android install
+- `Device ID source: Android-backed derived ID` on a fresh Android install
 - `Bridge diagnostics available: yes`
 - `Firebase ready: yes`
 - `Permission granted: yes`
@@ -260,13 +261,13 @@ For first-pass verification on a single device, open the in-game debug or settin
 
 Open the in-game `Settings` screen to see the current push diagnostic message. It reports whether the Android plugin loaded, Firebase config is present, notification permission is granted, an FCM token exists, and the Supabase registration request succeeded.
 
-The debug panel now also shows `Player identity source` and `Device identity source`:
+The debug panel now also shows `Player ID source` and `Device ID source`:
 
-- `android_stable`: a fresh Android install is using the hashed Android-backed identity path
-- `legacy_cache`: this install is still using an older cached random id from before the stable-id rollout
-- `android_pending`: the app is still waiting for the canonical stable Android id, so cloud restore/save/push registration are paused instead of minting a new account
+- `Android-backed derived ID`: a fresh Android install is using the hashed app-owned identity path derived from Android
+- `Legacy cached app ID`: this install is still using an older cached random id from before the Android-backed rollout
+- `Waiting for Android-backed ID`: the app is still waiting for the canonical Android-backed id, so cloud restore/save/push registration are paused instead of minting a new account
 
-In current Android builds, the intended long-term state is `android_stable`. `android_pending` should be temporary during startup. If it persists, the device identity path is failing to resolve and cloud operations will remain blocked until that is fixed.
+In current Android builds, the intended long-term state is `Android-backed derived ID`. `Waiting for Android-backed ID` should be temporary during startup. If it persists, the device identity path is failing to resolve and cloud operations will remain blocked until that is fixed.
 
 If `family_push_delivery_log.device_id` and `family_push_delivery_log.fcm_token` are `NULL`, the backend did run, but there were no registered devices for the target player. Check `family_push_devices` next:
 
