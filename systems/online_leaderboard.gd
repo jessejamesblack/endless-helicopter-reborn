@@ -45,6 +45,12 @@ const BLOCKED_TERMS := [
 static func is_configured() -> bool:
 	return not SUPABASE_URL.is_empty() and not SUPABASE_ANON_KEY.is_empty() and not FAMILY_ID.is_empty() and FAMILY_ID != "your-family"
 
+static func is_validation_run() -> bool:
+	for argument in OS.get_cmdline_args():
+		if str(argument).contains("res://tools/validate_"):
+			return true
+	return false
+
 static func get_headers() -> PackedStringArray:
 	return PackedStringArray([
 		"apikey: %s" % SUPABASE_ANON_KEY,
@@ -479,7 +485,7 @@ static func make_sync_player_profile_body(profile_summary: Dictionary) -> String
 		"p_total_daily_missions_completed": int(profile_summary.get("total_daily_missions_completed", 0)),
 		"p_daily_streak": int(profile_summary.get("daily_streak", 0)),
 		"p_last_completed_daily_date": str(profile_summary.get("last_completed_daily_date", "")),
-		"p_daily_reminders_enabled": bool(profile_summary.get("daily_reminders_enabled", false)),
+		"p_daily_reminders_enabled": bool(profile_summary.get("daily_reminders_enabled", true)),
 		"p_profile_summary": profile_summary,
 	})
 

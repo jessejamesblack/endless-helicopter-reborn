@@ -24,7 +24,8 @@ func _ready() -> void:
 		var callback := Callable(self, "_on_release_channel_override_changed")
 		if not settings.is_connected("release_channel_override_changed", callback):
 			settings.connect("release_channel_override_changed", callback)
-	call_deferred("refresh_release_info")
+	if not OnlineLeaderboardScript.is_validation_run():
+		call_deferred("refresh_release_info")
 
 func refresh_release_info(force: bool = false) -> void:
 	if _request_in_flight:

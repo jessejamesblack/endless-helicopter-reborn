@@ -205,6 +205,14 @@ func has_last_run_summary() -> bool:
 func get_local_best_score() -> int:
 	return _local_best_score
 
+func restore_local_best_score(restored_best_score: int) -> bool:
+	var safe_restored_best := maxi(restored_best_score, 0)
+	if safe_restored_best <= _local_best_score:
+		return false
+	_local_best_score = safe_restored_best
+	_save_local_best_score()
+	return true
+
 func get_last_run_summary() -> Dictionary:
 	return _last_run_summary.duplicate(true)
 

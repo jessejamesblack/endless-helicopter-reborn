@@ -35,7 +35,7 @@ var _top_skin_request_in_flight: bool = false
 func _ready() -> void:
 	_ensure_top_skin_request()
 	load_profile()
-	if not validation_mode_enabled and OnlineLeaderboardScript.is_configured():
+	if not validation_mode_enabled and OnlineLeaderboardScript.is_configured() and not OnlineLeaderboardScript.is_validation_run():
 		call_deferred("refresh_top_player_skin_access")
 
 func load_profile() -> void:
@@ -374,7 +374,7 @@ func replace_remote_profile(summary: Dictionary) -> bool:
 		return false
 	save_profile()
 	_emit_profile_changed()
-	if not validation_mode_enabled and OnlineLeaderboardScript.is_configured():
+	if not validation_mode_enabled and OnlineLeaderboardScript.is_configured() and not OnlineLeaderboardScript.is_validation_run():
 		call_deferred("refresh_top_player_skin_access")
 	return true
 
@@ -406,6 +406,7 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 	var merged_date := _pick_later_date(_last_completed_daily_date, str(summary.get("last_completed_daily_date", "")))
 	var merged_intro_seen := _missions_intro_seen or bool(summary.get("missions_intro_seen", false))
 	var merged_catalog_version := maxi(_vehicle_catalog_version_seen, int(summary.get("vehicle_catalog_version", _vehicle_catalog_version_seen)))
+	var merged_daily_reminders_enabled := bool(summary.get("daily_reminders_enabled", _daily_reminders_enabled))
 
 	var remote_equipped_vehicle_id := _resolve_vehicle_id(str(summary.get("equipped_vehicle_id", summary.get("equipped_skin_id", _equipped_vehicle_id))))
 	var merged_equipped_vehicle_id := _equipped_vehicle_id
@@ -425,6 +426,7 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 		or merged_streak != _daily_streak \
 		or merged_date != _last_completed_daily_date \
 		or merged_intro_seen != _missions_intro_seen \
+		or merged_daily_reminders_enabled != _daily_reminders_enabled \
 		or merged_catalog_version != _vehicle_catalog_version_seen
 
 	if not changed:
@@ -443,6 +445,7 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 	_daily_streak = merged_streak
 	_last_completed_daily_date = merged_date
 	_missions_intro_seen = merged_intro_seen
+	_daily_reminders_enabled = merged_daily_reminders_enabled
 	_vehicle_catalog_version_seen = merged_catalog_version
 	_validate_profile_state()
 	save_profile()

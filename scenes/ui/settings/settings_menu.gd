@@ -522,6 +522,7 @@ func _restore_progress_async() -> void:
 		return
 	var profile_restored := bool(restore_result.get("profile_restored", false))
 	var mission_restored := bool(restore_result.get("mission_restored", false))
+	var best_score_restored := bool(restore_result.get("best_score_restored", false))
 	var push_notifications = _get_push_notifications()
 	if permanently_bound_to_device and push_notifications != null and push_notifications.has_method("register_device_for_push"):
 		push_notifications.register_device_for_push()
@@ -551,6 +552,15 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but this install is still temporarily using the pasted player ID." % player_id)
 			return
 		_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but no saved profile was found." % player_id)
+		return
+	if best_score_restored:
+		if permanently_bound_to_device:
+			_refresh_restore_progress_section("Leaderboard best restored from cloud and permanently linked to this phone's player ID %s." % player_id)
+			return
+		if using_temporary_manual_restore:
+			_refresh_restore_progress_section("Leaderboard best restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed ID is ready." % player_id)
+			return
+		_refresh_restore_progress_section("Leaderboard best restored from cloud for player ID %s." % player_id)
 		return
 	if permanently_bound_to_device:
 		_refresh_restore_progress_section("No saved progress was found for player ID %s, so nothing was linked to this phone's player ID %s." % [

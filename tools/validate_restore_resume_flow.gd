@@ -1,6 +1,7 @@
 extends SceneTree
 
 const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
+const RUN_STATS_PATH := "user://run_stats.cfg"
 
 var _failures: Array[String] = []
 var _backups: Dictionary = {}
@@ -11,10 +12,13 @@ func _initialize() -> void:
 func _run_validation() -> void:
 	_backup_user_file(OnlineLeaderboardScript.NAME_CACHE_PATH)
 	_backup_user_file(OnlineLeaderboardScript.CLOUD_PROFILE_CACHE_PATH)
+	_backup_user_file(RUN_STATS_PATH)
 
 	var sync_queue := get_root().get_node_or_null("SupabaseSyncQueue")
+	var run_stats := get_root().get_node_or_null("RunStats")
 	_assert(sync_queue != null, "SupabaseSyncQueue autoload should exist for restore resume validation.")
-	if sync_queue == null:
+	_assert(run_stats != null, "RunStats autoload should exist for restore resume validation.")
+	if sync_queue == null or run_stats == null:
 		_restore_user_files()
 		_finish()
 		return
@@ -48,6 +52,17 @@ func _run_validation() -> void:
 	OnlineLeaderboardScript.clear_cloud_profile_presence()
 	_assert(not OnlineLeaderboardScript.has_cloud_profile(), "Clearing the cloud-profile marker should restore fresh-install behavior.")
 	_assert(bool(sync_queue.call("_should_replace_local_state_on_startup")), "Fresh-install behavior should return once the cloud-profile marker is cleared.")
+
+	if FileAccess.file_exists(RUN_STATS_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(RUN_STATS_PATH))
+	run_stats.call("_load_local_best_score")
+	_assert(int(run_stats.get_local_best_score()) == 0, "Restore validation should start with an empty local best score.")
+	var restored_entries: Array[Dictionary] = [{"player_id": "restored-player", "score": 4032, "name": "Jesse"}]
+	var lower_entries: Array[Dictionary] = [{"player_id": "restored-player", "score": 60, "name": "Jesse"}]
+	_assert(bool(sync_queue.call("_apply_restored_personal_best", restored_entries)), "Restore helper should accept a synced leaderboard best.")
+	_assert(int(run_stats.get_local_best_score()) == 4032, "Restored synced leaderboard best should seed the local best score.")
+	_assert(not bool(sync_queue.call("_apply_restored_personal_best", lower_entries)), "Restore helper should ignore lower synced scores once the local best is seeded.")
+	_assert(int(run_stats.get_local_best_score()) == 4032, "Lower restored scores should not replace the seeded local best score.")
 
 	_restore_user_files()
 	_finish()
