@@ -37,13 +37,15 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - Keep build outputs out of git.
 - Use the scripts in `tools/` before inventing new ad-hoc commands.
 - Do work on branches and land changes through pull requests into `main`.
+- Bump the Android app version in `export_presets.cfg` for every release candidate before building or publishing.
 
 ## Validation
 
 - Use [tools/validate_godot.ps1](tools/validate_godot.ps1) for script-level validation.
 - Build the Android push plugin with [tools/build_android_plugin.ps1](tools/build_android_plugin.ps1) before local Android exports.
-- CI validates pull requests into `main` and publishes Android releases from pushes to `main`.
-- Successful builds publish both a workflow artifact and a rolling GitHub prerelease.
+- CI validates pull requests into `main`.
+- Only `main` builds publish Android releases.
+- Successful `main` releases publish a versioned GitHub release plus refresh the rolling `android-latest` GitHub prerelease alias.
 
 ## When Making Larger Changes
 

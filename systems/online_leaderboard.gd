@@ -80,6 +80,19 @@ static func get_top_entry_url() -> String:
 		encoded_family,
 	]
 
+static func get_personal_best_url() -> String:
+	var player_id := load_or_create_player_id().strip_edges()
+	if player_id.is_empty():
+		return ""
+	var encoded_family := FAMILY_ID.uri_encode()
+	var encoded_player_id := player_id.uri_encode()
+	return "%s/rest/v1/%s?select=player_id,name,score,created_at,updated_at&family_id=eq.%s&player_id=eq.%s&order=score.desc,created_at.asc&limit=1" % [
+		SUPABASE_URL,
+		TABLE_NAME,
+		encoded_family,
+		encoded_player_id,
+	]
+
 static func get_submit_v2_url() -> String:
 	return get_edge_function_url("save-score")
 

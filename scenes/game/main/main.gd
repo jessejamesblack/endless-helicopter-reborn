@@ -626,7 +626,8 @@ func _queue_achievement_screenshots(summary: Dictionary, unlock_entries: Array[D
                 "score": int(summary.get("score", 0)),
                 "time_survived": float(summary.get("time_survived_seconds", 0.0)),
             },
-            false
+            false,
+            "results_screen"
         )
 
     for unlock_entry in unlock_entries:
@@ -642,7 +643,8 @@ func _queue_achievement_screenshots(summary: Dictionary, unlock_entries: Array[D
                 "%s unlocked" % vehicle_title,
                 "A new helicopter joined the hangar.",
                 {"vehicle_id": vehicle_id},
-                true
+                true,
+                "results_screen"
             )
             continue
 
@@ -652,7 +654,8 @@ func _queue_achievement_screenshots(summary: Dictionary, unlock_entries: Array[D
                 "Gold unlocked",
                 "Gold mastery is now available for %s." % (title if not title.is_empty() else vehicle_id),
                 {"vehicle_id": vehicle_id, "skin_id": skin_id},
-                true
+                true,
+                "results_screen"
             )
             continue
 
@@ -662,5 +665,6 @@ func _queue_achievement_screenshots(summary: Dictionary, unlock_entries: Array[D
                 "Original Icon unlocked",
                 "The classic look is now available on supported vehicles.",
                 {"skin_id": skin_id},
-                true
+                true,
+                "results_screen"
             )

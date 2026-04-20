@@ -292,7 +292,9 @@ begin
     from public.family_leaderboard as other_scores
     where other_scores.family_id = new.family_id
       and other_scores.player_id <> new.player_id
-      and new.score > other_scores.score;
+      and new.score > other_scores.score
+    order by other_scores.score desc, other_scores.created_at asc
+    limit 1;
 
     return new;
 end;

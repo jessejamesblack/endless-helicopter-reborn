@@ -75,4 +75,4 @@ The payload shape is:
 - It also skips players whose synced mission row for today is already `completed_count >= total_count`.
 - Tapping the notification routes the game to the mission screen.
 - The mission screen now shows `Resets daily at 8:00 AM ET`.
-- The existing `score_beaten` push path stays unchanged.
+- The separate `score_beaten` push path now emits at most one notification per score submit: the highest family score the run actually beat.

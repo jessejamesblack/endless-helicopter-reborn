@@ -68,10 +68,12 @@ If you want one world-wide board for everyone who installs the app, set:
 - Android exports also keep user-data backup enabled and request retain-data-on-uninstall, so local profile/config files have a backup safety net on supported devices.
 - Same-device reinstall stability still depends on reinstalling builds signed with the same key. Use the release keystore secrets or the optional stable debug keystore for CI artifacts; temporary debug keys are test-only.
 - Each device saves a public player name locally after the first submitted run.
+- Cloud profile restore and progression sync do not require a public name; the player only needs to choose one before publishing a leaderboard score.
 - Player names use a simple profanity filter.
 - The database enforces unique public names within a leaderboard.
 - The database stores one current best score per player.
 - In-app score-beaten alerts are stored in `family_notifications`.
+- The post-run results screen shows a synced `Personal Best` view when a cloud profile exists and falls back to on-device wording when it does not.
 
 ## Notes
 

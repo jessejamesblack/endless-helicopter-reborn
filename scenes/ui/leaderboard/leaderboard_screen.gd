@@ -35,6 +35,9 @@ var leaderboard_entries: Array[Dictionary] = []
 var leaderboard_offset: int = 0
 var leaderboard_has_more: bool = true
 var leaderboard_fetch_in_flight: bool = false
+var personal_best_fetch_in_flight: bool = false
+var personal_best_loaded: bool = false
+var personal_best_score: int = -1
 var _scroll_pointer_active: bool = false
 var _scroll_dragging: bool = false
 var _scroll_pointer_id: int = -1
@@ -133,6 +136,7 @@ func _ready() -> void:
 	$SubmitRequest.request_completed.connect(_on_submit_request_completed)
 	$NotificationRequest.request_completed.connect(_on_notification_request_completed)
 	$MarkNotificationsReadRequest.request_completed.connect(_on_mark_notifications_read_completed)
+	$PersonalBestRequest.request_completed.connect(_on_personal_best_request_completed)
 
 	push_notifications = get_node_or_null("/root/PushNotifications")
 	if push_notifications != null and push_notifications.has_signal("push_notification_opened"):
@@ -229,7 +233,7 @@ func _prepare_results_mode() -> void:
 
 	if not _is_online_configured():
 		_render_leaderboard_rows([], "Waiting for online setup")
-		set_status("Local best saved. Leaderboard not configured.")
+		set_status("Best score saved on this device. Leaderboard not configured.")
 		return
 
 	if _has_saved_profile():
@@ -240,6 +244,7 @@ func _prepare_results_mode() -> void:
 		var sync_queue := _get_sync_queue()
 		if sync_queue != null and sync_queue.has_method("flush"):
 			sync_queue.flush()
+		fetch_personal_best(true)
 		fetch_leaderboard(true)
 		fetch_notifications()
 		return
@@ -345,8 +350,7 @@ func _should_show_profile_setup() -> bool:
 
 func _populate_results_summary() -> void:
 	if not has_run_context:
-		best_score_label.text = "Local Best: %d" % _get_local_best_score()
-		delta_label.text = ""
+		_update_personal_best_labels()
 		time_survived_value_label.text = "0.0s"
 		missiles_fired_value_label.text = "0"
 		hostiles_destroyed_value_label.text = "0"
@@ -360,15 +364,7 @@ func _populate_results_summary() -> void:
 		_populate_mission_summary()
 		return
 
-	best_score_label.text = "Local Best: %d" % int(current_run_summary.get("best_score_after_run", _get_local_best_score()))
-
-	var distance_to_best := int(current_run_summary.get("distance_to_best_before_run", 0))
-	if bool(current_run_summary.get("is_new_best", false)):
-		delta_label.text = "New local best"
-	elif distance_to_best == 0:
-		delta_label.text = "Matched your local best"
-	else:
-		delta_label.text = "%d short of your local best" % distance_to_best
+	_update_personal_best_labels()
 
 	time_survived_value_label.text = "%.1fs" % float(current_run_summary.get("time_survived_seconds", 0.0))
 	missiles_fired_value_label.text = str(int(current_run_summary.get("missiles_fired", 0)))
@@ -462,7 +458,7 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 		if leaderboard_entries.is_empty():
 			_render_leaderboard_rows([], "Could not load the leaderboard.")
 		if current_mode == ScreenMode.RESULTS:
-			set_status("Leaderboard unavailable. Local results saved.")
+			set_status("Leaderboard unavailable. Run saved on this device.")
 		else:
 			set_status(error_text)
 		return
@@ -478,6 +474,7 @@ func _on_fetch_request_completed(result: int, response_code: int, _headers: Pack
 		player_profile.apply_leaderboard_entries(best_entries)
 
 	_render_leaderboard_rows(best_entries)
+	_update_personal_best_from_entries(best_entries)
 	_update_status_after_fetch()
 	call_deferred("_maybe_prefetch_if_needed")
 
@@ -491,13 +488,18 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 		var error_text := OnlineLeaderboardScript.parse_api_error(body, "Could not submit score.")
 		save_button.disabled = false
 		if current_mode == ScreenMode.RESULTS:
-			set_status("Online save unavailable. Local results saved.")
+			set_status("Online save unavailable. Run saved on this device.")
 		else:
 			set_status(error_text)
 		return
 
 	has_submitted = true
 	var submit_result := OnlineLeaderboardScript.parse_submit_result(body)
+	var synced_best_score := int(submit_result.get("best_score", -1))
+	if synced_best_score >= 0:
+		personal_best_score = synced_best_score
+		personal_best_loaded = true
+		_update_personal_best_labels()
 	var saved_name := str(submit_result.get("name", ""))
 	if saved_name.is_empty():
 		saved_name = pending_player_name
@@ -522,6 +524,7 @@ func _on_submit_request_completed(result: int, response_code: int, _headers: Pac
 		set_status("Score submitted!")
 	fetch_leaderboard(true)
 	fetch_notifications()
+	fetch_personal_best(true)
 
 func _get_fetch_url() -> String:
 	if _use_expanded_fetch_fields:
@@ -562,7 +565,7 @@ func _on_push_notification_opened(payload: Dictionary) -> void:
 func _update_status_after_fetch() -> void:
 	if current_mode == ScreenMode.RESULTS:
 		if not _is_online_configured():
-			set_status("Local best saved. Leaderboard not configured.")
+			set_status("Best score saved on this device. Leaderboard not configured.")
 		elif has_submitted:
 			set_status("Run syncing in the background.")
 		elif is_submitting:
@@ -587,6 +590,110 @@ func _update_status_after_fetch() -> void:
 		set_status("This run is ready to save.")
 	else:
 		set_status("Latest scores loaded.")
+
+func fetch_personal_best(force: bool = false) -> void:
+	if personal_best_fetch_in_flight or not _is_online_configured():
+		return
+	if not OnlineLeaderboardScript.is_current_player_id_ready_for_cloud():
+		return
+	if personal_best_loaded and not force:
+		return
+	var personal_best_url := OnlineLeaderboardScript.get_personal_best_url()
+	if personal_best_url.is_empty():
+		return
+	personal_best_fetch_in_flight = true
+	$PersonalBestRequest.request(
+		personal_best_url,
+		OnlineLeaderboardScript.get_headers(),
+		HTTPClient.METHOD_GET
+	)
+	_update_personal_best_labels()
+
+func _on_personal_best_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	personal_best_fetch_in_flight = false
+	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		_handle_upgrade_required_response("get_personal_best", response_code, body)
+		_update_personal_best_labels()
+		return
+
+	var entries := OnlineLeaderboardScript.parse_entries(body)
+	if entries.is_empty():
+		personal_best_loaded = true
+		personal_best_score = -1
+		_update_personal_best_labels()
+		return
+
+	var best_entries := OnlineLeaderboardScript.get_best_entries(entries)
+	if best_entries.is_empty():
+		personal_best_loaded = true
+		personal_best_score = -1
+		_update_personal_best_labels()
+		return
+
+	personal_best_loaded = true
+	personal_best_score = int(best_entries[0].get("score", 0))
+	_update_personal_best_labels()
+
+func _update_personal_best_from_entries(entries: Array[Dictionary]) -> void:
+	var current_player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
+	if current_player_id.is_empty():
+		return
+	for entry in entries:
+		if str(entry.get("player_id", "")).strip_edges() != current_player_id:
+			continue
+		personal_best_loaded = true
+		personal_best_score = int(entry.get("score", 0))
+		_update_personal_best_labels()
+		return
+
+func _update_personal_best_labels() -> void:
+	if not has_run_context:
+		if _is_online_configured() and _has_saved_profile():
+			if personal_best_fetch_in_flight and not personal_best_loaded:
+				best_score_label.text = "Personal Best: Syncing..."
+				delta_label.text = "Checking your synced leaderboard best..."
+			elif personal_best_loaded and personal_best_score >= 0:
+				best_score_label.text = "Personal Best: %d" % personal_best_score
+				delta_label.text = "Best run on the synced leaderboard"
+			else:
+				best_score_label.text = "Personal Best: --"
+				delta_label.text = "No synced score yet"
+			return
+		best_score_label.text = "Best Score: %d" % _get_local_best_score()
+		delta_label.text = ""
+		return
+
+	if _is_online_configured() and _has_saved_profile():
+		if personal_best_fetch_in_flight and not personal_best_loaded:
+			best_score_label.text = "Personal Best: Syncing..."
+			delta_label.text = "Checking your synced leaderboard best..."
+			return
+		if personal_best_loaded and personal_best_score >= 0:
+			best_score_label.text = "Personal Best: %d" % personal_best_score
+			if current_score > personal_best_score:
+				delta_label.text = "This run is ahead of your synced personal best"
+			elif current_score == personal_best_score:
+				delta_label.text = "Matched your personal best"
+			else:
+				delta_label.text = "%d short of your personal best" % maxi(personal_best_score - current_score, 0)
+			return
+		best_score_label.text = "Personal Best: --"
+		delta_label.text = "Waiting for your synced leaderboard best..."
+		return
+
+	if _is_online_configured():
+		best_score_label.text = "Personal Best: --"
+		delta_label.text = "Save a score online to start tracking your personal best"
+		return
+
+	best_score_label.text = "Best Score: %d" % int(current_run_summary.get("best_score_after_run", _get_local_best_score()))
+	var distance_to_best := int(current_run_summary.get("distance_to_best_before_run", 0))
+	if bool(current_run_summary.get("is_new_best", false)):
+		delta_label.text = "New best score on this device"
+	elif distance_to_best == 0:
+		delta_label.text = "Matched your best score on this device"
+	else:
+		delta_label.text = "%d short of your best score on this device" % distance_to_best
 
 func _connect_leaderboard_scroll() -> void:
 	var scroll_bar := leaderboard_scroll.get_v_scroll_bar()
@@ -831,6 +938,9 @@ func _on_startup_sync_state_changed() -> void:
 
 func _on_viewport_size_changed() -> void:
 	_apply_responsive_panel_rect(_get_active_panel_rect())
+
+func is_ready_for_achievement_screenshot() -> bool:
+	return is_visible_in_tree() and current_mode == ScreenMode.RESULTS and results_card.visible
 
 func apply_validation_state(mode: int, summary: Dictionary = {}, online_configured: bool = false, saved_profile: bool = false, show_alert: bool = false) -> void:
 	validation_mode_enabled = true
