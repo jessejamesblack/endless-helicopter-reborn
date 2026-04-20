@@ -16,6 +16,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): day-to-day commands and validation workflow.
 - [docs/MCP_SETUP.md](docs/MCP_SETUP.md): project MCP servers for Codex and VS Code.
 - [docs/AI_COLLABORATION.md](docs/AI_COLLABORATION.md): how this repo applies harness-engineering ideas.
+- [docs/ANDROID_CONTINUITY_CUTOVER.md](docs/ANDROID_CONTINUITY_CUTOVER.md): canonical Android signing cutover and fresh-start restore runbook.
 - [docs/ONLINE_LEADERBOARD_SETUP.md](docs/ONLINE_LEADERBOARD_SETUP.md): Supabase leaderboard setup.
 - [docs/PUSH_NOTIFICATIONS_SETUP.md](docs/PUSH_NOTIFICATIONS_SETUP.md): Firebase + Supabase push setup.
 
@@ -42,6 +43,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
   - use the canonical local export path in `tools/export_android.ps1` or CI
   - use `SigningMode` `release_stable` or `debug_stable`
   - never rely on temporary or unspecified signing for same-device identity validation
+- Future PRs that touch restore, reinstall, identity, release workflow, or Supabase reset logic must consult `docs/ANDROID_CONTINUITY_CUTOVER.md` first.
 - Regenerate `systems/build_info.gd` through `tools/generate_build_info.ps1` or `tools/export_android.ps1`; do not assume the checked-in file matches the last APK someone installed.
 
 ## Validation

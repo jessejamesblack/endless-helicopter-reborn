@@ -46,3 +46,8 @@ This project borrows practical ideas from OpenAI's harness-engineering approach 
   - do not trust stale checked-in `systems/build_info.gd` values as proof of what an installed APK contains
   - check the in-app Debug diagnostics for signing mode and signing-certificate preview before concluding that Android-backed identity changed because of application logic
 - If a workflow or script can silently produce identity-unsafe Android artifacts, prefer failing loudly over generating a misleading APK.
+- For Android continuity cutovers and wipe events, use [docs/ANDROID_CONTINUITY_CUTOVER.md](ANDROID_CONTINUITY_CUTOVER.md) as the runbook.
+- Do not propose identity fixes without checking signing-track assumptions first.
+- Do not recommend a DB wipe without naming the preserved tables and the version-gate plan.
+- Do not treat pre-cutover restore failures as evidence that the current stable-signing design is broken.
+- Prefer release-gated cutovers over partial rollouts when continuity rules change.
