@@ -39,3 +39,10 @@ This project borrows practical ideas from OpenAI's harness-engineering approach 
 - Prefer the smallest relevant doc instead of stuffing everything into one file.
 - Keep structural changes deliberate and documented.
 - If a new recurring rule appears, promote it into docs or tooling.
+- When working on Android identity, reinstall, restore, push-device ownership, or leaderboard migration:
+  - assume same-device continuity depends on a stable signing key track, not just code changes
+  - treat reinstall/restore tests as invalid unless the build is exported with `SigningMode` `release_stable` or `debug_stable`
+  - use `tools/export_android.ps1` for local installable APKs and let it regenerate `systems/build_info.gd`
+  - do not trust stale checked-in `systems/build_info.gd` values as proof of what an installed APK contains
+  - check the in-app Debug diagnostics for signing mode and signing-certificate preview before concluding that Android-backed identity changed because of application logic
+- If a workflow or script can silently produce identity-unsafe Android artifacts, prefer failing loudly over generating a misleading APK.

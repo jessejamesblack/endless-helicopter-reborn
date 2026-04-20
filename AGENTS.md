@@ -38,6 +38,11 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - Use the scripts in `tools/` before inventing new ad-hoc commands.
 - Do work on branches and land changes through pull requests into `main`.
 - Bump the Android app version in `export_presets.cfg` for every release candidate before building or publishing.
+- Treat Android reinstall/restore testing as invalid unless the APK is continuity-safe:
+  - use the canonical local export path in `tools/export_android.ps1` or CI
+  - use `SigningMode` `release_stable` or `debug_stable`
+  - never rely on temporary or unspecified signing for same-device identity validation
+- Regenerate `systems/build_info.gd` through `tools/generate_build_info.ps1` or `tools/export_android.ps1`; do not assume the checked-in file matches the last APK someone installed.
 
 ## Validation
 
@@ -46,6 +51,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - CI validates pull requests into `main`.
 - Only `main` builds publish Android releases.
 - Successful `main` releases publish a versioned GitHub release plus refresh the rolling `android-latest` GitHub prerelease alias.
+- For Android continuity work, confirm the in-app Debug diagnostics show a stable signing mode and signing-certificate preview before trusting reinstall/restore results.
 
 ## When Making Larger Changes
 
