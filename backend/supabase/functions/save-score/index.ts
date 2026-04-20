@@ -1,5 +1,4 @@
 import { createAdminClient, jsonResponse } from "../_shared/common.ts";
-import { resolvePlayerContext } from "../_shared/account_linking.ts";
 import {
   getCurrentVersionCode,
   getReleaseChannel,
@@ -41,17 +40,9 @@ Deno.serve(async (request: Request) => {
     return versionGateResponse(releaseConfig);
   }
 
-  const playerContext = await resolvePlayerContext(supabase, request, payload as Record<string, unknown>);
-  if (!playerContext.ok) {
-    return playerContext.response ?? jsonResponse({ error: "Could not resolve player context." }, 500);
-  }
-  if (playerContext.family_id === "" || playerContext.player_id === "") {
-    return jsonResponse({ error: "Family id and player id are required." }, 400);
-  }
-
   const response = await supabase.rpc("submit_family_score_v2", {
-    p_family_id: playerContext.family_id,
-    p_player_id: playerContext.player_id,
+    p_family_id: payload.p_family_id,
+    p_player_id: payload.p_player_id,
     p_name: payload.p_name,
     p_score: payload.p_score,
     p_run_summary: payload.p_run_summary ?? {},

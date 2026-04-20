@@ -25,7 +25,6 @@ var _startup_sync_completed: bool = false
 var _identity_retry_attempts_remaining: int = 0
 var _cloud_access_blocked_reason: String = ""
 var _last_identity_snapshot: String = ""
-var _force_replace_local_state_once: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -86,17 +85,12 @@ func has_completed_startup_sync() -> bool:
 func is_startup_sync_in_progress() -> bool:
 	return _startup_sync_in_progress
 
-func notify_identity_state_changed(force_replace_existing_state: bool = false) -> void:
+func notify_identity_state_changed() -> void:
 	if not OnlineLeaderboardScript.is_configured() or _is_cloud_access_blocked():
 		return
 	var current_snapshot := _get_identity_snapshot()
 	if current_snapshot == _last_identity_snapshot:
-		if force_replace_existing_state:
-			_force_replace_local_state_once = true
 		return
-	if force_replace_existing_state:
-		_force_replace_local_state_once = true
-	clear_pending_jobs()
 	_last_identity_snapshot = current_snapshot
 	_reset_startup_sync_for_identity_change()
 	call_deferred("_startup_sync")
@@ -118,8 +112,7 @@ func _run_startup_sync() -> void:
 		return
 	var identity_ready := await _ensure_remote_identity_ready()
 	if identity_ready:
-		var replace_existing_state := _consume_force_replace_local_state() or _should_replace_local_state_on_startup()
-		await _pull_remote_state(replace_existing_state)
+		await _pull_remote_state(_should_replace_local_state_on_startup())
 		await _flush_async()
 		_finish_startup_sync()
 	else:
@@ -143,7 +136,7 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 			outcome["error_message"] = _cloud_access_blocked_reason
 			return outcome
 		_schedule_identity_retry()
-		outcome["error_message"] = "A cloud identity is still required before cloud restore can run."
+		outcome["error_message"] = "A player ID is still required before cloud restore can run."
 		return outcome
 	outcome["ok"] = true
 
@@ -243,12 +236,6 @@ func _ensure_remote_identity_ready() -> bool:
 		return false
 	if _is_cloud_access_blocked():
 		return false
-	var account_manager := get_node_or_null("/root/AccountManager")
-	if account_manager != null:
-		if account_manager.has_method("is_bootstrap_in_progress") and bool(account_manager.is_bootstrap_in_progress()):
-			return false
-		if account_manager.has_method("has_linked_profile") and bool(account_manager.has_linked_profile()):
-			return not str(account_manager.get_linked_player_id()).strip_edges().is_empty()
 	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
 		var migration := OnlineLeaderboardScript.get_pending_remote_identity_migration()
 		var old_player_id := str(migration.get("old_player_id", "")).strip_edges()
@@ -500,23 +487,11 @@ func _drop_all_jobs_for_upgrade_required() -> void:
 	_emit_queue_changed()
 
 func _should_replace_local_state_on_startup() -> bool:
-	var account_manager := get_node_or_null("/root/AccountManager")
-	if account_manager != null and account_manager.has_method("has_linked_profile") and bool(account_manager.has_linked_profile()):
-		return true
 	return not OnlineLeaderboardScript.has_saved_profile()
-
-func _consume_force_replace_local_state() -> bool:
-	var should_replace := _force_replace_local_state_once
-	_force_replace_local_state_once = false
-	return should_replace
 
 func _get_identity_snapshot() -> String:
 	var player_info := AndroidIdentityScript.get_player_identity_info()
 	var device_info := AndroidIdentityScript.get_device_identity_info()
-	var account_manager := get_node_or_null("/root/AccountManager")
-	var account_summary := {}
-	if account_manager != null and account_manager.has_method("get_state_summary"):
-		account_summary = account_manager.get_state_summary()
 	return JSON.stringify({
 		"player_id": str(OnlineLeaderboardScript.load_or_create_player_id()).strip_edges(),
 		"player_source": str(player_info.get("source", "")),
@@ -529,8 +504,4 @@ func _get_identity_snapshot() -> String:
 		"device_needs_migration": bool(device_info.get("needs_migration", false)),
 		"stable_device_id": str(device_info.get("stable_value", "")),
 		"manual_override": OnlineLeaderboardScript.has_manual_player_id_override(),
-		"account_signed_in": bool(account_summary.get("signed_in", false)),
-		"account_linked": bool(account_summary.get("linked", false)),
-		"account_email": str(account_summary.get("email", "")),
-		"account_player_id": str(account_summary.get("linked_player_id", "")),
 	})

@@ -1,5 +1,4 @@
 import { createAdminClient, jsonResponse, toInt, truncate } from "../_shared/common.ts";
-import { resolvePlayerContext } from "../_shared/account_linking.ts";
 import {
   getCurrentVersionCode,
   getReleaseChannel,
@@ -28,6 +27,12 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: "Invalid payload." }, 400);
   }
 
+  const familyId = String(payload.family_id ?? "").trim();
+  const playerId = String(payload.player_id ?? "").trim();
+  if (familyId === "" || playerId === "") {
+    return jsonResponse({ error: "Family id and player id are required." }, 400);
+  }
+
   const supabase = createAdminClient();
   const releaseConfig = await getReleaseConfig(
     supabase,
@@ -38,19 +43,11 @@ Deno.serve(async (request: Request) => {
     return versionGateResponse(releaseConfig);
   }
 
-  const playerContext = await resolvePlayerContext(supabase, request, payload as Record<string, unknown>);
-  if (!playerContext.ok) {
-    return playerContext.response ?? jsonResponse({ error: "Could not resolve player context." }, 500);
-  }
-  if (playerContext.family_id === "" || playerContext.player_id === "") {
-    return jsonResponse({ error: "Family id and player id are required." }, 400);
-  }
-
   const response = await supabase
     .from("family_notifications")
     .select("id, challenger_name, challenger_score, beaten_score, created_at")
-    .eq("family_id", playerContext.family_id)
-    .eq("target_player_id", playerContext.player_id)
+    .eq("family_id", familyId)
+    .eq("target_player_id", playerId)
     .is("read_at", null)
     .order("created_at", { ascending: false })
     .limit(Math.max(1, Math.min(25, toInt(payload.limit, 5))));

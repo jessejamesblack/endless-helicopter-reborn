@@ -82,11 +82,6 @@ func _ready() -> void:
 		var profile_callback := Callable(self, "_on_profile_changed")
 		if not player_profile.is_connected("profile_changed", profile_callback):
 			player_profile.connect("profile_changed", profile_callback)
-	var account_manager = _get_account_manager()
-	if account_manager != null and account_manager.has_signal("account_state_changed"):
-		var account_callback := Callable(self, "_on_account_state_changed")
-		if not account_manager.is_connected("account_state_changed", account_callback):
-			account_manager.connect("account_state_changed", account_callback)
 
 	_sync_from_settings()
 	_configure_touch_scroll()
@@ -297,9 +292,6 @@ func _on_profile_changed(_summary: Dictionary) -> void:
 	_update_push_status()
 	_refresh_restore_progress_section()
 
-func _on_account_state_changed(_summary: Dictionary) -> void:
-	_refresh_restore_progress_section()
-
 func _update_push_status() -> void:
 	var player_profile = _get_player_profile()
 	var reminders_enabled: bool = player_profile != null and player_profile.has_method("are_daily_reminders_enabled") and bool(player_profile.are_daily_reminders_enabled())
@@ -421,9 +413,6 @@ func _get_player_profile():
 func _get_sync_queue():
 	return get_node_or_null("/root/SupabaseSyncQueue")
 
-func _get_account_manager():
-	return get_node_or_null("/root/AccountManager")
-
 func _refresh_restore_progress_section(message: String = "") -> void:
 	if not is_instance_valid(restore_progress_button) or not is_instance_valid(restore_progress_status_label):
 		return
@@ -442,14 +431,10 @@ func _refresh_restore_progress_section(message: String = "") -> void:
 	if is_instance_valid(restore_player_id_entry):
 		entered_player_id = restore_player_id_entry.text.strip_edges()
 	var source_hint := "Uses this device's current player ID."
-	var account_manager = _get_account_manager()
-	var account_linked := account_manager != null and account_manager.has_method("has_linked_profile") and bool(account_manager.has_linked_profile())
 	if not entered_player_id.is_empty():
 		source_hint = "Restore will use the pasted player ID above."
 	elif OnlineLeaderboardScript.has_manual_player_id_override():
 		source_hint = "Using a pasted player ID."
-	elif account_linked:
-		source_hint = "Progress backup is active for this account. The manual player ID box below is only for support-assisted restores."
 	if player_id.begins_with("(waiting"):
 		source_hint = "This phone is still starting its stable Android player ID. You can paste a support player ID above if you need to restore right away."
 	restore_progress_status_label.text = "Current Player ID: %s\nPlayer ID Source: %s\n%s Paste a player ID from support if restore doesn't work on its own, then tap Restore Progress." % [

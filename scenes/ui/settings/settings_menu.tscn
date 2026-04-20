@@ -1,7 +1,6 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/settings/settings_menu.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://scenes/ui/account/account_panel.tscn" id="2_account"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_settings_panel"]
 bg_color = Color(0.0352941, 0.054902, 0.117647, 0.94)
@@ -251,9 +250,6 @@ text = "100%"
 [node name="ProgressSection" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn"]
 layout_mode = 2
 theme_override_constants/separation = 10
-
-[node name="AccountSection" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn" instance=ExtResource("2_account")]
-layout_mode = 2
 
 [node name="ProgressHeader" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer/ContentScroll/ContentColumns/AudioCard/AudioColumn/ProgressSection"]
 layout_mode = 2

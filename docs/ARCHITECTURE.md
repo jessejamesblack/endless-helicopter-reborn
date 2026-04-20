@@ -18,7 +18,6 @@
 - `systems/game_settings.gd`: persistent audio, layout, and haptics settings
 - `systems/haptics_manager.gd`: centralized event-based haptic playback
 - `systems/music_player.gd`: shared music playback service for menu and gameplay loops
-- `systems/account_manager.gd`: Supabase Auth email OTP session state and linked-account restore
 - `systems/online_leaderboard.gd`: shared leaderboard service
 - `systems/run_stats.gd`: live run stats, local best score persistence, and the last completed run summary
 - `systems/player_profile.gd`: local-first vehicle, finish, lore, milestone, and reminder progression
@@ -68,7 +67,6 @@
 - `player_profile.gd` owns local vehicle/finish progression and merges remote profile data conservatively.
 - `mission_manager.gd` owns today's mission state and the compact post-run mission summary instead of scene-tree metadata.
 - `supabase_sync_queue.gd` owns retryable outbound sync jobs plus the startup pull/merge of profile and today's mission progress.
-- `account_manager.gd` owns account session bootstrap, email-code sign-in, and server-side account-to-profile restore state.
 - `backend/` owns external service bootstrap files.
 - `docs/` owns human/agent-readable project knowledge.
 

@@ -9,7 +9,6 @@
 - Missiles, ammo pickups, clearer explosions, and varied enemy roles
 - Adjustable master/music/SFX volume, fire-button side, mirrored HUD layout, haptics intensity, and frame-rate cap
 - Shared online leaderboard with player names
-- Optional email-linked progress backup and restore
 - Daily missions, vehicle unlocks, per-vehicle skin progression, and a hangar screen
 - In-app beat-your-score notifications
 - Android push notifications for score-beaten and daily-mission events
@@ -81,12 +80,10 @@ The game can use Supabase for a shared leaderboard.
 
 - Setup guide: [docs/ONLINE_LEADERBOARD_SETUP.md](docs/ONLINE_LEADERBOARD_SETUP.md)
 - Push setup: [docs/PUSH_NOTIFICATIONS_SETUP.md](docs/PUSH_NOTIFICATIONS_SETUP.md)
-- Account linking: [docs/ACCOUNT_LINKING_SETUP.md](docs/ACCOUNT_LINKING_SETUP.md)
 - Daily mission push setup: [docs/DAILY_MISSIONS_PUSH_SETUP.md](docs/DAILY_MISSIONS_PUSH_SETUP.md)
 - SQL bootstrap: [backend/supabase_leaderboard_setup.sql](backend/supabase_leaderboard_setup.sql)
 - Player progress bootstrap: [backend/supabase_player_progress_setup.sql](backend/supabase_player_progress_setup.sql)
 - Runtime service: [systems/online_leaderboard.gd](systems/online_leaderboard.gd)
-- Account session runtime: [systems/account_manager.gd](systems/account_manager.gd)
 - Push runtime: [systems/push_notifications.gd](systems/push_notifications.gd)
 
 ## Android Push Notifications
