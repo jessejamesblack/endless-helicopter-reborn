@@ -1,4 +1,4 @@
-- Android installs now fall back to a persisted local player ID when the stable phone ID path is unavailable.
-- Fresh devices should stop getting stuck on “player ID isn’t ready yet” in Settings and score save setup.
-- The save-score screen now has matched Back To Menu and Submit Score buttons.
-- 1.6.2 keeps the recent score-save, restore, and UI-fix work from 1.6.1.
+- Stable Android release 1.6.3 (157).
+- Score-beaten notifications now post only the highest beaten family score from each run.
+- Post-run results now focus on synced Personal Best feedback instead of local-best wording.
+- Run achievement screenshots now capture the end-run scoreboard flow instead of the menu.

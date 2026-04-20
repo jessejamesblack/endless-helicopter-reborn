@@ -86,6 +86,13 @@ The game can use Supabase for a shared leaderboard.
 - Runtime service: [systems/online_leaderboard.gd](systems/online_leaderboard.gd)
 - Push runtime: [systems/push_notifications.gd](systems/push_notifications.gd)
 
+Current leaderboard/profile behavior:
+
+- Android installs derive a reinstall-stable `player_id` from the signed app package plus Android-backed device identity.
+- Returning players on the same phone should restore automatically after reinstall once their profile has been migrated onto that stable id.
+- Manual support restore by old `player_id` is still available in Settings, and current builds try to permanently migrate that old profile onto the phone's canonical stable id so future reinstalls on that device restore automatically.
+- A public name is only required for leaderboard submission. Cloud profile restore and progression sync can exist before the player picks a public leaderboard name.
+
 ## Android Push Notifications
 
 Android push notifications use:
@@ -120,11 +127,14 @@ After installing, open the in-game push diagnostics and confirm at least:
 
 ### From GitHub Releases
 
-Each successful release build from `main` updates a rolling prerelease on GitHub.
+Each successful release build from `main` creates or updates:
+
+- a versioned GitHub release such as `v1.6.1-build.155`
+- a rolling prerelease alias named `android-latest`
 
 1. Open the repository on GitHub.
 2. Go to `Releases`.
-3. Open `Endless-Helicopter-Reborn Latest APK`.
+3. Open either the latest versioned release or `Endless-Helicopter-Reborn Latest APK`.
 4. Download `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk`.
 5. Copy the APK to your Android device and install it.
 
@@ -142,12 +152,13 @@ If you want the raw workflow output directly, every push also uploads an artifac
 
 This repository includes `.github/workflows/android-apk.yml`.
 
+- Every candidate release should increment `export_presets.cfg` `version/code` and `version/name` before building or publishing.
 - On pull requests to `main`, it validates the project and exports an Android APK artifact.
-- On pushes to `main`, it validates the project, exports an Android APK, and updates the rolling GitHub release.
+- On pushes to `main`, it validates the project, exports an Android APK, publishes a versioned GitHub release, and refreshes the rolling `android-latest` prerelease alias.
 - Manual workflow runs only publish a release when they are run from `main`; branch and PR builds stay artifact-only.
 - The workflow also builds the Android FCM plugin AAR before the APK export.
 - The APK is uploaded as a workflow artifact.
-- The workflow also updates a rolling GitHub prerelease named `Endless-Helicopter-Reborn Latest APK`.
+- The workflow also updates a rolling GitHub prerelease alias named `Endless-Helicopter-Reborn Latest APK`.
 - Pull request APK filenames use `Endless-Helicopter-Reborn-debug.apk` unless signing secrets are present.
 - Pushes to `main` publish `Endless-Helicopter-Reborn-release.apk` when signing secrets are configured, otherwise they fall back to `Endless-Helicopter-Reborn-debug.apk`.
 - This is better than committing generated APKs into the repository on every change.

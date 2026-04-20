@@ -63,11 +63,14 @@ If you want one world-wide board for everyone who installs the app, set:
 
 - Android devices derive a reinstall-stable player id from the signed app package plus the device's Android-backed stable id, first through the Android bridge and then through Godot's own Android unique-ID fallback if needed.
 - Existing legacy Android installs migrate old cached player ids to the canonical stable id the first time the stable id resolves.
+- If support restores an older pasted `player_id` on a device whose canonical stable id is ready, the app now attempts to migrate that old profile onto the phone's stable id so future reinstalls on the same phone restore automatically.
 - Each device saves a public player name locally after the first submitted run.
+- Cloud profile restore and progression sync do not require a public name; the player only needs to choose one before publishing a leaderboard score.
 - Player names use a simple profanity filter.
 - The database enforces unique public names within a leaderboard.
 - The database stores one current best score per player.
 - In-app score-beaten alerts are stored in `family_notifications`.
+- The post-run results screen shows a synced `Personal Best` view when a cloud profile exists and falls back to on-device wording when it does not.
 
 ## Notes
 
