@@ -55,11 +55,15 @@ jobs:
           VERSION_CODE=$(grep -m1 '^version/code=' export_presets.cfg | cut -d= -f2 | tr -d '"')
           VERSION_NAME=$(grep -m1 '^version/name=' export_presets.cfg | cut -d= -f2- | sed 's/^"//;s/"$//')
           RELEASE_CHANNEL="${{ github.event.inputs.release_channel }}"
+          PUBLIC_RELEASE_BUILD=false
           if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
             RELEASE_CHANNEL="stable"
           fi
           if [[ -z "$RELEASE_CHANNEL" ]]; then
             RELEASE_CHANNEL="dev"
+          fi
+          if [[ "${GITHUB_REF}" == "refs/heads/main" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            PUBLIC_RELEASE_BUILD=true
           fi
           BUILD_SHA_SHORT="${GITHUB_SHA::7}"
           BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -71,6 +75,7 @@ jobs:
             echo "VERSION_CODE=$VERSION_CODE"
             echo "VERSION_NAME=$VERSION_NAME"
             echo "RELEASE_CHANNEL=$RELEASE_CHANNEL"
+            echo "PUBLIC_RELEASE_BUILD=$PUBLIC_RELEASE_BUILD"
             echo "BUILD_SHA_SHORT=$BUILD_SHA_SHORT"
             echo "BUILD_DATE=$BUILD_DATE"
             echo "RELEASE_TAG=$RELEASE_TAG"
@@ -147,6 +152,10 @@ jobs:
             KEYSTORE_PATH="$RUNNER_TEMP/android-release.keystore"
             KEYSTORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
           elif [[ -n "${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}" && -n "${{ secrets.ANDROID_DEBUG_KEYSTORE_PASSWORD }}" && -n "${{ secrets.ANDROID_DEBUG_KEY_ALIAS }}" ]]; then
+            if [[ "${PUBLIC_RELEASE_BUILD:-false}" == "true" ]]; then
+              echo "::error::Stable public releases from main must use the canonical ANDROID_KEYSTORE_* release key. ANDROID_DEBUG_KEYSTORE_* is testing-only."
+              exit 1
+            fi
             echo "${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/android-debug.keystore"
             {
               echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$RUNNER_TEMP/android-debug.keystore"
@@ -171,6 +180,16 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
           EOF
+
+      - name: Enforce public release signing policy
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${SIGNING_KEY_MODE:-}" != "release_stable" ]]; then
+            echo "::error::Stable public releases from main must use the canonical ANDROID_KEYSTORE_* release key. debug_stable is testing-only."
+            exit 1
+          fi
 
       - name: Generate runtime build info
         shell: pwsh

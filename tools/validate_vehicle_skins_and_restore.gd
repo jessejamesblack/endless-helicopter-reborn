@@ -198,6 +198,18 @@ func _run_validation() -> void:
 	var workflow_text := Helper.read_text("res://.github/workflows/android-apk.yml")
 	_assert(not workflow_text.contains("SIGNING_KEY_MODE=temporary_debug"), "CI should no longer generate temporary-key Android artifacts.")
 	_assert(workflow_text.contains("A stable Android signing key is required for continuity-safe installs"), "CI should fail loudly when no canonical Android signing key is configured.")
+	_assert(workflow_text.contains("Stable public releases from main must use the canonical ANDROID_KEYSTORE_* release key"), "CI should block public main releases that try to fall back to the stable debug key.")
+
+	var wipe_text := Helper.read_text("res://backend/supabase_fresh_start_cutover_wipe.sql")
+	_assert(wipe_text.contains("Fresh-start gameplay-data wipe"), "The cutover wipe script should describe the fresh-start gameplay-data reset.")
+	_assert(wipe_text.contains("delete from public.family_player_profiles"), "The cutover wipe script should clear player profiles.")
+	_assert(wipe_text.contains("delete from public.family_daily_mission_progress"), "The cutover wipe script should clear daily mission progress.")
+	_assert(wipe_text.contains("delete from public.family_leaderboard"), "The cutover wipe script should clear leaderboard rows.")
+	_assert(wipe_text.contains("delete from public.family_run_history"), "The cutover wipe script should clear run history.")
+	_assert(wipe_text.contains("delete from public.family_notifications"), "The cutover wipe script should clear stored notifications.")
+	_assert(wipe_text.contains("delete from public.family_push_devices"), "The cutover wipe script should clear push-device rows.")
+	_assert(wipe_text.contains("delete from public.family_push_delivery_log"), "The cutover wipe script should clear push-delivery history.")
+	_assert(wipe_text.contains("delete from public.app_update_push_history"), "The cutover wipe script should clear app-update push history.")
 
 	var push_registration_text := Helper.read_text("res://backend/supabase/functions/register-push-device/index.ts")
 	_assert(push_registration_text.contains(".eq(\"device_id\", deviceId)"), "register-push-device should reconcile existing rows for the current device ID.")
