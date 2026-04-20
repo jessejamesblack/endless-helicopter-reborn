@@ -21,7 +21,7 @@ For push-notification debugging, the exported app now reports:
 - whether the plugin singleton loaded
 - whether the compat bridge is available
 - whether Android runtime objects were exposed to GDScript
-- whether player and device identity are using `android_stable`, `legacy_cache`, or `local_fallback`
+- whether player and device identity are using `android_stable`, `legacy_cache`, or `android_pending` on Android
 - whether Firebase initialized successfully
 - whether an FCM token was obtained and registered with Supabase
 
@@ -43,11 +43,11 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 
 - Workflow: `.github/workflows/android-apk.yml`
 - Pull requests to `main` run validation and produce an APK artifact.
-- Pushes to `main` run validation, build an Android APK, and update the rolling release.
+- Pushes to `main` run validation, build an Android APK, publish a versioned GitHub release, and refresh the rolling `android-latest` prerelease alias.
 - Manual workflow runs only publish a release when they target `main`; branch and PR runs stay artifact-only.
 - CI also builds the Android FCM plugin AARs before exporting the APK.
 - Outputs include a workflow artifact containing the generated APK.
-- Outputs also include a rolling GitHub prerelease: `Endless-Helicopter-Reborn Latest APK`.
+- Outputs also include the rolling GitHub prerelease alias `Endless-Helicopter-Reborn Latest APK`.
 - PR APK names can be `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk` depending on signing secrets.
 - Pushes to `main` can produce `Endless-Helicopter-Reborn-release.apk` when signing secrets are configured, otherwise they fall back to `Endless-Helicopter-Reborn-debug.apk`.
 

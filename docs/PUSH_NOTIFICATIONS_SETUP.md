@@ -232,7 +232,7 @@ That export script now rebuilds the Android push bridge plugin automatically bef
 CI export:
 
 - PRs to `main` build an artifact
-- pushes to `main` update the rolling GitHub prerelease
+- pushes to `main` publish a versioned GitHub release and refresh the rolling `android-latest` prerelease alias
 - CI requires `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` so the published APK can register for push.
 
 ## 9. Test Checklist
@@ -264,7 +264,9 @@ The debug panel now also shows `Player identity source` and `Device identity sou
 
 - `android_stable`: a fresh Android install is using the hashed Android-backed identity path
 - `legacy_cache`: this install is still using an older cached random id from before the stable-id rollout
-- `local_fallback`: the app could not resolve an Android-stable id and fell back to a local random id
+- `android_pending`: the app is still waiting for the canonical stable Android id, so cloud restore/save/push registration are paused instead of minting a new account
+
+In current Android builds, the intended long-term state is `android_stable`. `android_pending` should be temporary during startup. If it persists, the device identity path is failing to resolve and cloud operations will remain blocked until that is fixed.
 
 If `family_push_delivery_log.device_id` and `family_push_delivery_log.fcm_token` are `NULL`, the backend did run, but there were no registered devices for the target player. Check `family_push_devices` next:
 
