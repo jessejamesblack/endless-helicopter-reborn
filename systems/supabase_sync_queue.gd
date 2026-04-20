@@ -76,6 +76,55 @@ func pull_remote_profile_state(replace_existing_state: bool = false) -> void:
 func pull_remote_profile_state_async(replace_existing_state: bool = false) -> Dictionary:
 	return await _pull_remote_state(replace_existing_state)
 
+func migrate_player_identity_async(old_player_id: String, new_player_id: String, old_device_id: String = "", new_device_id: String = "") -> Dictionary:
+	var outcome := {
+		"ok": false,
+		"migrated": false,
+		"profile_migrated": false,
+		"leaderboard_migrated": false,
+		"error_message": "Could not migrate progress right now.",
+	}
+	if not OnlineLeaderboardScript.is_configured():
+		outcome["error_message"] = "Online restore is not configured in this build."
+		return outcome
+	if _is_cloud_access_blocked():
+		outcome["error_message"] = _cloud_access_blocked_reason
+		return outcome
+	var clean_old_player_id := old_player_id.strip_edges()
+	var clean_new_player_id := new_player_id.strip_edges()
+	if clean_old_player_id.is_empty() or clean_new_player_id.is_empty():
+		outcome["error_message"] = "Both player IDs are required for migration."
+		return outcome
+
+	var response := await _request_json(
+		_pull_request,
+		OnlineLeaderboardScript.get_migrate_player_identity_url(),
+		HTTPClient.METHOD_POST,
+		OnlineLeaderboardScript.make_migrate_player_identity_body_for_ids(
+			clean_old_player_id,
+			clean_new_player_id,
+			old_device_id,
+			new_device_id
+		)
+	)
+	if _handle_upgrade_required_response("migrate_player_identity", response):
+		outcome["error_message"] = _cloud_access_blocked_reason
+		return outcome
+	if not _is_success_response(response):
+		outcome["error_message"] = _response_error_text(response)
+		return outcome
+
+	var parsed = JSON.parse_string((response.get("body", PackedByteArray()) as PackedByteArray).get_string_from_utf8())
+	var parsed_dictionary: Dictionary = parsed if parsed is Dictionary else {}
+	outcome["ok"] = true
+	outcome["migrated"] = bool(parsed_dictionary.get("migrated", false))
+	outcome["profile_migrated"] = bool(parsed_dictionary.get("profile_migrated", false))
+	outcome["leaderboard_migrated"] = bool(parsed_dictionary.get("leaderboard_migrated", false))
+	outcome["family_id"] = str(parsed_dictionary.get("family_id", OnlineLeaderboardScript.FAMILY_ID))
+	outcome["player_id"] = str(parsed_dictionary.get("player_id", clean_new_player_id))
+	outcome["device_id"] = str(parsed_dictionary.get("device_id", new_device_id.strip_edges()))
+	return outcome
+
 func get_pending_count() -> int:
 	return _jobs.size()
 

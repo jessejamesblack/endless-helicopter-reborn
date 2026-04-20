@@ -274,6 +274,12 @@ static func load_or_create_player_id() -> String:
 		return manual_override
 	return AndroidIdentityScript.load_or_create_player_id()
 
+static func load_canonical_player_id() -> String:
+	return AndroidIdentityScript.load_or_create_player_id()
+
+static func load_canonical_device_id() -> String:
+	return AndroidIdentityScript.load_or_create_device_id()
+
 static func get_player_identity_source() -> String:
 	if has_manual_player_id_override():
 		return PLAYER_ID_SOURCE_MANUAL_OVERRIDE
@@ -300,6 +306,14 @@ static func is_remote_profile_identity_ready() -> bool:
 
 static func is_current_player_id_ready_for_cloud() -> bool:
 	return not load_or_create_player_id().strip_edges().is_empty() and is_remote_profile_identity_ready()
+
+static func is_canonical_player_id_ready_for_cloud() -> bool:
+	var canonical_player_id := load_canonical_player_id().strip_edges()
+	if canonical_player_id.is_empty():
+		return false
+	if OS.get_name() != "Android":
+		return true
+	return bool(AndroidIdentityScript.get_player_identity_info().get("remote_ready", false))
 
 static func has_pending_remote_identity_migration() -> bool:
 	if has_manual_player_id_override():
@@ -358,14 +372,22 @@ static func get_migrate_player_identity_url() -> String:
 
 static func make_migrate_player_identity_body() -> String:
 	var migration := get_pending_remote_identity_migration()
+	return make_migrate_player_identity_body_for_ids(
+		str(migration.get("old_player_id", "")),
+		str(migration.get("new_player_id", "")),
+		str(migration.get("old_device_id", "")),
+		str(migration.get("new_device_id", "")),
+	)
+
+static func make_migrate_player_identity_body_for_ids(old_player_id: String, new_player_id: String, old_device_id: String = "", new_device_id: String = "") -> String:
 	return JSON.stringify({
 		"current_version_code": int(BuildInfoScript.VERSION_CODE),
 		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
-		"p_old_player_id": str(migration.get("old_player_id", "")),
-		"p_new_player_id": str(migration.get("new_player_id", "")),
-		"p_old_device_id": str(migration.get("old_device_id", "")),
-		"p_new_device_id": str(migration.get("new_device_id", "")),
+		"p_old_player_id": old_player_id.strip_edges(),
+		"p_new_player_id": new_player_id.strip_edges(),
+		"p_old_device_id": old_device_id.strip_edges(),
+		"p_new_device_id": new_device_id.strip_edges(),
 	})
 
 static func make_mark_notifications_read_body() -> String:

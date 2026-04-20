@@ -449,8 +449,18 @@ func _restore_progress_async() -> void:
 	if not OnlineLeaderboardScript.is_configured():
 		_refresh_restore_progress_section("Online restore is not configured in this build.")
 		return
+	var sync_queue = _get_sync_queue()
+	if sync_queue == null:
+		_refresh_restore_progress_section("Restore service is not available right now.")
+		return
 	var active_player_id_before_restore := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
+	var canonical_player_id := OnlineLeaderboardScript.load_canonical_player_id().strip_edges()
+	var canonical_device_id := OnlineLeaderboardScript.load_canonical_device_id().strip_edges()
+	var canonical_player_ready := OnlineLeaderboardScript.is_canonical_player_id_ready_for_cloud()
 	var entered_player_id := ""
+	var pasted_player_id := ""
+	var using_temporary_manual_restore := false
+	var permanently_bound_to_device := false
 	if is_instance_valid(restore_player_id_entry):
 		entered_player_id = restore_player_id_entry.text.strip_edges()
 	if not entered_player_id.is_empty():
@@ -459,17 +469,39 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section(str(validation.get("error", "Enter a valid player ID.")))
 			return
 		var validated_player_id := str(validation.get("player_id", ""))
-		if validated_player_id != active_player_id_before_restore:
-			_clear_pending_sync_jobs()
-		OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
-		restore_player_id_entry.text = validated_player_id
+		pasted_player_id = validated_player_id
+		if canonical_player_ready and not canonical_player_id.is_empty():
+			if validated_player_id != canonical_player_id:
+				_clear_pending_sync_jobs()
+				_restore_progress_in_flight = true
+				_refresh_restore_progress_section("Migrating cloud progress from player ID %s to this phone's player ID %s..." % [
+					validated_player_id,
+					canonical_player_id,
+				])
+				var migration_result := {
+					"ok": false,
+					"error_message": "Could not migrate that player ID onto this phone yet.",
+				}
+				if sync_queue.has_method("migrate_player_identity_async"):
+					migration_result = await sync_queue.migrate_player_identity_async(validated_player_id, canonical_player_id, "", canonical_device_id)
+				_restore_progress_in_flight = false
+				if not bool(migration_result.get("ok", false)):
+					_refresh_restore_progress_section(str(migration_result.get("error_message", "Could not migrate that player ID onto this phone yet.")))
+					return
+				permanently_bound_to_device = true
+			OnlineLeaderboardScript.clear_manual_player_id_override()
+			if is_instance_valid(restore_player_id_entry):
+				restore_player_id_entry.text = ""
+		else:
+			if validated_player_id != active_player_id_before_restore:
+				_clear_pending_sync_jobs()
+			OnlineLeaderboardScript.save_manual_player_id_override(validated_player_id)
+			if is_instance_valid(restore_player_id_entry):
+				restore_player_id_entry.text = validated_player_id
+			using_temporary_manual_restore = true
 	var player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
 	if player_id.is_empty() or (entered_player_id.is_empty() and not OnlineLeaderboardScript.is_current_player_id_ready_for_cloud()):
 		_refresh_restore_progress_section("This phone is still waiting for its stable Android player ID. Paste one from support or try again in a moment.")
-		return
-	var sync_queue = _get_sync_queue()
-	if sync_queue == null:
-		_refresh_restore_progress_section("Restore service is not available right now.")
 		return
 	_restore_progress_in_flight = true
 	_refresh_restore_progress_section("Checking cloud saves for player ID %s..." % player_id)
@@ -490,14 +522,41 @@ func _restore_progress_async() -> void:
 		return
 	var profile_restored := bool(restore_result.get("profile_restored", false))
 	var mission_restored := bool(restore_result.get("mission_restored", false))
+	var push_notifications = _get_push_notifications()
+	if permanently_bound_to_device and push_notifications != null and push_notifications.has_method("register_device_for_push"):
+		push_notifications.register_device_for_push()
 	if profile_restored and mission_restored:
+		if permanently_bound_to_device:
+			_refresh_restore_progress_section("Profile and daily progress restored from cloud and permanently linked to this phone's player ID %s." % player_id)
+			return
+		if using_temporary_manual_restore:
+			_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s. This install is using that pasted ID until this phone's stable Android ID is ready." % player_id)
+			return
 		_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s." % player_id)
 		return
 	if profile_restored:
+		if permanently_bound_to_device:
+			_refresh_restore_progress_section("Profile restored from cloud and permanently linked to this phone's player ID %s." % player_id)
+			return
+		if using_temporary_manual_restore:
+			_refresh_restore_progress_section("Profile restored from cloud for player ID %s. This install is using that pasted ID until this phone's stable Android ID is ready." % player_id)
+			return
 		_refresh_restore_progress_section("Profile restored from cloud for player ID %s." % player_id)
 		return
 	if mission_restored:
+		if permanently_bound_to_device:
+			_refresh_restore_progress_section("Daily mission progress restored from cloud and tied to this phone's player ID %s, but no saved profile was found." % player_id)
+			return
+		if using_temporary_manual_restore:
+			_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but this install is still temporarily using the pasted player ID." % player_id)
+			return
 		_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but no saved profile was found." % player_id)
+		return
+	if permanently_bound_to_device:
+		_refresh_restore_progress_section("No saved progress was found for player ID %s, so nothing was linked to this phone's player ID %s." % [
+			pasted_player_id,
+			player_id,
+		])
 		return
 	_refresh_restore_progress_section("No saved progress was found for player ID %s. Double-check the pasted player ID with support and try again." % player_id)
 
