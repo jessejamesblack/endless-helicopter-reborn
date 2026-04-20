@@ -173,6 +173,10 @@ func _run_validation() -> void:
 	_assert(sql_text.contains("create or replace function public.migrate_player_identity"), "Supabase restore SQL should define migrate_player_identity.")
 	_assert(sql_text.contains("family_push_devices"), "Identity migration should update push device ownership.")
 	_assert(sql_text.contains("family_daily_mission_progress"), "Identity migration should merge daily mission progress.")
+	_assert(sql_text.contains("set player_id = p_new_player_id"), "Identity migration should rebind leaderboard rows in place when the old row wins.")
+	_assert(sql_text.contains("delete from public.family_leaderboard\n\t\t\t\twhere family_id = p_family_id\n\t\t\t\t  and player_id = p_new_player_id;"), "Identity migration should clear conflicting target leaderboard rows before rebinding the old row.")
+	_assert(sql_text.contains("and fcm_token = device_row.fcm_token"), "Identity migration should clear conflicting push-device rows that already own the same FCM token.")
+	_assert(sql_text.contains("where id = device_row.id;"), "Identity migration should rebind push-device rows in place instead of inserting duplicate token rows.")
 
 	var build_info_text := Helper.read_text("res://systems/build_info.gd")
 	_assert(build_info_text.contains("APP_PACKAGE_NAME"), "BuildInfo should expose the canonical Android package name for stable identity fallback.")
