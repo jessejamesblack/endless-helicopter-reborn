@@ -258,7 +258,7 @@ jobs:
           retention-days: 14
 
       - name: Publish GitHub releases
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -280,7 +280,7 @@ jobs:
           gh release upload android-latest "$STANDARD_APK_PATH" --clobber
 
       - name: Publish release metadata to Supabase
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -323,7 +323,7 @@ jobs:
           JSON
 
       - name: Send app update push
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -362,7 +362,7 @@ jobs:
           JSON
 
       - name: Post Discord release message
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
         env:
           DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}

@@ -205,7 +205,7 @@ The Android push bridge now uses two paths on purpose:
 - the normal Godot plugin singleton: `FCMPushBridge`
 - a static compatibility bridge: `com.endlesshelicopter.push.FcmPushBridgeCompat`
 
-The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available.
+The compatibility bridge exists because some Android exports can load the plugin but still fail Godot-side method detection or Android runtime lookup early in app startup. The compat path lets `systems/push_notifications.gd` call plain Kotlin static methods through `JavaClassWrapper`, while the Kotlin side caches Android `Activity` and application `Context` as soon as they are available. The GDScript fallback now also tries Godot's own Android unique ID before using lower-level `Settings.Secure` wrappers, so reinstall-stable identity can still resolve even when the Java wrapper path is delayed or unavailable.
 
 In practice, this means:
 
@@ -214,7 +214,8 @@ In practice, this means:
 - `Android runtime available: yes` means Godot exposed Android runtime objects directly to GDScript for this session
 - push can still work even if `Android runtime available` is `no`, because the compat bridge also keeps its own cached context fallback
 - fresh Android installs now derive both `player_id` and `device_id` from a hashed Android-backed stable id, so reinstalls on the same signed app keep push and leaderboard identity aligned
-- existing installs keep any cached local ids they already had; this stabilizes identity going forward, but it does not migrate old server-side player ids automatically
+- Android no longer creates random fallback cloud identities; if the stable Android id is not ready yet, remote restore/save/push registration waits instead of minting a new account
+- existing installs with legacy cached ids now wait for the stable Android id, migrate server-side ownership to the canonical stable ids, and then resume restore/sync/push registration
 
 ## 8. Export Or Download The APK
 

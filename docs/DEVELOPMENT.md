@@ -44,6 +44,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - Workflow: `.github/workflows/android-apk.yml`
 - Pull requests to `main` run validation and produce an APK artifact.
 - Pushes to `main` run validation, build an Android APK, and update the rolling release.
+- Manual workflow runs only publish a release when they target `main`; branch and PR runs stay artifact-only.
 - CI also builds the Android FCM plugin AARs before exporting the APK.
 - Outputs include a workflow artifact containing the generated APK.
 - Outputs also include a rolling GitHub prerelease: `Endless-Helicopter-Reborn Latest APK`.

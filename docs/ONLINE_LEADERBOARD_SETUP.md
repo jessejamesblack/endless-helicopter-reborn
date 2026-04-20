@@ -61,7 +61,8 @@ If you want one world-wide board for everyone who installs the app, set:
 
 ## What The Leaderboard Does
 
-- Each device gets a persistent player id.
+- Android devices derive a reinstall-stable player id from the signed app package plus the device's Android-backed stable id, first through the Android bridge and then through Godot's own Android unique-ID fallback if needed.
+- Existing legacy Android installs migrate old cached player ids to the canonical stable id the first time the stable id resolves.
 - Each device saves a public player name locally after the first submitted run.
 - Player names use a simple profanity filter.
 - The database enforces unique public names within a leaderboard.
@@ -73,4 +74,4 @@ If you want one world-wide board for everyone who installs the app, set:
 - This is intentionally lightweight and uses a public client key.
 - Anyone with the app and your `FAMILY_ID` can submit scores to that board.
 - For a casual shared board, this is fine.
-- For cheat-resistant competition, you would eventually want accounts or signed server-side score validation.
+- For cheat-resistant competition, you would eventually want signed server-side score validation or a stronger account model.

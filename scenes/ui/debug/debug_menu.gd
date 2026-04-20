@@ -257,8 +257,8 @@ func _set_detail_labels(status: Dictionary, push_notifications) -> void:
 	compat_value_label.text = _yes_no(bool(status.get("compat_bridge_available", false)))
 	firebase_value_label.text = firebase_text
 	permission_value_label.text = _yes_no(bool(status.get("permission_granted", false)))
-	player_identity_value_label.text = str(status.get("player_identity_source", "unknown"))
-	device_identity_value_label.text = str(status.get("device_identity_source", "unknown"))
+	player_identity_value_label.text = OnlineLeaderboardScript.get_identity_source_label(str(status.get("player_identity_source", "unknown")))
+	device_identity_value_label.text = OnlineLeaderboardScript.get_identity_source_label(str(status.get("device_identity_source", "unknown")))
 	remote_identity_value_label.text = _yes_no(bool(status.get("remote_identity_ready", false)))
 	identity_migration_value_label.text = _yes_no(bool(status.get("identity_migration_pending", false)))
 	device_id_value_label.text = _get_device_id_for_debug(push_notifications)
@@ -425,7 +425,7 @@ func _yes_no(value: bool) -> String:
 func _update_cached_name_label() -> void:
 	var cached_name := OnlineLeaderboardScript.load_cached_name()
 	var player_id := OnlineLeaderboardScript.get_player_id_for_display()
-	var source_text := str(OnlineLeaderboardScript.get_player_identity_source())
+	var source_text := OnlineLeaderboardScript.get_player_identity_source_label()
 	var name_text := "(not set)" if cached_name.is_empty() else cached_name
 	var lines := PackedStringArray([
 		"Cached leaderboard name: %s" % name_text,

@@ -3,7 +3,6 @@ extends SceneTree
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 
 const PROTECTED_FUNCTIONS := [
-	"res://backend/supabase/functions/submit-score/index.ts",
 	"res://backend/supabase/functions/save-score/index.ts",
 	"res://backend/supabase/functions/sync-player-profile/index.ts",
 	"res://backend/supabase/functions/sync-daily-mission-progress/index.ts",

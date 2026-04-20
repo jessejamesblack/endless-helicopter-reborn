@@ -787,83 +787,72 @@ begin
 	end if;
 
 	if leaderboard_choice <> '' then
-		insert into public.family_leaderboard (
-			family_id,
-			player_id,
-			name,
-			score,
-			run_summary,
-			equipped_skin_id,
-			time_survived,
-			missiles_fired,
-			hostiles_destroyed,
-			ammo_pickups_collected,
-			glowing_rocks_triggered,
-			boundary_bounces,
-			near_misses,
-			hostile_near_misses,
-			projectile_near_misses,
-			skill_score,
-			max_combo_multiplier,
-			max_combo_events,
-			missile_hits,
-			missile_misses,
-			max_missile_hit_streak,
-			projectile_intercepts,
-			equipped_vehicle_id,
-			equipped_vehicle_skin_id
-		)
-		values (
-			p_family_id,
-			p_new_player_id,
-			case when leaderboard_choice = 'old' then old_leaderboard.name else new_leaderboard.name end,
-			case when leaderboard_choice = 'old' then old_leaderboard.score else new_leaderboard.score end,
-			case when leaderboard_choice = 'old' then old_leaderboard.run_summary else new_leaderboard.run_summary end,
-			case when leaderboard_choice = 'old' then old_leaderboard.equipped_skin_id else new_leaderboard.equipped_skin_id end,
-			case when leaderboard_choice = 'old' then old_leaderboard.time_survived else new_leaderboard.time_survived end,
-			case when leaderboard_choice = 'old' then old_leaderboard.missiles_fired else new_leaderboard.missiles_fired end,
-			case when leaderboard_choice = 'old' then old_leaderboard.hostiles_destroyed else new_leaderboard.hostiles_destroyed end,
-			case when leaderboard_choice = 'old' then old_leaderboard.ammo_pickups_collected else new_leaderboard.ammo_pickups_collected end,
-			case when leaderboard_choice = 'old' then old_leaderboard.glowing_rocks_triggered else new_leaderboard.glowing_rocks_triggered end,
-			case when leaderboard_choice = 'old' then old_leaderboard.boundary_bounces else new_leaderboard.boundary_bounces end,
-			case when leaderboard_choice = 'old' then old_leaderboard.near_misses else new_leaderboard.near_misses end,
-			case when leaderboard_choice = 'old' then old_leaderboard.hostile_near_misses else new_leaderboard.hostile_near_misses end,
-			case when leaderboard_choice = 'old' then old_leaderboard.projectile_near_misses else new_leaderboard.projectile_near_misses end,
-			case when leaderboard_choice = 'old' then old_leaderboard.skill_score else new_leaderboard.skill_score end,
-			case when leaderboard_choice = 'old' then old_leaderboard.max_combo_multiplier else new_leaderboard.max_combo_multiplier end,
-			case when leaderboard_choice = 'old' then old_leaderboard.max_combo_events else new_leaderboard.max_combo_events end,
-			case when leaderboard_choice = 'old' then old_leaderboard.missile_hits else new_leaderboard.missile_hits end,
-			case when leaderboard_choice = 'old' then old_leaderboard.missile_misses else new_leaderboard.missile_misses end,
-			case when leaderboard_choice = 'old' then old_leaderboard.max_missile_hit_streak else new_leaderboard.max_missile_hit_streak end,
-			case when leaderboard_choice = 'old' then old_leaderboard.projectile_intercepts else new_leaderboard.projectile_intercepts end,
-			case when leaderboard_choice = 'old' then old_leaderboard.equipped_vehicle_id else new_leaderboard.equipped_vehicle_id end,
-			case when leaderboard_choice = 'old' then old_leaderboard.equipped_vehicle_skin_id else new_leaderboard.equipped_vehicle_skin_id end
-		)
-		on conflict (family_id, player_id)
-		do update set
-			name = excluded.name,
-			score = excluded.score,
-			run_summary = excluded.run_summary,
-			equipped_skin_id = excluded.equipped_skin_id,
-			time_survived = excluded.time_survived,
-			missiles_fired = excluded.missiles_fired,
-			hostiles_destroyed = excluded.hostiles_destroyed,
-			ammo_pickups_collected = excluded.ammo_pickups_collected,
-			glowing_rocks_triggered = excluded.glowing_rocks_triggered,
-			boundary_bounces = excluded.boundary_bounces,
-			near_misses = excluded.near_misses,
-			hostile_near_misses = excluded.hostile_near_misses,
-			projectile_near_misses = excluded.projectile_near_misses,
-			skill_score = excluded.skill_score,
-			max_combo_multiplier = excluded.max_combo_multiplier,
-			max_combo_events = excluded.max_combo_events,
-			missile_hits = excluded.missile_hits,
-			missile_misses = excluded.missile_misses,
-			max_missile_hit_streak = excluded.max_missile_hit_streak,
-			projectile_intercepts = excluded.projectile_intercepts,
-			equipped_vehicle_id = excluded.equipped_vehicle_id,
-			equipped_vehicle_skin_id = excluded.equipped_vehicle_skin_id,
-			updated_at = now();
+		if leaderboard_choice = 'old' then
+			if p_old_player_id <> '' and p_old_player_id <> p_new_player_id then
+				delete from public.family_leaderboard
+				where family_id = p_family_id
+				  and player_id = p_new_player_id;
+			end if;
+
+			update public.family_leaderboard
+			set player_id = p_new_player_id,
+				score = old_leaderboard.score,
+				run_summary = old_leaderboard.run_summary,
+				equipped_skin_id = old_leaderboard.equipped_skin_id,
+				time_survived = old_leaderboard.time_survived,
+				missiles_fired = old_leaderboard.missiles_fired,
+				hostiles_destroyed = old_leaderboard.hostiles_destroyed,
+				ammo_pickups_collected = old_leaderboard.ammo_pickups_collected,
+				glowing_rocks_triggered = old_leaderboard.glowing_rocks_triggered,
+				boundary_bounces = old_leaderboard.boundary_bounces,
+				near_misses = old_leaderboard.near_misses,
+				hostile_near_misses = old_leaderboard.hostile_near_misses,
+				projectile_near_misses = old_leaderboard.projectile_near_misses,
+				skill_score = old_leaderboard.skill_score,
+				max_combo_multiplier = old_leaderboard.max_combo_multiplier,
+				max_combo_events = old_leaderboard.max_combo_events,
+				missile_hits = old_leaderboard.missile_hits,
+				missile_misses = old_leaderboard.missile_misses,
+				max_missile_hit_streak = old_leaderboard.max_missile_hit_streak,
+				projectile_intercepts = old_leaderboard.projectile_intercepts,
+				equipped_vehicle_id = old_leaderboard.equipped_vehicle_id,
+				equipped_vehicle_skin_id = old_leaderboard.equipped_vehicle_skin_id,
+				updated_at = now()
+			where family_id = p_family_id
+			  and player_id = p_old_player_id;
+		else
+			if p_old_player_id <> '' and p_old_player_id <> p_new_player_id then
+				delete from public.family_leaderboard
+				where family_id = p_family_id
+				  and player_id = p_old_player_id;
+			end if;
+
+			update public.family_leaderboard
+			set score = new_leaderboard.score,
+				run_summary = new_leaderboard.run_summary,
+				equipped_skin_id = new_leaderboard.equipped_skin_id,
+				time_survived = new_leaderboard.time_survived,
+				missiles_fired = new_leaderboard.missiles_fired,
+				hostiles_destroyed = new_leaderboard.hostiles_destroyed,
+				ammo_pickups_collected = new_leaderboard.ammo_pickups_collected,
+				glowing_rocks_triggered = new_leaderboard.glowing_rocks_triggered,
+				boundary_bounces = new_leaderboard.boundary_bounces,
+				near_misses = new_leaderboard.near_misses,
+				hostile_near_misses = new_leaderboard.hostile_near_misses,
+				projectile_near_misses = new_leaderboard.projectile_near_misses,
+				skill_score = new_leaderboard.skill_score,
+				max_combo_multiplier = new_leaderboard.max_combo_multiplier,
+				max_combo_events = new_leaderboard.max_combo_events,
+				missile_hits = new_leaderboard.missile_hits,
+				missile_misses = new_leaderboard.missile_misses,
+				max_missile_hit_streak = new_leaderboard.max_missile_hit_streak,
+				projectile_intercepts = new_leaderboard.projectile_intercepts,
+				equipped_vehicle_id = new_leaderboard.equipped_vehicle_id,
+				equipped_vehicle_skin_id = new_leaderboard.equipped_vehicle_skin_id,
+				updated_at = now()
+			where family_id = p_family_id
+			  and player_id = p_new_player_id;
+		end if;
 	end if;
 
 	if p_old_player_id <> '' and p_old_player_id <> p_new_player_id then
@@ -909,40 +898,36 @@ begin
 			when p_old_device_id <> '' and p_new_device_id <> '' and device_row.device_id = p_old_device_id then p_new_device_id
 			else device_row.device_id
 		end;
-		insert into public.family_push_devices (
-			family_id,
-			player_id,
-			device_id,
-			fcm_token,
-			platform,
-			device_label,
-			notifications_enabled,
-			daily_missions_enabled,
-			last_seen_at
-		)
-		values (
-			p_family_id,
-			resolved_player_id,
-			resolved_device_id,
-			device_row.fcm_token,
-			device_row.platform,
-			device_row.device_label,
-			device_row.notifications_enabled,
-			device_row.daily_missions_enabled,
-			device_row.last_seen_at
-		)
-		on conflict (family_id, player_id, device_id)
-		do update set
-			fcm_token = coalesce(excluded.fcm_token, public.family_push_devices.fcm_token),
-			platform = coalesce(excluded.platform, public.family_push_devices.platform),
-			device_label = coalesce(excluded.device_label, public.family_push_devices.device_label),
-			notifications_enabled = excluded.notifications_enabled,
-			daily_missions_enabled = excluded.daily_missions_enabled,
+		if coalesce(device_row.fcm_token, '') <> '' then
+			delete from public.family_push_devices
+			where fcm_token = device_row.fcm_token
+			  and id <> device_row.id
+			  and (
+				family_id <> p_family_id
+				or player_id <> resolved_player_id
+				or device_id <> resolved_device_id
+			  );
+		end if;
+		delete from public.family_push_devices
+		where family_id = p_family_id
+		  and player_id = resolved_player_id
+		  and device_id = resolved_device_id
+		  and id <> device_row.id;
+		update public.family_push_devices
+		set family_id = p_family_id,
+			player_id = resolved_player_id,
+			device_id = resolved_device_id,
+			fcm_token = coalesce(device_row.fcm_token, public.family_push_devices.fcm_token),
+			platform = coalesce(device_row.platform, public.family_push_devices.platform),
+			device_label = coalesce(device_row.device_label, public.family_push_devices.device_label),
+			notifications_enabled = device_row.notifications_enabled,
+			daily_missions_enabled = device_row.daily_missions_enabled,
 			last_seen_at = greatest(
-				coalesce(public.family_push_devices.last_seen_at, excluded.last_seen_at),
-				coalesce(excluded.last_seen_at, public.family_push_devices.last_seen_at)
+				coalesce(public.family_push_devices.last_seen_at, device_row.last_seen_at),
+				coalesce(device_row.last_seen_at, public.family_push_devices.last_seen_at)
 			),
-			updated_at = now();
+			updated_at = now()
+		where id = device_row.id;
 	end loop;
 
 	if p_old_player_id <> '' and p_old_player_id <> p_new_player_id then
