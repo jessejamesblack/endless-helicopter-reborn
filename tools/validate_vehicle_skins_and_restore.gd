@@ -188,6 +188,16 @@ func _run_validation() -> void:
 
 	var build_info_text := Helper.read_text("res://systems/build_info.gd")
 	_assert(build_info_text.contains("APP_PACKAGE_NAME"), "BuildInfo should expose the canonical Android package name for stable identity fallback.")
+	_assert(build_info_text.contains("SIGNING_MODE"), "BuildInfo should expose the Android signing mode used for continuity diagnostics.")
+	_assert(build_info_text.contains("is_identity_continuity_safe"), "BuildInfo should expose whether the current signing mode is continuity-safe.")
+
+	var export_text := Helper.read_text("res://tools/export_android.ps1")
+	_assert(export_text.contains("-AllowIdentityUnsafeBuild"), "Local Android export should require an explicit escape hatch for identity-unsafe builds.")
+	_assert(export_text.contains("release_stable"), "Local Android export should require a stable signing mode for continuity-safe builds.")
+
+	var workflow_text := Helper.read_text("res://.github/workflows/android-apk.yml")
+	_assert(not workflow_text.contains("SIGNING_KEY_MODE=temporary_debug"), "CI should no longer generate temporary-key Android artifacts.")
+	_assert(workflow_text.contains("A stable Android signing key is required for continuity-safe installs"), "CI should fail loudly when no canonical Android signing key is configured.")
 
 	var push_registration_text := Helper.read_text("res://backend/supabase/functions/register-push-device/index.ts")
 	_assert(push_registration_text.contains(".eq(\"device_id\", deviceId)"), "register-push-device should reconcile existing rows for the current device ID.")

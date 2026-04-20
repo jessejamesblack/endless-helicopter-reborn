@@ -3,7 +3,8 @@ param(
     [string]$OutputPath = (Join-Path $PSScriptRoot "..\systems\build_info.gd"),
     [string]$BuildSha = "",
     [string]$BuildDate = "",
-    [string]$ReleaseChannel = ""
+    [string]$ReleaseChannel = "",
+    [string]$SigningMode = ""
 )
 
 Set-StrictMode -Version Latest
@@ -53,6 +54,9 @@ if ([string]::IsNullOrWhiteSpace($BuildDate)) {
 if ([string]::IsNullOrWhiteSpace($ReleaseChannel)) {
     $ReleaseChannel = if ($env:RELEASE_CHANNEL) { $env:RELEASE_CHANNEL } else { "dev" }
 }
+if ([string]::IsNullOrWhiteSpace($SigningMode)) {
+    $SigningMode = if ($env:SIGNING_KEY_MODE) { $env:SIGNING_KEY_MODE } else { "local_unspecified" }
+}
 
 $buildInfo = @"
 extends RefCounted
@@ -64,6 +68,7 @@ const BUILD_SHA := "$BuildSha"
 const BUILD_DATE := "$BuildDate"
 const RELEASE_CHANNEL := "$ReleaseChannel"
 const APP_PACKAGE_NAME := "$appPackageName"
+const SIGNING_MODE := "$SigningMode"
 
 static func get_summary() -> Dictionary:
 	return {
@@ -73,13 +78,29 @@ static func get_summary() -> Dictionary:
 		"build_date": BUILD_DATE,
 		"release_channel": RELEASE_CHANNEL,
 		"app_package_name": APP_PACKAGE_NAME,
+		"signing_mode": SIGNING_MODE,
 	}
 
 static func get_version_label() -> String:
 	return "%s (%d)" % [VERSION_NAME, VERSION_CODE]
 
+static func get_signing_label() -> String:
+	match SIGNING_MODE:
+		"release_stable":
+			return "Stable release key"
+		"debug_stable":
+			return "Stable debug key"
+		"temporary_debug":
+			return "Temporary debug key"
+		"local_unspecified":
+			return "Local/unspecified key"
+	return SIGNING_MODE.replace("_", " ").capitalize()
+
+static func is_identity_continuity_safe() -> bool:
+	return SIGNING_MODE == "release_stable" or SIGNING_MODE == "debug_stable"
+
 static func get_debug_label() -> String:
-	return "%s | %s | %s" % [get_version_label(), BUILD_SHA, RELEASE_CHANNEL]
+	return "%s | %s | %s | %s" % [get_version_label(), BUILD_SHA, RELEASE_CHANNEL, SIGNING_MODE]
 "@
 
 Set-Content -Path $OutputPath -Value $buildInfo -Encoding ASCII

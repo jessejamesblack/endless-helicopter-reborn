@@ -143,10 +143,17 @@ func _refresh_support_state() -> void:
 		release_channel_option.set_block_signals(false)
 
 	update_status_label.text = "Update Status: %s" % _get_update_status_text()
-	build_info_label.text = "Version: %s\nBuild: %s\nChannel: %s" % [
+	var diagnostics := {}
+	var push_notifications = _get_push_notifications()
+	if push_notifications != null and push_notifications.has_method("get_diagnostics"):
+		diagnostics = push_notifications.get_diagnostics()
+	build_info_label.text = "Version: %s\nBuild: %s\nChannel: %s\nSigning: %s\nContinuity Safe: %s\nSigning Cert: %s" % [
 		BuildInfoScript.get_version_label(),
 		str(BuildInfoScript.BUILD_SHA),
 		_get_effective_release_channel_label(),
+		str(diagnostics.get("build_signing_label", BuildInfoScript.get_signing_label())),
+		"yes" if bool(diagnostics.get("identity_continuity_safe", BuildInfoScript.is_identity_continuity_safe())) else "no",
+		str(diagnostics.get("signing_certificate_sha256_preview", "(unavailable)")),
 	]
 	_update_cached_name_label()
 	release_channel_row.visible = OS.is_debug_build()

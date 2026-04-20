@@ -182,6 +182,11 @@ func get_diagnostics() -> Dictionary:
 	return {
 		"leaderboard_configured": OnlineLeaderboardScript.is_configured(),
 		"is_android": OS.get_name() == "Android",
+		"build_signing_mode": str(BuildInfoScript.SIGNING_MODE),
+		"build_signing_label": str(BuildInfoScript.get_signing_label()),
+		"identity_continuity_safe": bool(BuildInfoScript.is_identity_continuity_safe()),
+		"app_package_name": str(BuildInfoScript.APP_PACKAGE_NAME),
+		"signing_certificate_sha256_preview": _get_signing_certificate_preview(),
 		"plugin_loaded": _plugin != null or _compat_bridge != null,
 		"compat_bridge_available": _compat_bridge != null,
 		"player_identity_source": OnlineLeaderboardScript.get_player_identity_source(),
@@ -242,6 +247,10 @@ func get_debug_report() -> String:
 	var lines := PackedStringArray([
 		"Debug build: %s" % _yes_no(OS.is_debug_build()),
 		"Platform: %s" % OS.get_name(),
+		"App package: %s" % str(status.get("app_package_name", BuildInfoScript.APP_PACKAGE_NAME)),
+		"Signing mode: %s" % str(status.get("build_signing_label", BuildInfoScript.get_signing_label())),
+		"Identity continuity safe: %s" % _yes_no(bool(status.get("identity_continuity_safe", false))),
+		"Signing certificate SHA-256: %s" % str(status.get("signing_certificate_sha256_preview", "(unavailable)")),
 		"Leaderboard configured: %s" % _yes_no(bool(status["leaderboard_configured"])),
 		"Plugin loaded: %s" % _yes_no(bool(status["plugin_loaded"])),
 		"Compat bridge available: %s" % _yes_no(bool(status["compat_bridge_available"])),
@@ -647,6 +656,19 @@ func _get_plugin_string_value(method_names: PackedStringArray, property_names: P
 			return str(property_value).strip_edges()
 
 	return ""
+
+func _get_signing_certificate_preview() -> String:
+	var signing_certificate := ""
+	if _compat_bridge != null:
+		var context = _get_android_context()
+		signing_certificate = str(_compat_bridge.getSigningCertificateSha256(context)).strip_edges() if context != null else str(_compat_bridge.getSigningCertificateSha256()).strip_edges()
+	elif _plugin != null and _plugin.has_method("getSigningCertificateSha256"):
+		signing_certificate = str(_plugin.getSigningCertificateSha256()).strip_edges()
+	if signing_certificate.is_empty():
+		return "(unavailable)"
+	if signing_certificate.length() <= 16:
+		return signing_certificate
+	return "%s...%s" % [signing_certificate.substr(0, 12), signing_certificate.substr(signing_certificate.length() - 8, 8)]
 
 func _emit_diagnostics() -> void:
 	diagnostics_changed.emit(get_diagnostics())

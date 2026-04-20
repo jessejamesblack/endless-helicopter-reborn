@@ -200,6 +200,16 @@ object FcmPushBridgeCore {
         return getStableDeviceId(context)
     }
 
+    fun getSigningCertificateSha256(context: Context): String {
+        rememberContext(context)
+        return resolveSigningCertificateSha256(context)
+    }
+
+    fun getSigningCertificateSha256(): String {
+        val context = resolveApplicationContext() ?: return ""
+        return getSigningCertificateSha256(context)
+    }
+
     fun consumeLaunchPayload(): String {
         val activity = resolveCurrentActivity() ?: return ""
         return consumeLaunchPayload(activity)
@@ -339,6 +349,44 @@ object FcmPushBridgeCore {
         return prefix + sha256Hex(rawValue).take(24)
     }
 
+    private fun resolveSigningCertificateSha256(context: Context): String {
+        return try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNATURES,
+                )
+            }
+
+            val signatureBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val signingInfo = packageInfo.signingInfo ?: return ""
+                val signatures = if (signingInfo.hasMultipleSigners()) {
+                    signingInfo.apkContentsSigners
+                } else {
+                    signingInfo.signingCertificateHistory
+                }
+                signatures.firstOrNull()?.toByteArray()
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures?.firstOrNull()?.toByteArray()
+            }
+
+            if (signatureBytes == null || signatureBytes.isEmpty()) {
+                ""
+            } else {
+                sha256Hex(signatureBytes)
+            }
+        } catch (_error: Throwable) {
+            ""
+        }
+    }
+
     private fun resolveAndroidId(context: Context): String {
         val androidId = Settings.Secure.getString(
             context.contentResolver,
@@ -358,8 +406,12 @@ object FcmPushBridgeCore {
     }
 
     private fun sha256Hex(value: String): String {
+        return sha256Hex(value.toByteArray(Charsets.UTF_8))
+    }
+
+    private fun sha256Hex(value: ByteArray): String {
         val digest = MessageDigest.getInstance("SHA-256")
-            .digest(value.toByteArray(Charsets.UTF_8))
+            .digest(value)
         return digest.joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
     }
 }

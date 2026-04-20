@@ -79,11 +79,6 @@ jobs:
             echo "STANDARD_APK_PATH=$STANDARD_APK_PATH"
           } >> "$GITHUB_ENV"
 
-      - name: Generate runtime build info
-        shell: pwsh
-        run: |
-          & ./tools/generate_build_info.ps1 -BuildSha "$env:BUILD_SHA_SHORT" -BuildDate "$env:BUILD_DATE" -ReleaseChannel "$env:RELEASE_CHANNEL"
-
       - name: Prepare Firebase Android config
         shell: bash
         run: |
@@ -163,25 +158,8 @@ jobs:
             KEYSTORE_PATH="$RUNNER_TEMP/android-debug.keystore"
             KEYSTORE_PASS="${{ secrets.ANDROID_DEBUG_KEYSTORE_PASSWORD }}"
           else
-            keytool -genkeypair -v \
-              -keystore "$RUNNER_TEMP/android-debug.keystore" \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-            {
-              echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$RUNNER_TEMP/android-debug.keystore"
-              echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey"
-              echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android"
-              echo "BUILD_KIND=debug"
-              echo "SIGNING_KEY_MODE=temporary_debug"
-            } >> "$GITHUB_ENV"
-            KEYSTORE_PATH="$RUNNER_TEMP/android-debug.keystore"
-            KEYSTORE_PASS="android"
-            echo "::warning::No stable Android signing secrets were provided. This artifact uses a temporary debug keystore and should be treated as a non-restorable test build."
+            echo "::error::A stable Android signing key is required for continuity-safe installs. Configure either ANDROID_KEYSTORE_* for the canonical release key or ANDROID_DEBUG_KEYSTORE_* for a canonical debug key."
+            exit 1
           fi
 
           cat > "$HOME/.config/godot/editor_settings-4.6.tres" <<EOF
@@ -193,6 +171,11 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
           EOF
+
+      - name: Generate runtime build info
+        shell: pwsh
+        run: |
+          & ./tools/generate_build_info.ps1 -BuildSha "$env:BUILD_SHA_SHORT" -BuildDate "$env:BUILD_DATE" -ReleaseChannel "$env:RELEASE_CHANNEL" -SigningMode "$env:SIGNING_KEY_MODE"
 
       - name: Validate project scripts
         shell: pwsh
@@ -208,10 +191,10 @@ jobs:
           "APK_OUTPUT=$output" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           if ($env:BUILD_KIND -eq "release") {
-            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -Release -BuildSha $env:BUILD_SHA_SHORT -BuildDate $env:BUILD_DATE -ReleaseChannel $env:RELEASE_CHANNEL
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -Release -BuildSha $env:BUILD_SHA_SHORT -BuildDate $env:BUILD_DATE -ReleaseChannel $env:RELEASE_CHANNEL -SigningMode $env:SIGNING_KEY_MODE
           }
           else {
-            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -BuildSha $env:BUILD_SHA_SHORT -BuildDate $env:BUILD_DATE -ReleaseChannel $env:RELEASE_CHANNEL
+            & ./tools/export_android.ps1 -GodotBin $godot -Preset "Android" -Output $output -BuildSha $env:BUILD_SHA_SHORT -BuildDate $env:BUILD_DATE -ReleaseChannel $env:RELEASE_CHANNEL -SigningMode $env:SIGNING_KEY_MODE
           }
 
       - name: Compute release artifacts
@@ -262,20 +245,12 @@ jobs:
             echo "- Build SHA: ${BUILD_SHA_SHORT}"
             echo "- Channel: ${RELEASE_CHANNEL}"
             echo "- Release page: ${RELEASE_URL}"
-            if [[ "${SIGNING_KEY_MODE}" == "temporary_debug" ]]; then
-              echo "- Signing: temporary debug keystore (test install only; Android player identity can change across CI builds)"
-            elif [[ "${SIGNING_KEY_MODE}" == "debug_stable" ]]; then
+            if [[ "${SIGNING_KEY_MODE}" == "debug_stable" ]]; then
               echo "- Signing: stable debug keystore"
             else
               echo "- Signing: stable release keystore"
             fi
           } >> "$RELEASE_NOTES_FILE"
-
-          if [[ "${SIGNING_KEY_MODE}" == "temporary_debug" ]]; then
-            {
-              echo "- Test signing only: same-device Android reinstall and upgrade identity is not guaranteed across CI builds."
-            } >> "$DISCORD_SUMMARY_FILE"
-          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
