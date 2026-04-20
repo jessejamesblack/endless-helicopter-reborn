@@ -493,6 +493,8 @@ declare
 	new_profile public.family_player_profiles%rowtype;
 	old_profile_found boolean := false;
 	new_profile_found boolean := false;
+	old_profile_has_meaningful_progress boolean := false;
+	new_profile_has_meaningful_progress boolean := false;
 	profile_base_is_new boolean := true;
 	merged_name text;
 	merged_equipped_skin_id text;
@@ -525,6 +527,13 @@ declare
 	device_row record;
 	resolved_player_id text;
 	resolved_device_id text;
+	merged_device_row_id bigint;
+	merged_device_token text;
+	merged_device_platform text;
+	merged_device_label text;
+	merged_notifications_enabled boolean := false;
+	merged_daily_missions_enabled boolean := false;
+	merged_device_last_seen_at timestamptz;
 begin
 	p_family_id := trim(coalesce(p_family_id, ''));
 	p_old_player_id := trim(coalesce(p_old_player_id, ''));
@@ -562,8 +571,54 @@ begin
 	new_profile_found := found;
 
 	if old_profile_found or new_profile_found then
+		if old_profile_found then
+			old_profile_has_meaningful_progress := coalesce(nullif(old_profile.name, ''), '') <> ''
+				or coalesce(old_profile.total_daily_missions_completed, 0) > 0
+				or coalesce(old_profile.daily_streak, 0) > 0
+				or coalesce(nullif(old_profile.last_completed_daily_date, ''), '') <> ''
+				or coalesce(jsonb_array_length(coalesce(old_profile.unlocked_vehicles, old_profile.unlocked_skins, '["default_scout"]'::jsonb)), 0) > 1
+				or exists (
+					select 1
+					from jsonb_each(coalesce(old_profile.vehicle_skin_progress, '{}'::jsonb)) as progress(vehicle_id, entry)
+					where coalesce((entry ->> 'runs_completed')::integer, 0) > 0
+					   or coalesce((entry ->> 'daily_missions_completed')::integer, 0) > 0
+					   or coalesce((entry ->> 'near_misses')::integer, 0) > 0
+					   or coalesce((entry ->> 'projectile_intercepts')::integer, 0) > 0
+					   or coalesce((entry ->> 'best_score')::integer, 0) > 0
+				)
+				or coalesce(jsonb_array_length(coalesce(old_profile.global_skin_unlocks, '[]'::jsonb)), 0) > 0
+				or coalesce(jsonb_array_length(coalesce(old_profile.seen_vehicle_lore, '[]'::jsonb)), 0) > 0
+				or coalesce(jsonb_array_length(coalesce(old_profile.seen_skin_lore, '[]'::jsonb)), 0) > 0
+				or coalesce(old_profile.equipped_vehicle_id, old_profile.equipped_skin_id, 'default_scout') <> 'default_scout';
+		end if;
+		if new_profile_found then
+			new_profile_has_meaningful_progress := coalesce(nullif(new_profile.name, ''), '') <> ''
+				or coalesce(new_profile.total_daily_missions_completed, 0) > 0
+				or coalesce(new_profile.daily_streak, 0) > 0
+				or coalesce(nullif(new_profile.last_completed_daily_date, ''), '') <> ''
+				or coalesce(jsonb_array_length(coalesce(new_profile.unlocked_vehicles, new_profile.unlocked_skins, '["default_scout"]'::jsonb)), 0) > 1
+				or exists (
+					select 1
+					from jsonb_each(coalesce(new_profile.vehicle_skin_progress, '{}'::jsonb)) as progress(vehicle_id, entry)
+					where coalesce((entry ->> 'runs_completed')::integer, 0) > 0
+					   or coalesce((entry ->> 'daily_missions_completed')::integer, 0) > 0
+					   or coalesce((entry ->> 'near_misses')::integer, 0) > 0
+					   or coalesce((entry ->> 'projectile_intercepts')::integer, 0) > 0
+					   or coalesce((entry ->> 'best_score')::integer, 0) > 0
+				)
+				or coalesce(jsonb_array_length(coalesce(new_profile.global_skin_unlocks, '[]'::jsonb)), 0) > 0
+				or coalesce(jsonb_array_length(coalesce(new_profile.seen_vehicle_lore, '[]'::jsonb)), 0) > 0
+				or coalesce(jsonb_array_length(coalesce(new_profile.seen_skin_lore, '[]'::jsonb)), 0) > 0
+				or coalesce(new_profile.equipped_vehicle_id, new_profile.equipped_skin_id, 'default_scout') <> 'default_scout';
+		end if;
 		if old_profile_found and new_profile_found then
-			profile_base_is_new := coalesce(new_profile.updated_at, new_profile.created_at, now()) >= coalesce(old_profile.updated_at, old_profile.created_at, now());
+			if old_profile_has_meaningful_progress and not new_profile_has_meaningful_progress then
+				profile_base_is_new := false;
+			elsif new_profile_has_meaningful_progress and not old_profile_has_meaningful_progress then
+				profile_base_is_new := true;
+			else
+				profile_base_is_new := coalesce(new_profile.updated_at, new_profile.created_at, now()) >= coalesce(old_profile.updated_at, old_profile.created_at, now());
+			end if;
 		else
 			profile_base_is_new := new_profile_found;
 		end if;
@@ -915,7 +970,15 @@ begin
 	end if;
 
 	for device_row in
-		select *
+		select distinct
+			case
+				when p_old_player_id <> '' and player_id = p_old_player_id then p_new_player_id
+				else player_id
+			end as resolved_player_id,
+			case
+				when p_old_device_id <> '' and p_new_device_id <> '' and device_id = p_old_device_id then p_new_device_id
+				else device_id
+			end as resolved_device_id
 		from public.family_push_devices
 		where family_id = p_family_id
 		  and (
@@ -925,44 +988,93 @@ begin
 			or (p_new_device_id <> '' and device_id = p_new_device_id)
 		  )
 	loop
-		resolved_player_id := case
-			when p_old_player_id <> '' and device_row.player_id = p_old_player_id then p_new_player_id
-			else device_row.player_id
-		end;
-		resolved_device_id := case
-			when p_old_device_id <> '' and p_new_device_id <> '' and device_row.device_id = p_old_device_id then p_new_device_id
-			else device_row.device_id
-		end;
-		if coalesce(device_row.fcm_token, '') <> '' then
+		resolved_player_id := trim(coalesce(device_row.resolved_player_id, ''));
+		resolved_device_id := trim(coalesce(device_row.resolved_device_id, ''));
+		if resolved_player_id = '' or resolved_device_id = '' then
+			continue;
+		end if;
+
+		select
+			(array_agg(id order by coalesce(last_seen_at, updated_at, created_at, now()) desc, coalesce(updated_at, created_at, now()) desc, id desc))[1],
+			coalesce((array_agg(nullif(fcm_token, '') order by (nullif(fcm_token, '') is not null) desc, coalesce(last_seen_at, updated_at, created_at, now()) desc, id desc))[1], ''),
+			coalesce((array_agg(nullif(platform, '') order by (nullif(platform, '') is not null) desc, coalesce(last_seen_at, updated_at, created_at, now()) desc, id desc))[1], ''),
+			coalesce((array_agg(nullif(device_label, '') order by (nullif(device_label, '') is not null) desc, coalesce(last_seen_at, updated_at, created_at, now()) desc, id desc))[1], ''),
+			coalesce(bool_or(coalesce(notifications_enabled, false)), false),
+			coalesce(bool_or(coalesce(daily_missions_enabled, false)), false),
+			max(last_seen_at)
+		into
+			merged_device_row_id,
+			merged_device_token,
+			merged_device_platform,
+			merged_device_label,
+			merged_notifications_enabled,
+			merged_daily_missions_enabled,
+			merged_device_last_seen_at
+		from public.family_push_devices
+		where family_id = p_family_id
+		  and (
+			case
+				when p_old_player_id <> '' and player_id = p_old_player_id then p_new_player_id
+				else player_id
+			end
+		  ) = resolved_player_id
+		  and (
+			case
+				when p_old_device_id <> '' and p_new_device_id <> '' and device_id = p_old_device_id then p_new_device_id
+				else device_id
+			end
+		  ) = resolved_device_id;
+
+		if merged_device_row_id is null then
+			continue;
+		end if;
+
+		if merged_device_token <> '' then
 			delete from public.family_push_devices
-			where fcm_token = device_row.fcm_token
-			  and id <> device_row.id
+			where fcm_token = merged_device_token
+			  and id <> merged_device_row_id
 			  and (
 				family_id <> p_family_id
 				or player_id <> resolved_player_id
 				or device_id <> resolved_device_id
 			  );
 		end if;
+
 		delete from public.family_push_devices
 		where family_id = p_family_id
-		  and player_id = resolved_player_id
-		  and device_id = resolved_device_id
-		  and id <> device_row.id;
+		  and (
+			case
+				when p_old_player_id <> '' and player_id = p_old_player_id then p_new_player_id
+				else player_id
+			end
+		  ) = resolved_player_id
+		  and (
+			case
+				when p_old_device_id <> '' and p_new_device_id <> '' and device_id = p_old_device_id then p_new_device_id
+				else device_id
+			end
+		  ) = resolved_device_id
+		  and id <> merged_device_row_id;
+
 		update public.family_push_devices
 		set family_id = p_family_id,
 			player_id = resolved_player_id,
 			device_id = resolved_device_id,
-			fcm_token = coalesce(device_row.fcm_token, public.family_push_devices.fcm_token),
-			platform = coalesce(device_row.platform, public.family_push_devices.platform),
-			device_label = coalesce(device_row.device_label, public.family_push_devices.device_label),
-			notifications_enabled = device_row.notifications_enabled,
-			daily_missions_enabled = device_row.daily_missions_enabled,
-			last_seen_at = greatest(
-				coalesce(public.family_push_devices.last_seen_at, device_row.last_seen_at),
-				coalesce(device_row.last_seen_at, public.family_push_devices.last_seen_at)
+			fcm_token = nullif(merged_device_token, ''),
+			platform = coalesce(nullif(merged_device_platform, ''), public.family_push_devices.platform),
+			device_label = coalesce(nullif(merged_device_label, ''), public.family_push_devices.device_label),
+			notifications_enabled = merged_notifications_enabled,
+			daily_missions_enabled = merged_daily_missions_enabled,
+			last_seen_at = coalesce(
+				greatest(
+					coalesce(public.family_push_devices.last_seen_at, merged_device_last_seen_at),
+					coalesce(merged_device_last_seen_at, public.family_push_devices.last_seen_at)
+				),
+				public.family_push_devices.last_seen_at,
+				merged_device_last_seen_at
 			),
 			updated_at = now()
-		where id = device_row.id;
+		where id = merged_device_row_id;
 	end loop;
 
 	if p_old_player_id <> '' and p_old_player_id <> p_new_player_id then

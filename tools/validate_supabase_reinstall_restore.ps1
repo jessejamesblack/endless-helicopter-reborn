@@ -127,6 +127,8 @@ $oldPlayerId = 'legacy-player'
 $newPlayerId = 'stable-player'
 $oldDeviceId = $familyId + '-legacy-device'
 $newDeviceId = $familyId + '-stable-device'
+$oldPlayerName = ('O' + ([guid]::NewGuid().ToString('N').Substring(0, 11))).Substring(0, 12)
+$newPlayerName = ('N' + ([guid]::NewGuid().ToString('N').Substring(0, 11))).Substring(0, 12)
 
 $validationSql = @"
 begin;
@@ -176,6 +178,51 @@ values (
     '{"equipped_vehicle_id":"bubble_chopper","unlocked_vehicles":["default_scout","bubble_chopper"],"missions_intro_seen":true}'::jsonb
 );
 
+insert into public.family_player_profiles (
+    family_id,
+    player_id,
+    name,
+    equipped_skin_id,
+    unlocked_skins,
+    equipped_vehicle_id,
+    unlocked_vehicles,
+    unlocked_vehicle_skins,
+    equipped_vehicle_skins,
+    vehicle_skin_progress,
+    global_skin_unlocks,
+    best_score_milestones,
+    seen_vehicle_lore,
+    seen_skin_lore,
+    vehicle_catalog_version,
+    total_daily_missions_completed,
+    daily_streak,
+    last_completed_daily_date,
+    daily_reminders_enabled,
+    profile_summary
+)
+values (
+    '$familyId',
+    '$newPlayerId',
+    null,
+    'default_scout',
+    '["default_scout"]'::jsonb,
+    'default_scout',
+    '["default_scout"]'::jsonb,
+    '{"default_scout":["factory"]}'::jsonb,
+    '{"default_scout":"factory"}'::jsonb,
+    '{"default_scout":{"runs_completed":0,"daily_missions_completed":0,"near_misses":0,"projectile_intercepts":0,"best_score":0}}'::jsonb,
+    '[]'::jsonb,
+    '{"score_10000":false}'::jsonb,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    1,
+    0,
+    0,
+    null,
+    false,
+    '{"equipped_vehicle_id":"default_scout","missions_intro_seen":false}'::jsonb
+);
+
 insert into public.family_daily_mission_progress (
     family_id,
     player_id,
@@ -206,12 +253,33 @@ insert into public.family_leaderboard (
 values (
     '$familyId',
     '$oldPlayerId',
-    'Pilot',
+    '$oldPlayerName',
     4200,
     '{"score":4200,"equipped_vehicle_id":"bubble_chopper"}'::jsonb,
     'bubble_chopper',
     'bubble_chopper',
     'desert'
+);
+
+insert into public.family_leaderboard (
+    family_id,
+    player_id,
+    name,
+    score,
+    run_summary,
+    equipped_skin_id,
+    equipped_vehicle_id,
+    equipped_vehicle_skin_id
+)
+values (
+    '$familyId',
+    '$newPlayerId',
+    '$newPlayerName',
+    60,
+    '{"score":60,"equipped_vehicle_id":"default_scout"}'::jsonb,
+    'default_scout',
+    'default_scout',
+    'factory'
 );
 
 insert into public.family_run_history (
@@ -225,10 +293,27 @@ insert into public.family_run_history (
 values (
     '$familyId',
     '$oldPlayerId',
-    'Pilot',
+    '$oldPlayerName',
     4200,
     '{"score":4200}'::jsonb,
     'bubble_chopper'
+);
+
+insert into public.family_run_history (
+    family_id,
+    player_id,
+    name,
+    score,
+    run_summary,
+    equipped_skin_id
+)
+values (
+    '$familyId',
+    '$newPlayerId',
+    '$newPlayerName',
+    60,
+    '{"score":60}'::jsonb,
+    'default_scout'
 );
 
 insert into public.family_notifications (
@@ -292,6 +377,35 @@ values (
     'stable'
 );
 
+insert into public.family_push_devices (
+    family_id,
+    player_id,
+    device_id,
+    fcm_token,
+    platform,
+    device_label,
+    notifications_enabled,
+    daily_missions_enabled,
+    app_version_code,
+    app_version_name,
+    build_sha,
+    release_channel
+)
+values (
+    '$familyId',
+    '$newPlayerId',
+    '$newDeviceId',
+    'mcp-fcm-new',
+    'android',
+    'Fresh Install Phone',
+    false,
+    false,
+    202,
+    '2.0.2',
+    'restore-test-new',
+    'stable'
+);
+
 insert into public.app_update_push_history (
     channel,
     version_code,
@@ -318,6 +432,7 @@ select
           and player_id = '$newPlayerId'
           and total_daily_missions_completed = 4
           and daily_streak = 2
+          and daily_reminders_enabled = true
           and coalesce(profile_summary ->> 'equipped_vehicle_id', '') = 'bubble_chopper'
     ) as new_profile_restored,
     exists(
@@ -333,11 +448,11 @@ select
           and player_id = '$newPlayerId'
           and score = 4200
     ) as leaderboard_restored,
-    exists(
-        select 1 from public.family_run_history
+    (
+        select count(*) = 2
+        from public.family_run_history
         where family_id = '$familyId'
           and player_id = '$newPlayerId'
-          and score = 4200
     ) as run_history_rebound,
     exists(
         select 1 from public.family_notifications
@@ -355,7 +470,9 @@ select
         where family_id = '$familyId'
           and player_id = '$newPlayerId'
           and device_id = '$newDeviceId'
-          and fcm_token = 'mcp-fcm-old'
+          and fcm_token = 'mcp-fcm-new'
+          and notifications_enabled = true
+          and daily_missions_enabled = true
     ) as push_device_rebound,
     not exists(
         select 1 from public.family_push_devices
