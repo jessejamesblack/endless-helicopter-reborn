@@ -86,6 +86,14 @@ The game can use Supabase for a shared leaderboard.
 - Runtime service: [systems/online_leaderboard.gd](systems/online_leaderboard.gd)
 - Push runtime: [systems/push_notifications.gd](systems/push_notifications.gd)
 
+Current leaderboard/profile behavior:
+
+- Android installs derive a reinstall-stable `player_id` from the signed app package plus Android-backed device identity.
+- Returning players on the same phone should restore automatically after reinstall once their profile has been migrated onto that stable id.
+- Manual support restore by old `player_id` is still available in Settings, and current builds try to permanently migrate that old profile onto the phone's canonical stable id so future reinstalls on that device restore automatically.
+- A public name is only required for leaderboard submission. Cloud profile restore and progression sync can exist before the player picks a public leaderboard name.
+- Android exports now leave user data backup enabled and request data retention on uninstall, so local profile/config files still have a platform backup safety net.
+
 ## Android Push Notifications
 
 Android push notifications use:

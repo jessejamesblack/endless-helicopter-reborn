@@ -21,6 +21,7 @@ const IDENTITY_SOURCE_LOCAL_FALLBACK := "local_fallback"
 const PLAYER_ID_PREFIX := "android-player-"
 const DEVICE_ID_PREFIX := "android-device-"
 const INVALID_ANDROID_ID := "9774d56d682e549c"
+const ANDROID_ID_HEX_LENGTH := 16
 
 static func load_or_create_player_id() -> String:
 	var resolved := get_player_identity_info()
@@ -286,6 +287,8 @@ static func _build_gdscript_stable_id(identity_purpose: String, stable_prefix: S
 	return stable_prefix + hashing_context.finish().hex_encode().substr(0, 24)
 
 static func _resolve_android_id_via_gdscript() -> String:
+	# Only accept Godot's OS unique id when it actually looks like Android's
+	# 64-bit hex ANDROID_ID. Some engine/runtime paths can expose other values.
 	var engine_unique_id := _sanitize_android_id(str(OS.get_unique_id()).strip_edges())
 	if not engine_unique_id.is_empty():
 		return engine_unique_id
@@ -309,15 +312,24 @@ static func _resolve_android_id_via_gdscript() -> String:
 	return _sanitize_android_id(str(settings_secure.getString(content_resolver, "android_id")).strip_edges())
 
 static func _sanitize_android_id(android_id: String) -> String:
-	if android_id.is_empty():
+	var sanitized := android_id.strip_edges().to_lower()
+	if sanitized.is_empty():
 		return ""
-	if android_id == "0000000000000000":
+	if sanitized == "0000000000000000":
 		return ""
-	if android_id.to_lower() == "unknown":
+	if sanitized == "unknown":
 		return ""
-	if android_id == INVALID_ANDROID_ID:
+	if sanitized == INVALID_ANDROID_ID:
 		return ""
-	return android_id
+	if sanitized.length() != ANDROID_ID_HEX_LENGTH:
+		return ""
+	for i in range(sanitized.length()):
+		var code := sanitized.unicode_at(i)
+		var is_number := code >= 48 and code <= 57
+		var is_lower_hex := code >= 97 and code <= 102
+		if not is_number and not is_lower_hex:
+			return ""
+	return sanitized
 
 static func _get_canonical_android_package_name() -> String:
 	return str(BuildInfoScript.APP_PACKAGE_NAME).strip_edges()

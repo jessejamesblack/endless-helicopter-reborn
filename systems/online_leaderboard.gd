@@ -14,6 +14,7 @@ const PLAYER_PROFILE_TABLE_NAME := "family_player_profiles"
 const DAILY_MISSION_PROGRESS_TABLE_NAME := "family_daily_mission_progress"
 const FAMILY_ID := "global"
 const NAME_CACHE_PATH := "user://player_name.save"
+const CLOUD_PROFILE_CACHE_PATH := "user://cloud_profile_present.save"
 const PLAYER_ID_OVERRIDE_CACHE_PATH := "user://player_id_override.save"
 const MAX_NAME_LENGTH := 12
 const MAX_PLAYER_ID_LENGTH := 96
@@ -228,6 +229,15 @@ static func save_cached_name(name: String) -> void:
 	if file != null:
 		file.store_string(sanitize_name(name))
 
+static func mark_cloud_profile_present() -> void:
+	var file := FileAccess.open(CLOUD_PROFILE_CACHE_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string("1")
+
+static func clear_cloud_profile_presence() -> void:
+	if FileAccess.file_exists(CLOUD_PROFILE_CACHE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(CLOUD_PROFILE_CACHE_PATH))
+
 static func save_manual_player_id_override(player_id: String) -> void:
 	var validation := validate_player_id(player_id)
 	if not bool(validation.get("ok", false)):
@@ -265,8 +275,21 @@ static func load_cached_name() -> String:
 
 	return sanitize_name(file.get_as_text())
 
-static func has_saved_profile() -> bool:
+static func has_saved_player_name() -> bool:
 	return not load_cached_name().is_empty()
+
+static func has_cloud_profile() -> bool:
+	if has_saved_player_name():
+		return true
+	if not FileAccess.file_exists(CLOUD_PROFILE_CACHE_PATH):
+		return false
+	var file := FileAccess.open(CLOUD_PROFILE_CACHE_PATH, FileAccess.READ)
+	if file == null:
+		return false
+	return not str(file.get_as_text()).strip_edges().is_empty()
+
+static func has_saved_profile() -> bool:
+	return has_saved_player_name()
 
 static func load_or_create_player_id() -> String:
 	var manual_override := load_manual_player_id_override()

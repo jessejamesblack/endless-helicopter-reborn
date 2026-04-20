@@ -5,6 +5,7 @@ tool_timeout_sec = 60
 
 [mcp_servers.supabase]
 url = "https://mcp.supabase.com/mcp?project_ref=lxvniafwjlwatbiblwyi&read_only=true"
+bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
 startup_timeout_sec = 20
 tool_timeout_sec = 120
 

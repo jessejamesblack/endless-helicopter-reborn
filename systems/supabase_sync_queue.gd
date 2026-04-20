@@ -208,6 +208,7 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		var player_profile := get_node_or_null("/root/PlayerProfile")
 		outcome["profile_restored"] = not remote_profile.is_empty()
 		if outcome["profile_restored"]:
+			OnlineLeaderboardScript.mark_cloud_profile_present()
 			var remote_name := str(remote_profile.get("name", "")).strip_edges()
 			if not remote_name.is_empty():
 				OnlineLeaderboardScript.save_cached_name(remote_name)
@@ -340,6 +341,12 @@ func _on_identity_retry_timeout() -> void:
 
 func _handle_startup_identity_retry() -> void:
 	if _identity_retry_attempts_remaining <= 0:
+		if OS.get_name() == "Android":
+			_report_identity_issue("android_identity_pending", "Stable Android identity did not resolve before startup sync timed out.", {
+				"player_source": OnlineLeaderboardScript.get_player_identity_source(),
+				"device_source": OnlineLeaderboardScript.get_device_identity_source(),
+				"identity_snapshot": _get_identity_snapshot(),
+			})
 		_finish_startup_sync()
 		return
 	_startup_sync_in_progress = false
@@ -406,6 +413,7 @@ func _process_profile_sync_job(job: Dictionary) -> String:
 	if _handle_upgrade_required_response("sync_player_profile", response):
 		return "drop"
 	if _is_success_response(response):
+		OnlineLeaderboardScript.mark_cloud_profile_present()
 		return "success"
 	return "retry" if _is_retryable_response(response) else "drop"
 
@@ -536,7 +544,7 @@ func _drop_all_jobs_for_upgrade_required() -> void:
 	_emit_queue_changed()
 
 func _should_replace_local_state_on_startup() -> bool:
-	return not OnlineLeaderboardScript.has_saved_profile()
+	return not OnlineLeaderboardScript.has_cloud_profile()
 
 func _get_identity_snapshot() -> String:
 	var player_info := AndroidIdentityScript.get_player_identity_info()

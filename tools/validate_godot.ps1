@@ -91,6 +91,12 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Godot vehicle skins and restore validation failed'
 }
 
+Write-Host 'Validating restore resume flow'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_restore_resume_flow.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot restore resume validation failed'
+}
+
 Write-Host 'Validating vehicle lore'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_vehicle_lore.gd
 if ($LASTEXITCODE -ne 0) {

@@ -63,6 +63,9 @@ If you want one world-wide board for everyone who installs the app, set:
 
 - Android devices derive a reinstall-stable player id from the signed app package plus the device's Android-backed stable id, first through the Android bridge and then through Godot's own Android unique-ID fallback if needed.
 - Existing legacy Android installs migrate old cached player ids to the canonical stable id the first time the stable id resolves.
+- If support restores an older pasted `player_id` on a device whose canonical stable id is ready, the app now attempts to migrate that old profile onto the phone's stable id so future reinstalls on the same phone restore automatically.
+- Android exports also keep user-data backup enabled and request retain-data-on-uninstall, so local profile/config files have a backup safety net on supported devices.
+- Same-device reinstall stability still depends on reinstalling builds signed with the same key. Use the release keystore secrets or the optional stable debug keystore for CI artifacts; temporary debug keys are test-only.
 - Each device saves a public player name locally after the first submitted run.
 - Player names use a simple profanity filter.
 - The database enforces unique public names within a leaderboard.

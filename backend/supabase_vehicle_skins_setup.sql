@@ -879,6 +879,41 @@ begin
 		  and device_id = p_old_device_id;
 	end if;
 
+	if to_regclass('public.app_update_push_history') is not null then
+		if p_old_device_id <> '' and p_new_device_id <> '' and p_old_device_id <> p_new_device_id then
+			execute $migration$
+				delete from public.app_update_push_history as old_rows
+				using public.app_update_push_history as new_rows
+				where old_rows.id <> new_rows.id
+				  and old_rows.family_id = $1
+				  and new_rows.family_id = $1
+				  and old_rows.channel = new_rows.channel
+				  and old_rows.version_code = new_rows.version_code
+				  and old_rows.device_id = $2
+				  and new_rows.device_id = $3
+			$migration$
+			using p_family_id, p_old_device_id, p_new_device_id;
+
+			execute $migration$
+				update public.app_update_push_history
+				set device_id = $1
+				where family_id = $2
+				  and device_id = $3
+			$migration$
+			using p_new_device_id, p_family_id, p_old_device_id;
+		end if;
+
+		if p_old_player_id <> '' and p_old_player_id <> p_new_player_id then
+			execute $migration$
+				update public.app_update_push_history
+				set player_id = $1
+				where family_id = $2
+				  and player_id = $3
+			$migration$
+			using p_new_player_id, p_family_id, p_old_player_id;
+		end if;
+	end if;
+
 	for device_row in
 		select *
 		from public.family_push_devices

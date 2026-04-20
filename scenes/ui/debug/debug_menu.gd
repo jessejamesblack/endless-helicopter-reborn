@@ -192,6 +192,7 @@ func _on_use_qa_name_pressed() -> void:
 func _on_clear_name_pressed() -> void:
 	_clear_pending_sync_jobs()
 	OnlineLeaderboardScript.clear_cached_name()
+	OnlineLeaderboardScript.clear_cloud_profile_presence()
 	OnlineLeaderboardScript.clear_manual_player_id_override()
 	_cached_name_status_message = ""
 	_update_cached_name_label()

@@ -147,9 +147,21 @@ jobs:
               echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ secrets.ANDROID_KEY_ALIAS }}"
               echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
               echo "BUILD_KIND=release"
+              echo "SIGNING_KEY_MODE=release_stable"
             } >> "$GITHUB_ENV"
             KEYSTORE_PATH="$RUNNER_TEMP/android-release.keystore"
             KEYSTORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+          elif [[ -n "${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}" && -n "${{ secrets.ANDROID_DEBUG_KEYSTORE_PASSWORD }}" && -n "${{ secrets.ANDROID_DEBUG_KEY_ALIAS }}" ]]; then
+            echo "${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/android-debug.keystore"
+            {
+              echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$RUNNER_TEMP/android-debug.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=${{ secrets.ANDROID_DEBUG_KEY_ALIAS }}"
+              echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=${{ secrets.ANDROID_DEBUG_KEYSTORE_PASSWORD }}"
+              echo "BUILD_KIND=debug"
+              echo "SIGNING_KEY_MODE=debug_stable"
+            } >> "$GITHUB_ENV"
+            KEYSTORE_PATH="$RUNNER_TEMP/android-debug.keystore"
+            KEYSTORE_PASS="${{ secrets.ANDROID_DEBUG_KEYSTORE_PASSWORD }}"
           else
             keytool -genkeypair -v \
               -keystore "$RUNNER_TEMP/android-debug.keystore" \
@@ -165,9 +177,11 @@ jobs:
               echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey"
               echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android"
               echo "BUILD_KIND=debug"
+              echo "SIGNING_KEY_MODE=temporary_debug"
             } >> "$GITHUB_ENV"
             KEYSTORE_PATH="$RUNNER_TEMP/android-debug.keystore"
             KEYSTORE_PASS="android"
+            echo "::warning::No stable Android signing secrets were provided. This artifact uses a temporary debug keystore and should be treated as a non-restorable test build."
           fi
 
           cat > "$HOME/.config/godot/editor_settings-4.6.tres" <<EOF
@@ -248,7 +262,20 @@ jobs:
             echo "- Build SHA: ${BUILD_SHA_SHORT}"
             echo "- Channel: ${RELEASE_CHANNEL}"
             echo "- Release page: ${RELEASE_URL}"
+            if [[ "${SIGNING_KEY_MODE}" == "temporary_debug" ]]; then
+              echo "- Signing: temporary debug keystore (test install only; Android player identity can change across CI builds)"
+            elif [[ "${SIGNING_KEY_MODE}" == "debug_stable" ]]; then
+              echo "- Signing: stable debug keystore"
+            else
+              echo "- Signing: stable release keystore"
+            fi
           } >> "$RELEASE_NOTES_FILE"
+
+          if [[ "${SIGNING_KEY_MODE}" == "temporary_debug" ]]; then
+            {
+              echo "- Test signing only: same-device Android reinstall and upgrade identity is not guaranteed across CI builds."
+            } >> "$DISCORD_SUMMARY_FILE"
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

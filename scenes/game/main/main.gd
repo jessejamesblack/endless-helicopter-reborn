@@ -598,7 +598,7 @@ func _queue_post_run_sync(summary: Dictionary) -> void:
     if mission_manager != null and mission_manager.has_method("get_daily_sync_summary") and sync_queue.has_method("enqueue_sync_daily_mission_progress"):
         sync_queue.enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
 
-    if OnlineLeaderboardScript.is_configured() and OnlineLeaderboardScript.has_saved_profile() and sync_queue.has_method("enqueue_submit_score_v2"):
+    if OnlineLeaderboardScript.is_configured() and OnlineLeaderboardScript.has_saved_player_name() and sync_queue.has_method("enqueue_submit_score_v2"):
         var equipped_vehicle_id := str(summary.get("equipped_vehicle_id", "default_scout"))
         if player_profile != null and player_profile.has_method("get_equipped_vehicle_id"):
             equipped_vehicle_id = str(player_profile.get_equipped_vehicle_id())
