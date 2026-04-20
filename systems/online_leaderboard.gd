@@ -354,9 +354,9 @@ static func finalize_remote_identity_migration() -> void:
 static func get_player_id_for_display() -> String:
 	var player_id := load_or_create_player_id().strip_edges()
 	if OS.get_name() == "Android" and not has_manual_player_id_override() and not is_remote_profile_identity_ready():
-		return "(waiting for stable Android ID)"
+		return "(waiting for Android-backed player ID)"
 	if player_id.is_empty():
-		return "(waiting for stable Android ID)" if OS.get_name() == "Android" and not has_manual_player_id_override() else "(not ready yet)"
+		return "(waiting for Android-backed player ID)" if OS.get_name() == "Android" and not has_manual_player_id_override() else "(not ready yet)"
 	return player_id
 
 static func validate_player_id(player_id: String) -> Dictionary:
@@ -381,13 +381,13 @@ static func get_identity_source_label(source: String) -> String:
 		PLAYER_ID_SOURCE_MANUAL_OVERRIDE:
 			return "Manual override"
 		PLAYER_ID_SOURCE_ANDROID_STABLE:
-			return "Stable Android ID"
+			return "Android-backed derived ID"
 		PLAYER_ID_SOURCE_LEGACY_CACHE:
-			return "Legacy install ID"
+			return "Legacy cached app ID"
 		PLAYER_ID_SOURCE_ANDROID_PENDING:
-			return "Waiting for stable Android ID"
+			return "Waiting for Android-backed ID"
 		PLAYER_ID_SOURCE_LOCAL_FALLBACK:
-			return "Local fallback"
+			return "Local fallback app ID"
 	return source.replace("_", " ").capitalize()
 
 static func get_migrate_player_identity_url() -> String:

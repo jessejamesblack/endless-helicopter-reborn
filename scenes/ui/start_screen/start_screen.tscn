@@ -65,6 +65,34 @@ corner_radius_bottom_left = 12
 shadow_color = Color(0, 0, 0, 0.38)
 shadow_size = 6
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_card"]
+bg_color = Color(0.0313726, 0.0509804, 0.113725, 0.84)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.466667, 0.713726, 0.933333, 0.92)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+shadow_color = Color(0, 0, 0, 0.42)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_credits_panel"]
+bg_color = Color(0.027451, 0.0431373, 0.101961, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.560784, 0.807843, 0.988235, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 12
+
 [node name="StartScreen" type="Control" unique_id=398106654]
 layout_mode = 3
 anchors_preset = 15
@@ -351,6 +379,117 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "Play Game"
+
+[node name="CreditsButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 9
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -100.0
+offset_right = 168.0
+offset_bottom = -48.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Credits"
+
+[node name="CreditsOverlay" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0.0117647, 0.0196078, 0.0470588, 0.78)
+
+[node name="CreditsPanel" type="Panel" parent="CreditsOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -308.0
+offset_top = -180.0
+offset_right = 308.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_credits_panel")
+
+[node name="CreditsMargin" type="MarginContainer" parent="CreditsOverlay/CreditsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 22
+
+[node name="CreditsVBox" type="VBoxContainer" parent="CreditsOverlay/CreditsPanel/CreditsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CreditsTitleLabel" type="Label" parent="CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 30
+text = "Credits"
+horizontal_alignment = 1
+
+[node name="CreditsCreatorLabel" type="Label" parent="CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 0.98)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "Created and programmed by Jesse-James Black"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CreditsNoticeLabel" type="Label" parent="CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 0.94)
+theme_override_font_sizes/font_size = 16
+text = "All current art in this build is AI-generated placeholder art for testing purposes only. It will be replaced with human-made art before release."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="CreditsCloseButton" type="Button" parent="CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(180, 52)
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Close"
 
 [node name="SettingsMenu" parent="." unique_id=474490483 instance=ExtResource("3_settings")]
 layout_mode = 1

@@ -2,6 +2,7 @@ extends SceneTree
 
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 const START_SCREEN_SCENE := preload("res://scenes/ui/start_screen/start_screen.tscn")
+const TITLE_SCREEN_SCENE := preload("res://scenes/ui/title_screen/title_screen.tscn")
 const LEADERBOARD_SCENE := preload("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
 
 var _failures: Array[String] = []
@@ -49,7 +50,23 @@ func _run_validation() -> void:
 	_assert(start_screen.get_node_or_null("HangarButton") != null, "Start screen should expose Hangar in one tap.")
 	_assert(start_screen.get_node_or_null("NextUnlockCard") != null, "Start screen should expose a Next Unlock card.")
 	_assert(start_screen.get_node_or_null("TipCard") != null, "Start screen should expose a one-time tip card.")
+	_assert(start_screen.get_node_or_null("CreditsButton") != null, "Start screen should expose Credits from the main menu.")
+	_assert(start_screen.get_node_or_null("FooterNoticeCard") == null, "Start screen should not duplicate the title-screen art disclaimer.")
+	var credits_creator_label := start_screen.get_node_or_null("CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox/CreditsCreatorLabel") as Label
+	_assert(credits_creator_label != null and credits_creator_label.text.contains("Jesse-James Black"), "Credits modal should identify the creator/programmer.")
 	start_screen.free()
+	await process_frame
+
+	var title_screen := TITLE_SCREEN_SCENE.instantiate() as Control
+	get_root().add_child(title_screen)
+	await process_frame
+	await process_frame
+	_assert(title_screen.get_node_or_null("CenterLockup/LockupVBox/LogoRow/BadGamesTexture") != null, "Title screen should show the BadGames logo.")
+	_assert(title_screen.get_node_or_null("CenterLockup/LockupVBox/LogoRow/EndlessHelicopterTexture") != null, "Title screen should show the Endless Helicopter logo.")
+	_assert(title_screen.get_node_or_null("CenterLockup/LockupVBox/ContinueCard/ContinueMargin/ContinueLabel") != null, "Title screen should show a continue prompt.")
+	var title_disclaimer_label := title_screen.get_node_or_null("CenterLockup/LockupVBox/DisclaimerLabel") as Label
+	_assert(title_disclaimer_label != null and title_disclaimer_label.text.contains("AI-generated art"), "Title screen should display the temporary AI-art disclaimer.")
+	title_screen.free()
 	await process_frame
 
 	var leaderboard_screen := LEADERBOARD_SCENE.instantiate() as Control
@@ -63,6 +80,8 @@ func _run_validation() -> void:
 	var start_screen_text := Helper.read_text("res://scenes/ui/start_screen/start_screen.gd")
 	_assert(start_screen_text.contains("get_next_unlock_preview"), "Start screen should render next-unlock preview data.")
 	_assert(not start_screen_text.contains(" NEW"), "Start screen should not decorate menu buttons with NEW badges.")
+	var project_text := Helper.read_text("res://project.godot")
+	_assert(project_text.contains("scenes/ui/title_screen/title_screen.tscn"), "Project should boot into the dedicated title screen.")
 
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("replay_all_tips"), "Settings should let players replay feature discovery tips.")

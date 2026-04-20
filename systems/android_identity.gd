@@ -18,6 +18,9 @@ const IDENTITY_SOURCE_ANDROID_STABLE := "android_stable"
 const IDENTITY_SOURCE_ANDROID_PENDING := "android_pending"
 const IDENTITY_SOURCE_LOCAL_FALLBACK := "local_fallback"
 
+# Android continuity comes from a raw Android-backed source value such as
+# ANDROID_ID. The app never uses that raw system identifier as the public
+# player/device id; it derives stable app-owned ids from it instead.
 const PLAYER_ID_PREFIX := "android-player-"
 const DEVICE_ID_PREFIX := "android-device-"
 const INVALID_ANDROID_ID := "9774d56d682e549c"
@@ -134,7 +137,7 @@ static func _build_identity_info(cache_path: String, source_path: String, stable
 			"should_persist": _read_cached_value(source_path).is_empty(),
 		}
 
-	var stable_value := _resolve_android_stable_id(stable_method_names, identity_purpose, stable_prefix)
+	var stable_value := _resolve_android_backed_id(stable_method_names, identity_purpose, stable_prefix)
 	if not stable_value.is_empty():
 		if cached_value.is_empty():
 			return {
@@ -222,7 +225,7 @@ static func _infer_cached_source(cached_value: String, stable_prefix: String) ->
 		return IDENTITY_SOURCE_LOCAL_FALLBACK
 	return IDENTITY_SOURCE_LEGACY_CACHE
 
-static func _resolve_android_stable_id(method_names: PackedStringArray, identity_purpose: String, stable_prefix: String) -> String:
+static func _resolve_android_backed_id(method_names: PackedStringArray, identity_purpose: String, stable_prefix: String) -> String:
 	if OS.get_name() != "Android":
 		return ""
 
@@ -239,7 +242,7 @@ static func _resolve_android_stable_id(method_names: PackedStringArray, identity
 		if not plugin_value.is_empty():
 			return plugin_value
 
-	return _build_gdscript_stable_id(identity_purpose, stable_prefix)
+	return _build_android_backed_id(identity_purpose, stable_prefix)
 
 static func _resolve_stable_id_from_compat_bridge(compat_bridge, method_names: PackedStringArray, context) -> String:
 	for method_name in method_names:
@@ -265,9 +268,9 @@ static func _resolve_stable_id_from_plugin(plugin, method_names: PackedStringArr
 
 	return ""
 
-static func _build_gdscript_stable_id(identity_purpose: String, stable_prefix: String) -> String:
-	var android_id := _resolve_android_id_via_gdscript()
-	if android_id.is_empty():
+static func _build_android_backed_id(identity_purpose: String, stable_prefix: String) -> String:
+	var android_source_id := _resolve_android_source_id_via_gdscript()
+	if android_source_id.is_empty():
 		return ""
 
 	var package_name := _get_canonical_android_package_name()
@@ -281,15 +284,15 @@ static func _build_gdscript_stable_id(identity_purpose: String, stable_prefix: S
 	var hashing_context := HashingContext.new()
 	if hashing_context.start(HashingContext.HASH_SHA256) != OK:
 		return ""
-	if hashing_context.update(("%s:%s:%s" % [identity_purpose, package_name, android_id]).to_utf8_buffer()) != OK:
+	if hashing_context.update(("%s:%s:%s" % [identity_purpose, package_name, android_source_id]).to_utf8_buffer()) != OK:
 		return ""
 
 	return stable_prefix + hashing_context.finish().hex_encode().substr(0, 24)
 
-static func _resolve_android_id_via_gdscript() -> String:
+static func _resolve_android_source_id_via_gdscript() -> String:
 	# Only accept Godot's OS unique id when it actually looks like Android's
 	# 64-bit hex ANDROID_ID. Some engine/runtime paths can expose other values.
-	var engine_unique_id := _sanitize_android_id(str(OS.get_unique_id()).strip_edges())
+	var engine_unique_id := _sanitize_android_source_id(str(OS.get_unique_id()).strip_edges())
 	if not engine_unique_id.is_empty():
 		return engine_unique_id
 
@@ -309,10 +312,10 @@ static func _resolve_android_id_via_gdscript() -> String:
 	if settings_secure == null or not settings_secure.has_method("getString"):
 		return ""
 
-	return _sanitize_android_id(str(settings_secure.getString(content_resolver, "android_id")).strip_edges())
+	return _sanitize_android_source_id(str(settings_secure.getString(content_resolver, "android_id")).strip_edges())
 
-static func _sanitize_android_id(android_id: String) -> String:
-	var sanitized := android_id.strip_edges().to_lower()
+static func _sanitize_android_source_id(android_source_id: String) -> String:
+	var sanitized := android_source_id.strip_edges().to_lower()
 	if sanitized.is_empty():
 		return ""
 	if sanitized == "0000000000000000":

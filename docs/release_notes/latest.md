@@ -1,16 +1,16 @@
 # Endless Helicopter Reborn 1.6.2
 
-Version 1.6.2 is the next bugfix candidate focused on same-device reinstall restore, stable Android identity migration, and safer progression continuity.
+Version 1.6.2 is the next bugfix candidate focused on same-device reinstall restore, Android-backed identity migration, and safer progression continuity.
 
 ## Highlights
 
-- Android installs now treat the Android-backed stable identity as the canonical reinstall key instead of silently minting a new progression identity.
-- Restoring an older support `player_id` now attempts to migrate that profile onto the phone's stable Android identity so later reinstalls on the same phone restore automatically.
+- Android installs now treat the Android-backed source identity as the canonical reinstall key instead of silently minting a new progression identity.
+- Restoring an older support `player_id` now attempts to migrate that profile onto the phone's canonical Android-backed app id so later reinstalls on the same phone restore automatically.
 - Android exports keep user-data backup enabled and request retain-data-on-uninstall as a local safety net for profile/config files.
 
 ## Player-Facing Fixes
 
-- Returning players on the same phone should resume cloud-backed progress after reinstall once their profile has been migrated onto the phone's stable Android identity.
+- Returning players on the same phone should resume cloud-backed progress after reinstall once their profile has been migrated onto the phone's canonical Android-backed app id.
 - Fresh installs no longer need to invent a replacement Android progression identity while the stable bridge is still pending.
 - Public leaderboard names remain optional until the player actually wants to submit a score.
 

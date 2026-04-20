@@ -1,5 +1,10 @@
 extends Control
 
+const CREDITS_PANEL_MIN_WIDTH := 320.0
+const CREDITS_PANEL_MAX_WIDTH := 640.0
+const CREDITS_PANEL_MIN_HEIGHT := 260.0
+const CREDITS_PANEL_MAX_HEIGHT := 380.0
+
 @onready var settings_menu = $SettingsMenu
 @onready var debug_menu = $DebugMenu
 @onready var debug_button = $DebugButton
@@ -15,9 +20,19 @@ extends Control
 @onready var tip_message_label = $TipCard/TipMargin/TipVBox/TipMessageLabel
 @onready var tip_action_button = $TipCard/TipMargin/TipVBox/TipButtonRow/TipActionButton
 @onready var tip_dismiss_button = $TipCard/TipMargin/TipVBox/TipButtonRow/TipDismissButton
+@onready var credits_button = $CreditsButton
+@onready var credits_overlay = $CreditsOverlay
+@onready var credits_panel = $CreditsOverlay/CreditsPanel
+@onready var credits_title_label = $CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox/CreditsTitleLabel
+@onready var credits_creator_label = $CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox/CreditsCreatorLabel
+@onready var credits_notice_label = $CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox/CreditsNoticeLabel
+@onready var credits_close_button = $CreditsOverlay/CreditsPanel/CreditsMargin/CreditsVBox/CreditsCloseButton
 
 func _ready() -> void:
     get_tree().paused = false
+    var size_changed_callback := Callable(self, "_refresh_start_screen_layout")
+    if not get_viewport().is_connected("size_changed", size_changed_callback):
+        get_viewport().size_changed.connect(size_changed_callback)
     var music_player = get_node_or_null("/root/MusicPlayer")
     if music_player != null and music_player.has_method("play_menu_music"):
         music_player.play_menu_music()
@@ -41,6 +56,8 @@ func _ready() -> void:
     scores_button.pressed.connect(_on_scores_pressed)
     missions_button.pressed.connect(_on_missions_pressed)
     hangar_button.pressed.connect(_on_hangar_pressed)
+    credits_button.pressed.connect(_on_credits_pressed)
+    credits_close_button.pressed.connect(_on_credits_close_pressed)
     $SettingsButton.pressed.connect(_on_settings_pressed)
     tip_action_button.pressed.connect(_on_tip_action_pressed)
     tip_dismiss_button.pressed.connect(_on_tip_dismiss_pressed)
@@ -56,6 +73,7 @@ func _ready() -> void:
     _connect_progress_signals()
     _refresh_progress_discovery()
     _refresh_bonus_skin_access()
+    _refresh_start_screen_layout()
 
 func _on_start_pressed() -> void:
     var update_manager = get_node_or_null("/root/AppUpdateManager")
@@ -73,6 +91,13 @@ func _on_missions_pressed() -> void:
 
 func _on_hangar_pressed() -> void:
     get_tree().change_scene_to_file("res://scenes/ui/hangar/hangar_screen.tscn")
+
+func _on_credits_pressed() -> void:
+    credits_overlay.visible = true
+    credits_close_button.grab_focus()
+
+func _on_credits_close_pressed() -> void:
+    _close_credits_overlay()
 
 func _on_settings_pressed() -> void:
     settings_menu.open_menu()
@@ -159,6 +184,39 @@ func _dismiss_current_tip() -> void:
 
 func _on_progress_state_changed(_summary: Dictionary = {}) -> void:
     _refresh_progress_discovery()
+
+func _unhandled_input(event: InputEvent) -> void:
+    if not credits_overlay.visible:
+        return
+    if event.is_action_pressed("ui_cancel"):
+        _close_credits_overlay()
+        get_viewport().set_input_as_handled()
+
+func _refresh_start_screen_layout() -> void:
+    var viewport_size := get_viewport_rect().size
+    var compact := viewport_size.x < 900.0 or viewport_size.y < 720.0
+
+    credits_button.offset_left = 24.0
+    credits_button.offset_right = 156.0 if compact else 168.0
+    credits_button.offset_top = -96.0 if compact else -100.0
+    credits_button.offset_bottom = -48.0
+    credits_button.add_theme_font_size_override("font_size", 17 if compact else 18)
+
+    var panel_width: float = clampf(viewport_size.x - 72.0, CREDITS_PANEL_MIN_WIDTH, CREDITS_PANEL_MAX_WIDTH)
+    var panel_height: float = clampf(viewport_size.y - 120.0, CREDITS_PANEL_MIN_HEIGHT, CREDITS_PANEL_MAX_HEIGHT)
+    credits_panel.offset_left = -panel_width * 0.5
+    credits_panel.offset_right = panel_width * 0.5
+    credits_panel.offset_top = -panel_height * 0.5
+    credits_panel.offset_bottom = panel_height * 0.5
+    credits_title_label.add_theme_font_size_override("font_size", 24 if compact else 30)
+    credits_creator_label.add_theme_font_size_override("font_size", 17 if compact else 20)
+    credits_notice_label.add_theme_font_size_override("font_size", 14 if compact else 16)
+    credits_close_button.custom_minimum_size = Vector2(160.0 if compact else 180.0, 48.0 if compact else 52.0)
+    credits_close_button.add_theme_font_size_override("font_size", 17 if compact else 18)
+
+func _close_credits_overlay() -> void:
+    credits_overlay.visible = false
+    credits_button.grab_focus()
 
 func _refresh_bonus_skin_access() -> void:
     var player_profile := get_node_or_null("/root/PlayerProfile")

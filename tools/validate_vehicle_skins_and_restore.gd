@@ -158,7 +158,7 @@ func _run_validation() -> void:
 	_assert(leaderboard_text.contains("load_canonical_player_id"), "OnlineLeaderboard should expose the canonical player ID for permanent restore rebinding.")
 	_assert(leaderboard_text.contains("profile_summary"), "OnlineLeaderboard should still parse profile summaries.")
 	_assert(leaderboard_text.contains("if not parsed.has(resolved_key)"), "OnlineLeaderboard should flatten nested profile_summary fields for restore merges.")
-	_assert(leaderboard_text.contains("Waiting for stable Android ID"), "OnlineLeaderboard should surface stable Android identity wait states clearly.")
+	_assert(leaderboard_text.contains("Waiting for Android-backed ID"), "OnlineLeaderboard should surface Android-backed identity wait states clearly.")
 
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("migrate_player_identity_async"), "Settings restore should migrate pasted legacy player IDs onto the phone's canonical player ID.")

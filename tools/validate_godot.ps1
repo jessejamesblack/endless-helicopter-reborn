@@ -27,6 +27,7 @@ $scripts = @(
     'res://scenes/background/background_manager.gd',
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',
+    'res://scenes/ui/title_screen/title_screen.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
     'res://scenes/ui/debug/debug_menu.gd',
     'res://scenes/ui/settings/settings_menu.gd',

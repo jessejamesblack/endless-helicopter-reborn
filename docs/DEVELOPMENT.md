@@ -29,7 +29,7 @@ For push-notification debugging, the exported app now reports:
 - whether the plugin singleton loaded
 - whether the compat bridge is available
 - whether Android runtime objects were exposed to GDScript
-- whether player and device identity are using `android_stable`, `legacy_cache`, or `local_fallback`
+- whether player and device IDs are using the Android-backed, legacy-cache, or local-fallback path
 - whether Firebase initialized successfully
 - whether an FCM token was obtained and registered with Supabase
 

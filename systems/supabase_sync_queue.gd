@@ -342,7 +342,7 @@ func _on_identity_retry_timeout() -> void:
 func _handle_startup_identity_retry() -> void:
 	if _identity_retry_attempts_remaining <= 0:
 		if OS.get_name() == "Android":
-			_report_identity_issue("android_identity_pending", "Stable Android identity did not resolve before startup sync timed out.", {
+			_report_identity_issue("android_identity_pending", "Android-backed identity did not resolve before startup sync timed out.", {
 				"player_source": OnlineLeaderboardScript.get_player_identity_source(),
 				"device_source": OnlineLeaderboardScript.get_device_identity_source(),
 				"identity_snapshot": _get_identity_snapshot(),
@@ -554,11 +554,11 @@ func _get_identity_snapshot() -> String:
 		"player_source": str(player_info.get("source", "")),
 		"player_remote_ready": bool(player_info.get("remote_ready", false)),
 		"player_needs_migration": bool(player_info.get("needs_migration", false)),
-		"stable_player_id": str(player_info.get("stable_value", "")),
+		"canonical_player_id": str(player_info.get("stable_value", "")),
 		"device_id": str(device_info.get("value", "")),
 		"device_source": str(device_info.get("source", "")),
 		"device_remote_ready": bool(device_info.get("remote_ready", false)),
 		"device_needs_migration": bool(device_info.get("needs_migration", false)),
-		"stable_device_id": str(device_info.get("stable_value", "")),
+		"canonical_device_id": str(device_info.get("stable_value", "")),
 		"manual_override": OnlineLeaderboardScript.has_manual_player_id_override(),
 	})

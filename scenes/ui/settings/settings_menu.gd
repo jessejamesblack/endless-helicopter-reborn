@@ -242,7 +242,7 @@ func _restore_with_device_player_id_async() -> void:
 	var current_player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
 	var current_player_id_source := OnlineLeaderboardScript.get_player_identity_source_label()
 	if not OnlineLeaderboardScript.is_current_player_id_ready_for_cloud():
-		_refresh_restore_progress_section("This phone is still waiting for its stable Android player ID. Try again in a moment.")
+		_refresh_restore_progress_section("This phone is still waiting for its Android-backed player ID. Try again in a moment.")
 		return
 	_refresh_restore_progress_section("Switched back to this device's player ID %s (%s). Restoring cloud progress..." % [
 		current_player_id,
@@ -436,8 +436,8 @@ func _refresh_restore_progress_section(message: String = "") -> void:
 	elif OnlineLeaderboardScript.has_manual_player_id_override():
 		source_hint = "Using a pasted player ID."
 	if player_id.begins_with("(waiting"):
-		source_hint = "This phone is still starting its stable Android player ID. You can paste a support player ID above if you need to restore right away."
-	restore_progress_status_label.text = "Current Player ID: %s\nPlayer ID Source: %s\n%s Paste a player ID from support if restore doesn't work on its own, then tap Restore Progress." % [
+		source_hint = "This phone is still starting its Android-backed player ID. You can paste a support player ID above if you need to restore right away."
+	restore_progress_status_label.text = "Current App Player ID: %s\nPlayer ID Source: %s\n%s Paste a player ID from support if restore doesn't work on its own, then tap Restore Progress." % [
 		player_id,
 		player_id_source,
 		source_hint,
@@ -501,7 +501,7 @@ func _restore_progress_async() -> void:
 			using_temporary_manual_restore = true
 	var player_id := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
 	if player_id.is_empty() or (entered_player_id.is_empty() and not OnlineLeaderboardScript.is_current_player_id_ready_for_cloud()):
-		_refresh_restore_progress_section("This phone is still waiting for its stable Android player ID. Paste one from support or try again in a moment.")
+		_refresh_restore_progress_section("This phone is still waiting for its Android-backed player ID. Paste one from support or try again in a moment.")
 		return
 	_restore_progress_in_flight = true
 	_refresh_restore_progress_section("Checking cloud saves for player ID %s..." % player_id)
@@ -530,7 +530,7 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Profile and daily progress restored from cloud and permanently linked to this phone's player ID %s." % player_id)
 			return
 		if using_temporary_manual_restore:
-			_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s. This install is using that pasted ID until this phone's stable Android ID is ready." % player_id)
+			_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed ID is ready." % player_id)
 			return
 		_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s." % player_id)
 		return
@@ -539,7 +539,7 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Profile restored from cloud and permanently linked to this phone's player ID %s." % player_id)
 			return
 		if using_temporary_manual_restore:
-			_refresh_restore_progress_section("Profile restored from cloud for player ID %s. This install is using that pasted ID until this phone's stable Android ID is ready." % player_id)
+			_refresh_restore_progress_section("Profile restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed ID is ready." % player_id)
 			return
 		_refresh_restore_progress_section("Profile restored from cloud for player ID %s." % player_id)
 		return
