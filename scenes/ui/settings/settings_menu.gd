@@ -456,7 +456,7 @@ func _restore_progress_async() -> void:
 	var active_player_id_before_restore := OnlineLeaderboardScript.load_or_create_player_id().strip_edges()
 	var canonical_player_id := OnlineLeaderboardScript.load_canonical_player_id().strip_edges()
 	var canonical_device_id := OnlineLeaderboardScript.load_canonical_device_id().strip_edges()
-	var canonical_player_ready := OnlineLeaderboardScript.is_canonical_player_id_ready_for_cloud()
+	var canonical_identity_ready := OnlineLeaderboardScript.is_remote_identity_ready()
 	var entered_player_id := ""
 	var pasted_player_id := ""
 	var using_temporary_manual_restore := false
@@ -470,7 +470,7 @@ func _restore_progress_async() -> void:
 			return
 		var validated_player_id := str(validation.get("player_id", ""))
 		pasted_player_id = validated_player_id
-		if canonical_player_ready and not canonical_player_id.is_empty():
+		if canonical_identity_ready and not canonical_player_id.is_empty() and not canonical_device_id.is_empty():
 			if validated_player_id != canonical_player_id:
 				_clear_pending_sync_jobs()
 				_restore_progress_in_flight = true
@@ -531,7 +531,7 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Profile and daily progress restored from cloud and permanently linked to this phone's player ID %s." % player_id)
 			return
 		if using_temporary_manual_restore:
-			_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed ID is ready." % player_id)
+			_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed player/device identity is fully ready." % player_id)
 			return
 		_refresh_restore_progress_section("Profile and daily progress restored from cloud for player ID %s." % player_id)
 		return
@@ -540,7 +540,7 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Profile restored from cloud and permanently linked to this phone's player ID %s." % player_id)
 			return
 		if using_temporary_manual_restore:
-			_refresh_restore_progress_section("Profile restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed ID is ready." % player_id)
+			_refresh_restore_progress_section("Profile restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed player/device identity is fully ready." % player_id)
 			return
 		_refresh_restore_progress_section("Profile restored from cloud for player ID %s." % player_id)
 		return
@@ -549,7 +549,7 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Daily mission progress restored from cloud and tied to this phone's player ID %s, but no saved profile was found." % player_id)
 			return
 		if using_temporary_manual_restore:
-			_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but this install is still temporarily using the pasted player ID." % player_id)
+			_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but this install is still temporarily using the pasted player ID until this phone's Android-backed player/device identity is fully ready." % player_id)
 			return
 		_refresh_restore_progress_section("Daily mission progress restored from cloud for player ID %s, but no saved profile was found." % player_id)
 		return
@@ -558,7 +558,7 @@ func _restore_progress_async() -> void:
 			_refresh_restore_progress_section("Leaderboard best restored from cloud and permanently linked to this phone's player ID %s." % player_id)
 			return
 		if using_temporary_manual_restore:
-			_refresh_restore_progress_section("Leaderboard best restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed ID is ready." % player_id)
+			_refresh_restore_progress_section("Leaderboard best restored from cloud for player ID %s. This install is using that pasted ID until this phone's Android-backed player/device identity is fully ready." % player_id)
 			return
 		_refresh_restore_progress_section("Leaderboard best restored from cloud for player ID %s." % player_id)
 		return

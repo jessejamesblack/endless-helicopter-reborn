@@ -16,13 +16,17 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_supabase_reinstall_res
 
 This live Supabase check requires `SUPABASE_ACCESS_TOKEN`. It uses the Supabase MCP endpoint in write-capable mode, inserts only synthetic rows inside a transaction, verifies reinstall/restore migration behavior, and rolls the transaction back before exit.
 
+For the live signing cutover and final gameplay-data reset, use [ANDROID_CONTINUITY_CUTOVER.md](ANDROID_CONTINUITY_CUTOVER.md) as the operator runbook.
+
 ### Export Android locally
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
+powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe" -SigningMode release_stable
 ```
 
 That script rebuilds the Android push bridge before export and writes the canonical local APK into `build/android/`. Install that fresh output, not any older APK that may still be sitting elsewhere in the repo.
+
+The export script now refuses identity-unsafe Android builds unless you explicitly pass `-AllowIdentityUnsafeBuild`. Use that escape hatch only for disposable smoke tests that should never be used for reinstall or restore validation.
 
 For push-notification debugging, the exported app now reports:
 
@@ -30,6 +34,7 @@ For push-notification debugging, the exported app now reports:
 - whether the compat bridge is available
 - whether Android runtime objects were exposed to GDScript
 - whether player and device identity are using the Android-backed derived, legacy cached, or waiting-for-Android-backed path on Android
+- which signing mode the build was exported with and a preview of the actual signing certificate hash
 - whether Firebase initialized successfully
 - whether an FCM token was obtained and registered with Supabase
 
@@ -57,8 +62,8 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - CI also builds the Android FCM plugin AARs before exporting the APK.
 - Outputs include a workflow artifact containing the generated APK.
 - Outputs also include the rolling GitHub prerelease alias `Endless-Helicopter-Reborn Latest APK`.
-- PR APK names can be `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk` depending on signing secrets.
-- Pushes to `main` can produce `Endless-Helicopter-Reborn-release.apk` when signing secrets are configured, otherwise they fall back to `Endless-Helicopter-Reborn-debug.apk`.
+- PR APK names can be `Endless-Helicopter-Reborn-debug.apk` or `Endless-Helicopter-Reborn-release.apk` depending on the configured canonical signing key.
+- Pushes to `main` must produce `Endless-Helicopter-Reborn-release.apk` from the canonical stable release key for user-facing releases. A continuity-safe debug-signed APK is only for controlled testing when the stable debug key is intentionally used on non-public builds.
 
 ## Branching
 
@@ -78,13 +83,33 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - A successful install should show `Compat bridge available: yes` in the in-game push diagnostics.
 - Local plugin builds require Gradle, Java 17, and the Android SDK.
 - The Firebase config file belongs at `android/plugins/fcm_push_bridge/google-services.json` and is intentionally ignored by git.
-- CI can build temporary debug artifacts for pull requests without a permanent keystore.
-- Pushes to `main` can still publish a debug build if repository signing secrets are missing.
+- CI now fails Android APK builds if neither the canonical release keystore nor the canonical debug keystore is configured, and `main` public release publishing requires the canonical release keystore specifically.
+- Once users have installed a signing track, do not rotate from one stable keystore to another without planning a one-time manual restore/migration event.
 - `export_presets.cfg` now enables Android user-data backup and retain-data-on-uninstall as a local safety net for settings/profile files.
-- For progression-safe installs between CI builds, use repository secrets for either the stable release keystore or the optional stable debug keystore.
-- Temporary-key CI artifacts are test-only and can change the Android-backed player identity across builds.
+- For official progression-safe installs, use the stable release keystore. The optional stable debug keystore is only for controlled testing and is not the canonical public signing track.
 - The workflow writes artifacts to `build/android/`.
 - The GitHub release is updated automatically on each successful build.
+
+## Release Cutover Checklist
+
+Use this order for the stable release-key continuity cutover and any future fresh-start gameplay-data wipe:
+
+1. Confirm the permanent stable release key is configured through:
+   - `ANDROID_KEYSTORE_BASE64`
+   - `ANDROID_KEYSTORE_PASSWORD`
+   - `ANDROID_KEY_ALIAS`
+2. Bump `export_presets.cfg` version metadata and update release notes.
+3. Build and install the stable release-signed APK.
+4. Verify the app's Debug diagnostics show:
+   - `Signing: Stable release key`
+   - a stable signing-certificate preview
+5. Publish or update `app_release_channels` for the `stable` channel.
+6. Raise `app_release_channels.minimum_supported_version_code` to the cutover build so older builds are force-upgraded.
+7. Only after the version gate is live, run [backend/supabase_fresh_start_cutover_wipe.sql](../backend/supabase_fresh_start_cutover_wipe.sql) to wipe the gameplay-data tables listed in [ANDROID_CONTINUITY_CUTOVER.md](ANDROID_CONTINUITY_CUTOVER.md).
+8. Preserve the operational/config tables listed in that runbook.
+9. Re-test same-device uninstall/reinstall on the official build and confirm automatic restore without manual support restore.
+
+This cutover is a fresh-start gameplay-data wipe. Pre-wipe cloud progression is intentionally retired.
 
 ## MCP Servers
 

@@ -166,11 +166,14 @@ func _run_validation() -> void:
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("migrate_player_identity_async"), "Settings restore should migrate pasted legacy player IDs onto the phone's canonical player ID.")
 	_assert(settings_text.contains("permanently linked to this phone's player ID"), "Settings restore should tell the user when a pasted player ID was permanently rebound to this phone.")
+	_assert(settings_text.contains("is_remote_identity_ready"), "Settings restore should wait for the full Android-backed player/device identity before permanent rebinding.")
 
 	var queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")
 	_assert(queue_text.contains("_ensure_remote_identity_ready"), "SupabaseSyncQueue should wait for a stable remote identity before syncing.")
 	_assert(queue_text.contains("notify_identity_state_changed"), "SupabaseSyncQueue should allow identity changes to restart startup restore.")
 	_assert(queue_text.contains("func migrate_player_identity_async"), "SupabaseSyncQueue should expose a reusable identity migration helper for manual restore rebinding.")
+	_assert(queue_text.contains("_build_manual_override_handoff_plan"), "SupabaseSyncQueue should auto-handoff temporary restore overrides onto the canonical Android-backed identity.")
+	_assert(queue_text.contains("manual_override_handoff"), "SupabaseSyncQueue should report temporary manual-override migration failures for diagnostics.")
 
 	var sql_text := Helper.read_text("res://backend/supabase_vehicle_skins_setup.sql")
 	_assert(sql_text.contains("create or replace function public.migrate_player_identity"), "Supabase restore SQL should define migrate_player_identity.")
@@ -185,6 +188,28 @@ func _run_validation() -> void:
 
 	var build_info_text := Helper.read_text("res://systems/build_info.gd")
 	_assert(build_info_text.contains("APP_PACKAGE_NAME"), "BuildInfo should expose the canonical Android package name for stable identity fallback.")
+	_assert(build_info_text.contains("SIGNING_MODE"), "BuildInfo should expose the Android signing mode used for continuity diagnostics.")
+	_assert(build_info_text.contains("is_identity_continuity_safe"), "BuildInfo should expose whether the current signing mode is continuity-safe.")
+
+	var export_text := Helper.read_text("res://tools/export_android.ps1")
+	_assert(export_text.contains("-AllowIdentityUnsafeBuild"), "Local Android export should require an explicit escape hatch for identity-unsafe builds.")
+	_assert(export_text.contains("release_stable"), "Local Android export should require a stable signing mode for continuity-safe builds.")
+
+	var workflow_text := Helper.read_text("res://.github/workflows/android-apk.yml")
+	_assert(not workflow_text.contains("SIGNING_KEY_MODE=temporary_debug"), "CI should no longer generate temporary-key Android artifacts.")
+	_assert(workflow_text.contains("A stable Android signing key is required for continuity-safe installs"), "CI should fail loudly when no canonical Android signing key is configured.")
+	_assert(workflow_text.contains("Stable public releases from main must use the canonical ANDROID_KEYSTORE_* release key"), "CI should block public main releases that try to fall back to the stable debug key.")
+
+	var wipe_text := Helper.read_text("res://backend/supabase_fresh_start_cutover_wipe.sql")
+	_assert(wipe_text.contains("Fresh-start gameplay-data wipe"), "The cutover wipe script should describe the fresh-start gameplay-data reset.")
+	_assert(wipe_text.contains("delete from public.family_player_profiles"), "The cutover wipe script should clear player profiles.")
+	_assert(wipe_text.contains("delete from public.family_daily_mission_progress"), "The cutover wipe script should clear daily mission progress.")
+	_assert(wipe_text.contains("delete from public.family_leaderboard"), "The cutover wipe script should clear leaderboard rows.")
+	_assert(wipe_text.contains("delete from public.family_run_history"), "The cutover wipe script should clear run history.")
+	_assert(wipe_text.contains("delete from public.family_notifications"), "The cutover wipe script should clear stored notifications.")
+	_assert(wipe_text.contains("delete from public.family_push_devices"), "The cutover wipe script should clear push-device rows.")
+	_assert(wipe_text.contains("delete from public.family_push_delivery_log"), "The cutover wipe script should clear push-delivery history.")
+	_assert(wipe_text.contains("delete from public.app_update_push_history"), "The cutover wipe script should clear app-update push history.")
 
 	var push_registration_text := Helper.read_text("res://backend/supabase/functions/register-push-device/index.ts")
 	_assert(push_registration_text.contains(".eq(\"device_id\", deviceId)"), "register-push-device should reconcile existing rows for the current device ID.")

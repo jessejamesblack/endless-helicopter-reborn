@@ -307,6 +307,48 @@ func _ensure_remote_identity_ready() -> bool:
 		return false
 	if _is_cloud_access_blocked():
 		return false
+	var manual_override_handoff := _build_manual_override_handoff_plan(
+		OnlineLeaderboardScript.load_manual_player_id_override(),
+		OnlineLeaderboardScript.load_canonical_player_id(),
+		OnlineLeaderboardScript.load_canonical_device_id(),
+		OnlineLeaderboardScript.is_remote_identity_ready(),
+		OS.get_name() == "Android"
+	)
+	if bool(manual_override_handoff.get("should_clear_override", false)):
+		OnlineLeaderboardScript.clear_manual_player_id_override()
+		if bool(manual_override_handoff.get("canonical_remote_identity_ready", false)):
+			OnlineLeaderboardScript.finalize_remote_identity_migration()
+		_last_identity_snapshot = _get_identity_snapshot()
+	if bool(manual_override_handoff.get("should_migrate", false)):
+		var handoff_old_player_id := str(manual_override_handoff.get("old_player_id", "")).strip_edges()
+		var handoff_new_player_id := str(manual_override_handoff.get("new_player_id", "")).strip_edges()
+		var handoff_new_device_id := str(manual_override_handoff.get("new_device_id", "")).strip_edges()
+		var handoff_response := await _request_json(
+			_pull_request,
+			OnlineLeaderboardScript.get_migrate_player_identity_url(),
+			HTTPClient.METHOD_POST,
+			OnlineLeaderboardScript.make_migrate_player_identity_body_for_ids(
+				handoff_old_player_id,
+				handoff_new_player_id,
+				"",
+				handoff_new_device_id
+			)
+		)
+		if _handle_upgrade_required_response("migrate_player_identity", handoff_response):
+			return false
+		if _is_success_response(handoff_response):
+			OnlineLeaderboardScript.clear_manual_player_id_override()
+			OnlineLeaderboardScript.finalize_remote_identity_migration()
+			_last_identity_snapshot = _get_identity_snapshot()
+			return OnlineLeaderboardScript.is_remote_profile_identity_ready()
+		_report_identity_issue("manual_override_handoff", "Temporary restore player ID did not migrate onto this phone's Android-backed identity.", {
+			"old_player_id_present": not handoff_old_player_id.is_empty(),
+			"new_player_id_present": not handoff_new_player_id.is_empty(),
+			"new_device_id_present": not handoff_new_device_id.is_empty(),
+			"response_code": int(handoff_response.get("response_code", 0)),
+			"result": int(handoff_response.get("result", HTTPRequest.RESULT_CANT_CONNECT)),
+		})
+		return false
 	if OnlineLeaderboardScript.has_pending_remote_identity_migration():
 		var migration := OnlineLeaderboardScript.get_pending_remote_identity_migration()
 		var old_player_id := str(migration.get("old_player_id", "")).strip_edges()
@@ -343,6 +385,43 @@ func _ensure_remote_identity_ready() -> bool:
 		return false
 	OnlineLeaderboardScript.finalize_remote_identity_migration()
 	return true
+
+func _build_manual_override_handoff_plan(manual_override: String, canonical_player_id: String, canonical_device_id: String, canonical_remote_identity_ready: bool, running_on_android: bool) -> Dictionary:
+	var clean_manual_override := manual_override.strip_edges()
+	var clean_canonical_player_id := canonical_player_id.strip_edges()
+	var clean_canonical_device_id := canonical_device_id.strip_edges()
+	if not running_on_android or clean_manual_override.is_empty() or clean_canonical_player_id.is_empty():
+		return {
+			"should_clear_override": false,
+			"should_migrate": false,
+			"canonical_remote_identity_ready": canonical_remote_identity_ready,
+		}
+	if clean_manual_override == clean_canonical_player_id:
+		return {
+			"should_clear_override": true,
+			"should_migrate": false,
+			"canonical_remote_identity_ready": canonical_remote_identity_ready,
+			"old_player_id": clean_manual_override,
+			"new_player_id": clean_canonical_player_id,
+			"new_device_id": clean_canonical_device_id,
+		}
+	if not canonical_remote_identity_ready or clean_canonical_device_id.is_empty():
+		return {
+			"should_clear_override": false,
+			"should_migrate": false,
+			"canonical_remote_identity_ready": canonical_remote_identity_ready,
+			"old_player_id": clean_manual_override,
+			"new_player_id": clean_canonical_player_id,
+			"new_device_id": clean_canonical_device_id,
+		}
+	return {
+		"should_clear_override": false,
+		"should_migrate": true,
+		"canonical_remote_identity_ready": canonical_remote_identity_ready,
+		"old_player_id": clean_manual_override,
+		"new_player_id": clean_canonical_player_id,
+		"new_device_id": clean_canonical_device_id,
+	}
 
 func _schedule_identity_retry() -> void:
 	if _identity_retry_timer == null:

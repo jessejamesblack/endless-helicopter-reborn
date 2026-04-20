@@ -94,6 +94,8 @@ Current leaderboard/profile behavior:
 - Manual support restore by old `player_id` is still available in Settings, and current builds try to permanently migrate that old profile onto the phone's canonical Android-backed app id so future reinstalls on that device restore automatically.
 - A public name is only required for leaderboard submission. Cloud profile restore and progression sync can exist before the player picks a public leaderboard name.
 - Android exports now leave user data backup enabled and request data retention on uninstall, so local profile/config files still have a platform backup safety net.
+- Same-device continuity now depends on one permanent signing key track. The app exposes the signing mode and signing-certificate preview in Debug so reinstall testing can confirm the expected key is in use.
+- After the stable release-key cutover release has shipped and the fresh-start wipe has been executed, official Android builds are expected to restore automatically on the same device after uninstall/reinstall. See [docs/ANDROID_CONTINUITY_CUTOVER.md](docs/ANDROID_CONTINUITY_CUTOVER.md) for the procedural cutover runbook and support expectations.
 
 ## Android Push Notifications
 
@@ -120,12 +122,19 @@ Current Android builds also include a compatibility bridge so push registration 
 
 Avoid installing older APKs that happen to be sitting elsewhere in the repo, such as stale root-level exports. Those can contain an outdated Android push bridge even when the current source and AARs are correct.
 
+Continuity-safe local exports should pass an explicit stable signing mode. Use `release_stable` for official continuity validation and keep `debug_stable` for controlled test-only builds. For example:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\export_android.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe" -SigningMode release_stable
+```
+
 After installing, open the in-game push diagnostics and confirm at least:
 
 - `Plugin loaded: yes`
 - `Compat bridge available: yes`
 - `Bridge diagnostics available: yes`
 - `Firebase ready: yes`
+- `Signing: Stable release key` or `Signing: Stable debug key`
 
 ### From GitHub Releases
 
@@ -161,8 +170,8 @@ This repository includes `.github/workflows/android-apk.yml`.
 - The workflow also builds the Android FCM plugin AAR before the APK export.
 - The APK is uploaded as a workflow artifact.
 - The workflow also updates a rolling GitHub prerelease alias named `Endless-Helicopter-Reborn Latest APK`.
-- Pull request APK filenames use `Endless-Helicopter-Reborn-debug.apk` unless signing secrets are present.
-- Pushes to `main` publish `Endless-Helicopter-Reborn-release.apk` when signing secrets are configured, otherwise they fall back to `Endless-Helicopter-Reborn-debug.apk`.
+- Pull request APK filenames use `Endless-Helicopter-Reborn-debug.apk` unless the canonical release keystore is configured.
+- Pushes to `main` must publish `Endless-Helicopter-Reborn-release.apk` from the canonical stable release keystore for any user-facing rollout. A continuity-safe debug-signed APK is only for controlled testing when the stable debug key is intentionally used on non-public builds.
 - This is better than committing generated APKs into the repository on every change.
 
 ### Stable signed builds
@@ -173,7 +182,9 @@ If you want Android installs to upgrade cleanly between CI builds, add these Git
 - `ANDROID_KEYSTORE_PASSWORD`
 - `ANDROID_KEY_ALIAS`
 
-If these secrets are not present, pull request and `main` builds fall back to a temporary debug keystore for artifact generation.
+If these secrets are not present, the Android workflow now fails instead of generating a temporary-key artifact. That prevents installable CI builds from silently changing the Android-backed `player_id` across reinstalls.
+
+The canonical public track is the permanent stable release key. The same-device automatic restore promise only applies after the planned cutover release has shipped and the wipe has been executed on live data. See [docs/ANDROID_CONTINUITY_CUTOVER.md](docs/ANDROID_CONTINUITY_CUTOVER.md).
 
 ## AI Collaboration
 

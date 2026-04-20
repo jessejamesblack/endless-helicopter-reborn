@@ -128,6 +128,17 @@ class FcmPushBridge(godot: Godot) : GodotPlugin(godot) {
     }
 
     @UsedByGodot
+    fun getSigningCertificateSha256(): String {
+        FcmPushBridgeCore.rememberActivity(activity)
+        val context = activity?.applicationContext
+        return if (context != null) {
+            FcmPushBridgeCore.getSigningCertificateSha256(context)
+        } else {
+            FcmPushBridgeCore.getSigningCertificateSha256()
+        }
+    }
+
+    @UsedByGodot
     fun consumeLaunchPayload(): String {
         val currentActivity = activity ?: return ""
         FcmPushBridgeCore.rememberActivity(currentActivity)

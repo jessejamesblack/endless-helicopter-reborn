@@ -1,6 +1,5 @@
-- Stable Android release 1.6.4 (158).
-- Android reinstall/update restore is now the headline fix, including cleaner best-score recovery and split-account migration support.
-- Legacy `DebugSave` test-name usage is retired, and support can merge split player data back onto a single canonical account before restore.
-- Existing leaderboard rows can now take a corrected public name instead of being stuck on the first inserted one.
-- Score-beaten notifications now post only the highest beaten family score from each run.
-- Post-run results and achievement screenshots now stay focused on the synced end-run scoreboard flow instead of local-best/menu wording.
+- Stable Android release 1.6.6 (160).
+- This is the planned stable release-key cutover release for same-device reinstall continuity on official builds.
+- `main` public releases now require the canonical stable release keystore; testing-only `debug_stable` builds stay non-public.
+- The repo now includes a reviewed fresh-start gameplay-data wipe script for the live Supabase reset.
+- The cutover still requires the live release gate update and the one-time gameplay-data wipe before the new automatic-restore promise is active.

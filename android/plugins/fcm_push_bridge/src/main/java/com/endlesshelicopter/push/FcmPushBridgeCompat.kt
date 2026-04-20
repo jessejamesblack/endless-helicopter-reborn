@@ -76,6 +76,14 @@ class FcmPushBridgeCompat {
         }
 
         @JvmStatic
+        fun getSigningCertificateSha256(): String = FcmPushBridgeCore.getSigningCertificateSha256()
+
+        @JvmStatic
+        fun getSigningCertificateSha256(context: Context?): String {
+            return if (context == null) "" else FcmPushBridgeCore.getSigningCertificateSha256(context)
+        }
+
+        @JvmStatic
         fun consumeLaunchPayload(): String = FcmPushBridgeCore.consumeLaunchPayload()
 
         @JvmStatic

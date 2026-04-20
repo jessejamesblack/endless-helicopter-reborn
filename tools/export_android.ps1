@@ -12,7 +12,11 @@ param(
 
     [string]$BuildDate = '',
 
-    [string]$ReleaseChannel = 'dev'
+    [string]$ReleaseChannel = 'dev',
+
+    [string]$SigningMode = '',
+
+    [switch]$AllowIdentityUnsafeBuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,6 +27,11 @@ $outputDir = Split-Path -Parent $outputPath
 $buildPluginScript = Join-Path $PSScriptRoot 'build_android_plugin.ps1'
 $generateBuildInfoScript = Join-Path $PSScriptRoot 'generate_build_info.ps1'
 $canonicalBuildDir = Join-Path $projectRoot 'build\android'
+$resolvedSigningMode = if ([string]::IsNullOrWhiteSpace($SigningMode)) {
+    if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY_MODE)) { 'local_unspecified' } else { $env:SIGNING_KEY_MODE }
+} else {
+    $SigningMode
+}
 
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
@@ -69,14 +78,19 @@ if (Test-Path $buildPluginScript) {
 
 if (Test-Path $generateBuildInfoScript) {
     $resolvedBuildDate = if ([string]::IsNullOrWhiteSpace($BuildDate)) { [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $BuildDate }
+    $stableSigningModes = @('release_stable', 'debug_stable')
+    if (-not $AllowIdentityUnsafeBuild.IsPresent -and $stableSigningModes -notcontains $resolvedSigningMode) {
+        throw "Android continuity-safe exports require -SigningMode release_stable or debug_stable. Current signing mode is '$resolvedSigningMode'. Use -AllowIdentityUnsafeBuild only for disposable smoke-test APKs that should never be used for reinstall/restore validation."
+    }
     Write-Host "Generating build info for channel '$ReleaseChannel'..."
-    & $generateBuildInfoScript -BuildSha $BuildSha -BuildDate $resolvedBuildDate -ReleaseChannel $ReleaseChannel
+    & $generateBuildInfoScript -BuildSha $BuildSha -BuildDate $resolvedBuildDate -ReleaseChannel $ReleaseChannel -SigningMode $resolvedSigningMode
     if ($LASTEXITCODE -ne 0) {
         throw 'Build info generation failed.'
     }
 }
 
 Write-Host "Exporting Android preset '$Preset' to '$outputPath'"
+Write-Host "Signing mode: $resolvedSigningMode"
 & $GodotBin --headless --path $projectRoot $exportFlag $Preset $outputPath --install-android-build-template
 
 if ($LASTEXITCODE -ne 0) {

@@ -29,6 +29,8 @@ When you need to validate or apply a live migration deliberately:
 2. Use a local-only override that points to `https://mcp.supabase.com/mcp?project_ref=lxvniafwjlwatbiblwyi` without `read_only=true`.
 3. Prefer deterministic scripts that wrap any synthetic writes in `begin; ... rollback;`.
 
+Any live Supabase wipe or migration should use a deliberate write-capable override plus a reviewed runbook. Do not use ad-hoc MCP writes for Android continuity cutovers or gameplay-data resets; use [ANDROID_CONTINUITY_CUTOVER.md](ANDROID_CONTINUITY_CUTOVER.md), the checked-in wipe script [backend/supabase_fresh_start_cutover_wipe.sql](../backend/supabase_fresh_start_cutover_wipe.sql), and an explicit operator checklist.
+
 This repo now includes [tools/validate_supabase_reinstall_restore.ps1](../tools/validate_supabase_reinstall_restore.ps1), which uses that write-capable endpoint only for a transaction-wrapped reinstall/restore validation and leaves no persistent test data behind.
 
 ## First-Time Setup

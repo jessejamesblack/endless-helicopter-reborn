@@ -66,7 +66,8 @@ If you want one world-wide board for everyone who installs the app, set:
 - Existing legacy Android installs migrate old cached player ids to the canonical Android-backed app id the first time that source id resolves.
 - If support restores an older pasted `player_id` on a device whose canonical Android-backed app id is ready, the app now attempts to migrate that old profile onto the phone's canonical id so future reinstalls on the same phone restore automatically.
 - Android exports also keep user-data backup enabled and request retain-data-on-uninstall, so local profile/config files have a backup safety net on supported devices.
-- Same-device reinstall stability still depends on reinstalling builds signed with the same key. Use the release keystore secrets or the optional stable debug keystore for CI artifacts; temporary debug keys are test-only.
+- Same-device reinstall stability still depends on reinstalling builds signed with the same key. Official continuity now assumes the stable release key. The optional stable debug keystore is for controlled testing only, and temporary debug keys are test-only.
+- The current restore model assumes a stable release signing epoch for official builds. The planned fresh-start gameplay-data wipe will retire pre-cutover cloud data when the cutover is executed; see [ANDROID_CONTINUITY_CUTOVER.md](ANDROID_CONTINUITY_CUTOVER.md) for the procedural cutover policy and support expectations.
 - Each device saves a public player name locally after the first submitted run.
 - Cloud profile restore and progression sync do not require a public name; the player only needs to choose one before publishing a leaderboard score.
 - Player names use a simple profanity filter.

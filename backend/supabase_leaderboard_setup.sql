@@ -249,7 +249,10 @@ begin
     into conflicting_player_name
     from public.family_leaderboard
     where family_id = new.family_id
-      and player_id <> new.player_id
+      and (
+        tg_op <> 'UPDATE'
+        or id <> old.id
+      )
       and public.normalize_leaderboard_name(name) = public.normalize_leaderboard_name(new.name)
     order by updated_at asc, created_at asc, id asc
     limit 1;
