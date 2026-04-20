@@ -1,6 +1,7 @@
 extends SceneTree
 
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
+const OnlineLeaderboardScript = preload("res://systems/online_leaderboard.gd")
 const START_SCREEN_SCENE := preload("res://scenes/ui/start_screen/start_screen.tscn")
 const TITLE_SCREEN_SCENE := preload("res://scenes/ui/title_screen/title_screen.tscn")
 const LEADERBOARD_SCENE := preload("res://scenes/ui/leaderboard/leaderboard_screen.tscn")
@@ -89,6 +90,12 @@ func _run_validation() -> void:
 	var discovery_text := Helper.read_text("res://systems/feature_discovery_manager.gd")
 	_assert(discovery_text.contains("Daily Missions unlock vehicles and paint styles."), "Feature discovery should teach what Missions unlock.")
 	_assert(discovery_text.contains("Hangar is where you equip vehicles and skins."), "Feature discovery should teach what the Hangar is for.")
+	_assert(not bool(OnlineLeaderboardScript.validate_player_name("DebugSave").get("ok", true)), "DebugSave should no longer be accepted as a public player name.")
+	OnlineLeaderboardScript.save_cached_name("DebugSave")
+	_assert(OnlineLeaderboardScript.load_cached_name().is_empty(), "Existing cached DebugSave names should be cleared on load.")
+	OnlineLeaderboardScript.clear_cached_name()
+	var leaderboard_sql := Helper.read_text("res://backend/supabase_leaderboard_setup.sql")
+	_assert(not leaderboard_sql.contains("new.name := old.name;\n        return new;"), "Leaderboard SQL should no longer freeze every updated name to the original value.")
 
 	Helper.finish(self, _failures, "Sprint 7 feature discovery validation completed successfully.")
 

@@ -235,10 +235,14 @@ declare
     conflicting_player_name text;
 begin
     new.name := trim(new.name);
-
-    if tg_op = 'UPDATE' then
-        new.name := old.name;
-        return new;
+    if new.name is null or new.name = '' then
+        if tg_op = 'UPDATE' then
+            new.name := old.name;
+            return new;
+        end if;
+        raise exception using
+            errcode = '23514',
+            message = 'Player name is required.';
     end if;
 
     select name

@@ -29,6 +29,7 @@ const BLOCKED_TERMS := [
 	"bitch",
 	"cock",
 	"cunt",
+	"debugsave",
 	"dick",
 	"fag",
 	"faggot",
@@ -236,17 +237,19 @@ static func validate_player_name(name: String) -> Dictionary:
 		return {"ok": false, "error": "Enter a player name."}
 
 	var safe_name := raw_name.substr(0, MAX_NAME_LENGTH)
-	var normalized := _normalize_for_filter(safe_name)
-	for blocked_term in BLOCKED_TERMS:
-		if normalized.contains(blocked_term):
-			return {"ok": false, "error": "Choose a more family-friendly name."}
+	if _is_blocked_player_name(safe_name):
+		return {"ok": false, "error": "Choose a more family-friendly name."}
 
 	return {"ok": true, "name": safe_name}
 
 static func save_cached_name(name: String) -> void:
+	var validation := validate_player_name(name)
+	if not bool(validation.get("ok", false)):
+		clear_cached_name()
+		return
 	var file := FileAccess.open(NAME_CACHE_PATH, FileAccess.WRITE)
 	if file != null:
-		file.store_string(sanitize_name(name))
+		file.store_string(str(validation.get("name", "")))
 
 static func mark_cloud_profile_present() -> void:
 	var file := FileAccess.open(CLOUD_PROFILE_CACHE_PATH, FileAccess.WRITE)
@@ -292,7 +295,11 @@ static func load_cached_name() -> String:
 	if file == null:
 		return ""
 
-	return sanitize_name(file.get_as_text())
+	var cached_name := sanitize_name(file.get_as_text())
+	if cached_name.is_empty() or _is_blocked_player_name(cached_name):
+		clear_cached_name()
+		return ""
+	return cached_name
 
 static func has_saved_player_name() -> bool:
 	return not load_cached_name().is_empty()
@@ -709,3 +716,10 @@ static func _normalize_for_filter(name: String) -> String:
 		if is_lower or is_number:
 			normalized += character
 	return normalized
+
+static func _is_blocked_player_name(name: String) -> bool:
+	var normalized := _normalize_for_filter(name)
+	for blocked_term in BLOCKED_TERMS:
+		if normalized.contains(blocked_term):
+			return true
+	return false

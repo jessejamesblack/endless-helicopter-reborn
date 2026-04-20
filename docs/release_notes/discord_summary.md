@@ -1,4 +1,6 @@
-- Stable Android release 1.6.3 (157).
+- Stable Android release 1.6.4 (158).
+- Android reinstall/update restore is now the headline fix, including cleaner best-score recovery and split-account migration support.
+- Legacy `DebugSave` test-name usage is retired, and support can merge split player data back onto a single canonical account before restore.
+- Existing leaderboard rows can now take a corrected public name instead of being stuck on the first inserted one.
 - Score-beaten notifications now post only the highest beaten family score from each run.
-- Post-run results now focus on synced Personal Best feedback instead of local-best wording.
-- Run achievement screenshots now capture the end-run scoreboard flow instead of the menu.
+- Post-run results and achievement screenshots now stay focused on the synced end-run scoreboard flow instead of local-best/menu wording.
