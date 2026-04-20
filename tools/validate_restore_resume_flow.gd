@@ -12,6 +12,7 @@ func _initialize() -> void:
 func _run_validation() -> void:
 	_backup_user_file(OnlineLeaderboardScript.NAME_CACHE_PATH)
 	_backup_user_file(OnlineLeaderboardScript.CLOUD_PROFILE_CACHE_PATH)
+	_backup_user_file(OnlineLeaderboardScript.PLAYER_ID_OVERRIDE_CACHE_PATH)
 	_backup_user_file(RUN_STATS_PATH)
 
 	var sync_queue := get_root().get_node_or_null("SupabaseSyncQueue")
@@ -52,6 +53,36 @@ func _run_validation() -> void:
 	OnlineLeaderboardScript.clear_cloud_profile_presence()
 	_assert(not OnlineLeaderboardScript.has_cloud_profile(), "Clearing the cloud-profile marker should restore fresh-install behavior.")
 	_assert(bool(sync_queue.call("_should_replace_local_state_on_startup")), "Fresh-install behavior should return once the cloud-profile marker is cleared.")
+
+	var pending_handoff = sync_queue.call(
+		"_build_manual_override_handoff_plan",
+		"legacy-player",
+		"android-player-canonical",
+		"android-device-canonical",
+		false,
+		true
+	) as Dictionary
+	_assert(not bool(pending_handoff.get("should_migrate", false)), "Manual restore IDs should wait for the full Android-backed identity before permanent rebinding.")
+	var ready_handoff = sync_queue.call(
+		"_build_manual_override_handoff_plan",
+		"legacy-player",
+		"android-player-canonical",
+		"android-device-canonical",
+		true,
+		true
+	) as Dictionary
+	_assert(bool(ready_handoff.get("should_migrate", false)), "Manual restore IDs should auto-migrate onto the canonical Android-backed identity once it is ready.")
+	_assert(str(ready_handoff.get("new_player_id", "")) == "android-player-canonical", "Manual restore handoff should target the canonical Android-backed player ID.")
+	_assert(str(ready_handoff.get("new_device_id", "")) == "android-device-canonical", "Manual restore handoff should carry the canonical Android-backed device ID for notification transfer.")
+	var clear_override_plan = sync_queue.call(
+		"_build_manual_override_handoff_plan",
+		"android-player-canonical",
+		"android-player-canonical",
+		"android-device-canonical",
+		false,
+		true
+	) as Dictionary
+	_assert(bool(clear_override_plan.get("should_clear_override", false)), "A manual override that already matches the canonical Android-backed player ID should be cleared automatically.")
 
 	if FileAccess.file_exists(RUN_STATS_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(RUN_STATS_PATH))

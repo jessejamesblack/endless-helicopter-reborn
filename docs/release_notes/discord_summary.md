@@ -1,5 +1,5 @@
-- Stable Android release 1.6.4 (158).
-- Android reinstall/update restore is now the headline fix, including cleaner best-score recovery and split-account migration support.
+- Stable Android release 1.6.5 (159).
+- Android reinstall/update restore remains the headline fix, and temporary support restores now auto-handoff back onto the phone's canonical Android-backed identity once it is ready.
 - Legacy `DebugSave` test-name usage is retired, and support can merge split player data back onto a single canonical account before restore.
 - Existing leaderboard rows can now take a corrected public name instead of being stuck on the first inserted one.
 - Score-beaten notifications now post only the highest beaten family score from each run.

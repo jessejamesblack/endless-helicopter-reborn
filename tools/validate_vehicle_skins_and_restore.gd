@@ -166,11 +166,14 @@ func _run_validation() -> void:
 	var settings_text := Helper.read_text("res://scenes/ui/settings/settings_menu.gd")
 	_assert(settings_text.contains("migrate_player_identity_async"), "Settings restore should migrate pasted legacy player IDs onto the phone's canonical player ID.")
 	_assert(settings_text.contains("permanently linked to this phone's player ID"), "Settings restore should tell the user when a pasted player ID was permanently rebound to this phone.")
+	_assert(settings_text.contains("is_remote_identity_ready"), "Settings restore should wait for the full Android-backed player/device identity before permanent rebinding.")
 
 	var queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")
 	_assert(queue_text.contains("_ensure_remote_identity_ready"), "SupabaseSyncQueue should wait for a stable remote identity before syncing.")
 	_assert(queue_text.contains("notify_identity_state_changed"), "SupabaseSyncQueue should allow identity changes to restart startup restore.")
 	_assert(queue_text.contains("func migrate_player_identity_async"), "SupabaseSyncQueue should expose a reusable identity migration helper for manual restore rebinding.")
+	_assert(queue_text.contains("_build_manual_override_handoff_plan"), "SupabaseSyncQueue should auto-handoff temporary restore overrides onto the canonical Android-backed identity.")
+	_assert(queue_text.contains("manual_override_handoff"), "SupabaseSyncQueue should report temporary manual-override migration failures for diagnostics.")
 
 	var sql_text := Helper.read_text("res://backend/supabase_vehicle_skins_setup.sql")
 	_assert(sql_text.contains("create or replace function public.migrate_player_identity"), "Supabase restore SQL should define migrate_player_identity.")
