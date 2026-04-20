@@ -37,6 +37,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - Keep build outputs out of git.
 - Use the scripts in `tools/` before inventing new ad-hoc commands.
 - Do work on branches and land changes through pull requests into `main`.
+- Bump the Android app version in `export_presets.cfg` for every release candidate before building or publishing.
 
 ## Validation
 

@@ -152,6 +152,7 @@ If you want the raw workflow output directly, every push also uploads an artifac
 
 This repository includes `.github/workflows/android-apk.yml`.
 
+- Every candidate release should increment `export_presets.cfg` `version/code` and `version/name` before building or publishing.
 - On pull requests to `main`, it validates the project and exports an Android APK artifact.
 - On pushes to `main`, it validates the project, exports an Android APK, publishes a versioned GitHub release, and refreshes the rolling `android-latest` prerelease alias.
 - Manual workflow runs only publish a release when they are run from `main`; branch and PR builds stay artifact-only.

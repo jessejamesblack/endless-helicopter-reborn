@@ -42,6 +42,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 ## CI
 
 - Workflow: `.github/workflows/android-apk.yml`
+- Before any release build, always bump `export_presets.cfg` `version/code` and `version/name`, then update `docs/release_notes/latest.md` and `docs/release_notes/discord_summary.md` to match.
 - Pull requests to `main` run validation and produce an APK artifact.
 - Pushes to `main` run validation, build an Android APK, publish a versioned GitHub release, and refresh the rolling `android-latest` prerelease alias.
 - Manual workflow runs only publish a release when they target `main`; branch and PR runs stay artifact-only.

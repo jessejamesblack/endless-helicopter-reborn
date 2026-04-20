@@ -1,29 +1,28 @@
-# Endless Helicopter Reborn 1.6.2
+# Endless Helicopter Reborn 1.6.3
 
-Version 1.6.2 is the next bugfix candidate focused on Android identity fallback and a cleaner first-time score-save flow after the 1.6.1 stable release.
+Version 1.6.3 is the next stable Android release. It focuses on post-run polish, clearer synced leaderboard feedback, and more reliable achievement screenshot capture.
 
 ## Highlights
 
-- Android installs can now fall back to a persisted phone-local player/device identity when the stable Android ID bridge is unavailable.
-- Fresh installs should no longer get stuck on “player ID isn’t ready yet” when restoring progress or entering a leaderboard name.
-- The `Back To Menu` and `Submit Score` actions on the save-score screen now present as a matched button pair.
-- This release keeps the 1.6.1 score-save and progression fixes while tightening the first-run Android experience.
+- Score-beaten notifications now send only one alert per run, using the highest family score that the new run actually beat.
+- The post-death results screen now focuses on synced `Personal Best` wording when a cloud profile exists instead of talking about a local best.
+- Run achievement screenshots now wait for the end-run results screen, so Discord shares capture the scoreboard state instead of an unrelated menu screen.
 
 ## Player-Facing Fixes
 
-- Score setup should now work even if the stable Android identity path is temporarily unavailable on first launch.
-- Settings restore should no longer sit on “this phone’s player ID is not ready yet” for fresh installs.
-- The leaderboard setup screen is easier to use on phone thanks to the balanced `Back To Menu` / `Submit Score` row.
-- The earlier 1.6.1 score-save, HUD, and menu-friction fixes remain included.
+- Discord score-beaten posts are less noisy because one run no longer fans out into multiple alerts for every lower beaten score.
+- The results screen now gives clearer synced leaderboard feedback after a run.
+- New personal best and unlock screenshots should now reflect the end-run screen players actually care about.
+- Daily streak milestone screenshots still use the share-card style flow.
 
 ## Backend And Ops Notes
 
-- Score submission still uses the active live save route deployed on Supabase.
-- Profile sync remains on the protected synced profile path so release/update protections stay in place.
-- Android identity fallback still leaves room for the later canonical migration path when a stable device identity becomes available.
+- The leaderboard notification SQL now emits only the strongest `score_beaten` notification for each score submit.
+- The results screen now fetches the current player's Supabase best row directly for synced personal-best messaging.
+- Release publishing still happens only from `main`; PR and branch builds remain artifact-only.
 
 ## Safety Notes
 
-- Cloud restore still uses player identity, not public display name.
-- Release and reporting paths remain best-effort and do not block gameplay if an external service is unavailable.
-- Operational logs continue to avoid raw secrets, webhook URLs, and push tokens.
+- Cloud profile restore still uses `player_id`, not public display name.
+- The results screen still falls back to on-device best-score wording when a synced profile is not available.
+- Operational logs and release automation continue to avoid raw secrets, webhook URLs, and push tokens.
