@@ -97,6 +97,7 @@ func _run_validation() -> void:
 	var leaderboard_sql := Helper.read_text("res://backend/supabase_leaderboard_setup.sql")
 	_assert(not leaderboard_sql.contains("new.name := old.name;\n        return new;"), "Leaderboard SQL should no longer freeze every updated name to the original value.")
 	_assert(leaderboard_sql.contains("or id <> old.id"), "Leaderboard SQL should ignore the row being updated when checking name uniqueness.")
+	_assert(leaderboard_sql.contains("and player_id <> new.player_id"), "Leaderboard SQL should allow upsert updates for the same player ID without tripping the name guard.")
 
 	Helper.finish(self, _failures, "Sprint 7 feature discovery validation completed successfully.")
 
