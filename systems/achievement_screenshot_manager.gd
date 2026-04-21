@@ -86,6 +86,7 @@ func _process_queue() -> void:
 		return
 	var request := HTTPRequest.new()
 	add_child(request)
+	var player_name := OnlineLeaderboardScript.load_cached_name()
 	var error := request.request(
 		OnlineLeaderboardScript.get_edge_function_url("post-achievement-screenshot"),
 		OnlineLeaderboardScript.get_headers(),
@@ -96,6 +97,7 @@ func _process_queue() -> void:
 			"event_id": str(item.get("event_id", "")),
 			"title": str(item.get("title", "")),
 			"description": str(item.get("description", "")),
+			"player_name": player_name,
 			"details": item.get("details", {}),
 			"build": BuildInfoScript.get_summary(),
 			"image_base64": Marshalls.raw_to_base64(jpeg_bytes),

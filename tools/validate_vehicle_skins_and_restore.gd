@@ -214,6 +214,9 @@ func _run_validation() -> void:
 	var push_registration_text := Helper.read_text("res://backend/supabase/functions/register-push-device/index.ts")
 	_assert(push_registration_text.contains(".eq(\"device_id\", deviceId)"), "register-push-device should reconcile existing rows for the current device ID.")
 
+	var leaderboard_sql_text := Helper.read_text("res://backend/supabase_leaderboard_setup.sql")
+	_assert(leaderboard_sql_text.contains("and player_id <> new.player_id"), "Leaderboard name uniqueness should ignore the same player_id during upsert conflict updates.")
+
 	_finish()
 
 func _finish() -> void:

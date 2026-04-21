@@ -1,8 +1,8 @@
 extends RefCounted
 class_name BuildInfo
 
-const VERSION_CODE := 160
-const VERSION_NAME := "1.6.6"
+const VERSION_CODE := 161
+const VERSION_NAME := "1.6.7"
 const BUILD_SHA := "dev"
 const BUILD_DATE := "2026-04-20T00:00:00Z"
 const RELEASE_CHANNEL := "dev"
