@@ -1,5 +1,4 @@
-- Stable Android release 1.6.6 (160).
-- This is the planned stable release-key cutover release for same-device reinstall continuity on official builds.
-- `main` public releases now require the canonical stable release keystore; testing-only `debug_stable` builds stay non-public.
-- The repo now includes a reviewed fresh-start gameplay-data wipe script for the live Supabase reset.
-- The cutover still requires the live release gate update and the one-time gameplay-data wipe before the new automatic-restore promise is active.
+- Stable Android release 1.6.7 (161).
+- Fixed a leaderboard regression that could block higher scores from updating for an existing player after restore/reinstall.
+- Discord achievement screenshot posts now include the player name in the notification heading and embed.
+- Same-device automatic restore continues to depend on the official stable release-signed build path introduced in the cutover release.
