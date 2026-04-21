@@ -18,6 +18,7 @@ type ScreenshotPayload = {
   event_id?: string;
   title?: string;
   description?: string;
+  player_name?: string;
   details?: Record<string, unknown>;
   build?: Record<string, unknown>;
   image_base64?: string;
@@ -40,6 +41,7 @@ Deno.serve(async (request: Request) => {
   const eventId = String(payload.event_id ?? "").trim();
   const title = truncate(payload.title ?? "", 120).trim();
   const description = truncate(payload.description ?? "", 500).trim();
+  const playerName = truncate(payload.player_name ?? "", 64).trim();
   const imageBase64 = String(payload.image_base64 ?? "").trim();
   if (eventId === "" || title === "" || imageBase64 === "") {
     return jsonResponse({ error: "Missing required screenshot fields." }, 400);
@@ -73,24 +75,31 @@ Deno.serve(async (request: Request) => {
   }
 
   const build = payload.build ?? {};
+  const discordHeading = playerName === "" ? title : `${playerName}: ${title}`;
+  const embedFields = [
+    ...(playerName === "" ? [] : [{ name: "Player", value: playerName, inline: true }]),
+    { name: "Version", value: truncate(build["version_name"] ?? "unknown", 64), inline: true },
+    { name: "Channel", value: safeChannel(build["release_channel"]), inline: true },
+    { name: "Build", value: truncate(build["build_sha"] ?? "dev", 64), inline: true },
+  ];
+  const uploadBytes = new Uint8Array(imageBytes.byteLength);
+  uploadBytes.set(imageBytes);
+
   const form = new FormData();
   form.append("payload_json", JSON.stringify({
-    content: truncate(`📸 ${title}`, 1800),
+    content: truncate(`Screenshot: ${discordHeading}`, 1800),
     allowed_mentions: { parse: [] },
     embeds: [{
+      author: playerName === "" ? undefined : { name: playerName },
       title,
       description,
       color: 0x6dc8ff,
-      fields: [
-        { name: "Version", value: truncate(build["version_name"] ?? "unknown", 64), inline: true },
-        { name: "Channel", value: safeChannel(build["release_channel"]), inline: true },
-        { name: "Build", value: truncate(build["build_sha"] ?? "dev", 64), inline: true },
-      ],
+      fields: embedFields,
     }],
   }));
   form.append(
     "files[0]",
-    new Blob([imageBytes], { type: "image/jpeg" }),
+    new Blob([uploadBytes], { type: "image/jpeg" }),
     `${eventId}.jpg`,
   );
 
