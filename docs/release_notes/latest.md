@@ -18,6 +18,7 @@ Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Improved responsive spawn lanes for tall and tablet layouts.
 - Made kill-score popups more visible and extended the combo window slightly.
 - Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
+- Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
 
 ## Progression And Data Notes
@@ -25,6 +26,7 @@ Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Added unlock-pool meta progression for upgrades, powerups, and objective possibilities without adding a shop, paid upgrades, or a currency economy.
 - Expanded run stats for upgrades, powerups, objectives, elite/special kills, shield absorbs, effect seconds, ammo refunds, and boundary crash reasons.
 - Kept profile sync within the existing JSON summary path; no Supabase schema migration is required for this release.
+- Live mission progress is reconciled against the final run summary so the same pickup or effect cannot count twice.
 - Added repo-local `SKILL.md` guidance for future agent-assisted work.
 
 ## Safety Notes

@@ -2,4 +2,4 @@
 - Adds run upgrades, temporary powerups, short objectives, and clearer vehicle passives.
 - Enemies now apply more pressure with variants, faster firing, entry shots, and stronger early pacing.
 - Fixes boundary abuse, pause spam, long-run background continuity, and responsive spawn lanes.
-- Adds pause-menu missions, new depth-system daily missions, clearer score feedback, and UI polish for new depth displays.
+- Adds pause-menu missions, live in-run mission progress, new depth-system daily missions, clearer score feedback, and UI polish for new depth displays.

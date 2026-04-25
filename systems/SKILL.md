@@ -18,6 +18,7 @@ description: Use when editing shared runtime systems under systems/, including a
 - Run-start systems should expose a clear `start_run()` or equivalent reset path.
 - Summary dictionaries should be backward compatible with missing old fields and unknown future fields.
 - Mission generation must keep the current 3 core plus 2 bonus structure unless a product change says otherwise.
+- Mission progress that is visible from the pause menu should update live when the event happens. Use `MissionManager.record_live_mission_progress()` for immediate pickup/effect counters and keep the final `apply_run_summary()` path from double-counting live-applied progress.
 
 ## Supabase And Sync
 

@@ -1,20 +1,34 @@
 # Endless Helicopter Reborn
 
-`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a vehicle through an endless obstacle field, bounce off the arena bounds to recover from mistakes, collect ammo, fire missiles, trigger rare glowing-rock screen clears, complete daily missions, unlock vehicles and per-vehicle finishes, compete on a shared online leaderboard, and tune controls, haptics, and frame rate from the settings menu.
+`Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a vehicle through an endless obstacle field, collect ammo and temporary powerups, pick run-only upgrades, complete short objectives, lean into vehicle passives, survive stronger enemy pressure, complete daily missions, unlock vehicles and per-vehicle finishes, compete on a shared online leaderboard, and tune controls, haptics, and frame rate from the settings menu.
 
 ## Features
 
 - Endless survival-style arcade gameplay
 - Mobile-friendly tap/click/space controls
-- Missiles, ammo pickups, clearer explosions, and varied enemy roles
+- Missiles, ammo pickups, glowing-rock clears, and varied enemy roles
+- Periodic 1-of-3 run upgrades, temporary powerups, and short objective events
+- Distinct vehicle identities with passive run modifiers
+- Enemy variants and stronger mid/late-run projectile pressure
+- Boundary and pause-spam fairness protections
 - Adjustable master/music/SFX volume, fire-button side, mirrored HUD layout, haptics intensity, and frame-rate cap
 - Shared online leaderboard with player names
-- Daily missions, vehicle unlocks, per-vehicle skin progression, and a hangar screen
+- Daily missions with a 3 core plus 2 bonus structure, pause-menu access, live in-run progress updates, vehicle unlocks, per-vehicle skin progression, and a hangar screen
 - In-app beat-your-score notifications
 - Android push notifications for score-beaten and daily-mission events
-- Hybrid parallax background biomes for long runs
+- Hybrid parallax background biomes for long runs with continuity through late-run transitions
 - Original retro sci-fi menu and gameplay music
 - Automated Android APK builds with GitHub Actions
+
+## Current Gameplay Loop
+
+Runs now combine execution, choices, pickups, objectives, and progression:
+
+- Upgrade choices appear at milestone times around 35, 75, 120, and 170 seconds, capped at four picks per run.
+- Powerups include Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
+- Objectives currently include rescue pickups and reactor chains, with score plus powerup or upgrade-choice rewards.
+- Vehicles use canonical names such as Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar, each with a clearer passive identity.
+- Daily mission progress updates live for in-run pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs, so the pause-menu mission view reflects the current run.
 
 ## Project Layout
 
@@ -47,7 +61,8 @@ res://
 ## Settings And Pause
 
 - `Settings` is available from the start screen before a run.
-- During a run, `Pause` opens a menu with resume, settings, and quit-to-menu actions.
+- During a run, `Pause` opens a menu with resume, missions, settings, and quit-to-menu actions.
+- Pause toggles are debounced to keep pause usable without allowing slow-motion abuse.
 - Settings persist in `user://` and apply immediately.
 - `Master Volume` controls the full mix.
 - `Music Volume` controls the menu and gameplay music layer.
@@ -73,6 +88,8 @@ On Windows PowerShell:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
+
+The full validator includes script parsing plus focused checks for depth retention, enemy pressure, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, and Android continuity-adjacent systems.
 
 ## Shared Leaderboard
 
