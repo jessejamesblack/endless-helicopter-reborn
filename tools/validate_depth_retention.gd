@@ -2,6 +2,7 @@ extends SceneTree
 
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 const MAIN_SCENE := preload("res://scenes/game/main/main.tscn")
+const POWERUP_PICKUP_SCENE := preload("res://scenes/pickups/powerup_pickup.tscn")
 
 var _failures: Array[String] = []
 
@@ -13,6 +14,7 @@ func _run_validation() -> void:
 	_validate_upgrade_manager()
 	_validate_powerup_manager()
 	_validate_objective_manager()
+	await _validate_powerup_pickup_visuals_runtime()
 	await _validate_main_upgrade_overlay_runtime()
 	await _validate_score_rush_skill_window_runtime()
 	Helper.finish(self, _failures, "Depth retention validation completed successfully.")
@@ -93,6 +95,31 @@ func _validate_objective_manager() -> void:
 	var summary: Dictionary = manager.call("get_summary")
 	_assert(int(summary.get("objective_events_completed", 0)) == 1, "Completing an objective should update summary stats.")
 	_assert(int(summary.get("objective_rewards_claimed", 0)) == 1, "Completing an objective should track claimed rewards.")
+
+func _validate_powerup_pickup_visuals_runtime() -> void:
+	var expected_labels := {
+		"shield_bubble": "SHLD",
+		"score_rush": "RUSH",
+		"missile_overdrive": "OVR",
+		"ammo_magnet": "MAG",
+		"emp_burst": "EMP",
+		"afterburner_burst": "BURN",
+	}
+	for powerup_id in expected_labels.keys():
+		var pickup := POWERUP_PICKUP_SCENE.instantiate()
+		get_root().add_child(pickup)
+		await process_frame
+		pickup.call("configure", str(powerup_id))
+		await process_frame
+		_assert(pickup.get_node_or_null("Border") != null, "Powerup pickup should include a HUD-style border.")
+		_assert(pickup.get_node_or_null("Backplate") != null, "Powerup pickup should include a dark UI backplate.")
+		_assert(pickup.get_node_or_null("Accent") != null, "Powerup pickup should include a colored accent chip.")
+		var label := pickup.get_node_or_null("Label") as Label
+		_assert(label != null, "Powerup pickup should include a readable label.")
+		if label != null:
+			_assert(label.text == str(expected_labels[powerup_id]), "%s pickup label should be %s." % [powerup_id, expected_labels[powerup_id]])
+		pickup.free()
+		await process_frame
 
 func _validate_main_upgrade_overlay_runtime() -> void:
 	var root_window := get_root()
