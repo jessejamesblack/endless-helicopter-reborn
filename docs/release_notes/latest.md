@@ -1,28 +1,34 @@
-# Endless Helicopter Reborn 1.6.7
+# Endless Helicopter Reborn 1.6.8
 
-Version 1.6.7 follows the stable Android cutover with two reliability fixes: leaderboard best-score updates now survive same-player upserts correctly, and Discord achievement posts now include the player name so event notifications are easier to understand.
+Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
 
 ## Highlights
 
-- Fixed a live leaderboard regression where higher scores from an existing player could be blocked by the leaderboard name-guard trigger during `upsert` writes.
-- Achievement screenshot posts sent to Discord now include the player name in the heading and embed so unlocks and milestone posts are clearly attributable.
-- The stable Android reinstall/restore cutover remains in place from `1.6.6`, so same-device continuity continues to depend on official stable release-signed builds.
+- Added periodic 1-of-3 run upgrades at milestone moments so each run can build in a different direction.
+- Added temporary powerup pickups: Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
+- Added short objective events, including rescue pickups and reactor chains, with score and reward hooks.
+- Strengthened vehicle identities with handling differences and run passives for near misses, ammo economy, shields, missiles, combo stability, and scoring.
+- Expanded enemy pressure with armored, shielded, and elite variants, faster turret/drone firing, immediate entry shots, and more responsive early pacing.
 
-## Player-Facing Fixes
+## Player-Facing Fixes And Polish
 
-- Higher best scores should now update the live leaderboard and run history correctly for existing players after reinstall/restore.
-- Discord game-event posts for unlocks and milestone screenshots now show the player name when one is saved on-device.
-- Notification preferences still restore from cloud/profile state after reinstall, while Android OS notification permission may still need to be granted again if the device prompts for it.
+- Fixed boundary recovery abuse with stall and chain protections.
+- Fixed pause spam so rapid pause/resume cannot create a slow-motion advantage.
+- Restored long-run background continuity so existing biome visuals stay coherent until the next biome transition.
+- Improved responsive spawn lanes for tall and tablet layouts.
+- Made kill-score popups more visible and extended the combo window slightly.
+- Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
+- Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
 
-## Backend And Ops Notes
+## Progression And Data Notes
 
-- The live leaderboard name-uniqueness trigger now ignores rows that already belong to the same `player_id`, which lets `submit_family_score_v2()` update an existing player row safely.
-- The Discord screenshot webhook now accepts an optional `player_name` field and renders it in the message heading plus embed metadata.
-- Public Android release publishing still requires `release_stable` on `main`; testing-only `debug_stable` builds stay non-public.
+- Added unlock-pool meta progression for upgrades, powerups, and objective possibilities without adding a shop, paid upgrades, or a currency economy.
+- Expanded run stats for upgrades, powerups, objectives, elite/special kills, shield absorbs, effect seconds, ammo refunds, and boundary crash reasons.
+- Kept profile sync within the existing JSON summary path; no Supabase schema migration is required for this release.
+- Added repo-local `SKILL.md` guidance for future agent-assisted work.
 
 ## Safety Notes
 
 - Same-device reinstall stability still depends on reinstalling builds signed with the same stable release key.
-- The post-cutover stable release epoch begins with the new permanent release key; older pre-cutover cloud progression remains intentionally retired.
-- Cloud profile restore still uses `player_id`, not public display name.
+- Public Android release publishing still requires `release_stable` on `main`; testing-only `debug_stable` builds stay non-public.
 - Release and reporting paths remain best-effort and do not block gameplay if an external service is unavailable.
