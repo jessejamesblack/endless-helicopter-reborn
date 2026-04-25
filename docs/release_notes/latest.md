@@ -1,6 +1,6 @@
-# Endless Helicopter Reborn 1.6.9
+# Endless Helicopter Reborn 1.6.10
 
-Version 1.6.9 is the depth and feedback sprint. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
+Version 1.6.10 is the depth and feedback sprint plus a daily mission sync repair. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
 
 ## Highlights
 
@@ -19,6 +19,7 @@ Version 1.6.9 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Made kill-score popups more visible, extended the combo window slightly, and let combo scoring climb a bit higher.
 - Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
 - Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
+- Daily mission cloud sync now preserves the highest per-mission progress and completion state, so a stale cloud row cannot roll a completed mission back to `4/5`.
 - Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
 - Fixed app-update push notifications so they cannot appear as incorrect score-beaten `0/0` notifications.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
@@ -29,6 +30,7 @@ Version 1.6.9 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Expanded run stats for upgrades, powerups, objectives, elite/special kills, shield absorbs, effect seconds, ammo refunds, and boundary crash reasons.
 - Kept profile sync within the existing JSON summary path; no Supabase schema migration is required for this release.
 - Live mission progress is reconciled against the final run summary so the same pickup or effect cannot count twice.
+- Startup cloud restore keeps local daily mission progress when the local device is ahead, then queues a repair sync back to Supabase.
 - Added repo-local `SKILL.md` guidance for future agent-assisted work.
 
 ## Safety Notes

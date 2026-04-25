@@ -28,7 +28,7 @@
 - `systems/run_upgrade_manager.gd`: run-only upgrade catalog, choice cadence, vehicle passive modifiers, and run power score
 - `systems/powerup_manager.gd`: temporary powerup catalog, active-effect timers, and powerup run summary data
 - `systems/run_objective_manager.gd`: short run objective timing, progress, and reward summaries
-- `systems/supabase_sync_queue.gd`: best-effort background sync for profile, missions, and v2 score submits
+- `systems/supabase_sync_queue.gd`: best-effort background sync for profile, missions, and v2 score submits, with local-first daily mission restore when the device has newer progress
 - `systems/push_notifications.gd`: Android push registration and deep-link routing
 
 ## Gameplay Flow
@@ -65,6 +65,7 @@
 - Live mission progress can complete a mission mid-run and award core daily unlock credit immediately.
 - The live-progress ledger is reset at run start and subtracted from the final summary for matching sum-mode mission types so the same pickup cannot count twice.
 - Mission progress sync continues through the existing daily mission summary path; no Supabase schema migration is required for the depth sprint or the live progress fix.
+- Daily mission restore and sync are monotonic by mission row: local completion is not downgraded by stale cloud data, and the sync Edge Function merges progress before writing to Supabase.
 
 ## Enemy Roles
 

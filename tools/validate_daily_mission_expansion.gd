@@ -111,6 +111,11 @@ func _run_validation() -> void:
 	var mission_manager_text := Helper.read_text("res://systems/mission_manager.gd")
 	_assert(mission_manager_text.contains("record_live_mission_progress"), "MissionManager should support live mission progress for in-run mission screens.")
 	_assert(mission_manager_text.contains("begin_run_tracking"), "MissionManager should reset live progress tracking at run start.")
+	_assert(mission_manager_text.contains("has_local_daily_progress"), "MissionManager should expose local daily progress detection for cloud restore safety.")
+	_assert(mission_manager_text.contains("has_daily_progress_ahead_of_remote"), "MissionManager should detect when local mission progress is ahead of cloud progress.")
+	var sync_queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")
+	_assert(sync_queue_text.contains("_get_current_mission_date_key"), "Supabase startup restore should use the MissionManager daily mission date key.")
+	_assert(sync_queue_text.contains("has_daily_progress_ahead_of_remote"), "Supabase startup restore should not replace local daily progress with stale cloud rows.")
 	for mission_type in [
 		"run_upgrades_chosen",
 		"run_upgrades_single_run",
@@ -177,6 +182,7 @@ func _run_validation() -> void:
 	var after_run_summary: Dictionary = mission_manager.get_daily_progress_summary()
 	var after_run_ammo_mission := _find_mission_by_type(after_run_summary.get("missions", []), "ammo_pickups")
 	_assert(float(after_run_ammo_mission.get("progress", 0.0)) == 5.0, "End-of-run summaries should not double-count pickups already applied live.")
+	_validate_stale_remote_daily_restore(mission_manager)
 
 	_validate_all_run_summary_mission_types(mission_manager, player_profile)
 	_validate_all_live_progress_mission_types(mission_manager, player_profile)
@@ -257,6 +263,36 @@ func _validate_all_live_progress_mission_types(mission_manager: Node, player_pro
 	for mission_type in LIVE_PROGRESS_MISSION_TYPES:
 		var mission := _find_mission_by_type(after_run_summary.get("missions", []), str(mission_type))
 		_assert(float(mission.get("progress", 0.0)) == 1.0, "%s should not double-count after final run summary." % mission_type)
+
+func _validate_stale_remote_daily_restore(mission_manager: Node) -> void:
+	var date_key := "2026-05-23"
+	var local_missions: Array[Dictionary] = [
+		{"id": "daily_2026-05-23_core_ammo", "slot": "core_easy", "type": "ammo_pickups", "category": "core_easy", "title": "Collect 5 Ammo Pickups", "description": "", "target": 5, "progress": 5.0, "completed": true, "progress_mode": "sum"},
+		{"id": "daily_2026-05-23_core_runs", "slot": "core_combat", "type": "play_runs", "category": "core_combat", "title": "Fly 99 Runs", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-05-23_core_score", "slot": "core_skill", "type": "score_total", "category": "core_skill", "title": "Earn Score", "description": "", "target": 999999, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-05-23_bonus_powerups", "slot": "bonus_vehicle_or_stretch", "type": "powerups_collected", "category": "bonus_stretch", "title": "Collect Powerups", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+		{"id": "daily_2026-05-23_bonus_elite", "slot": "bonus_prestige", "type": "elite_kills", "category": "bonus_stretch", "title": "Defeat Elites", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+	]
+	var stale_remote := {
+		"mission_date": date_key,
+		"completed_count": 0,
+		"total_count": 5,
+		"missions": [
+			{"id": "daily_2026-05-23_core_ammo", "slot": "core_easy", "type": "ammo_pickups", "category": "core_easy", "title": "Collect 5 Ammo Pickups", "description": "", "target": 5, "progress": 4.0, "completed": false, "progress_mode": "sum"},
+			{"id": "daily_2026-05-23_core_runs", "slot": "core_combat", "type": "play_runs", "category": "core_combat", "title": "Fly 99 Runs", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+			{"id": "daily_2026-05-23_core_score", "slot": "core_skill", "type": "score_total", "category": "core_skill", "title": "Earn Score", "description": "", "target": 999999, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+			{"id": "daily_2026-05-23_bonus_powerups", "slot": "bonus_vehicle_or_stretch", "type": "powerups_collected", "category": "bonus_stretch", "title": "Collect Powerups", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+			{"id": "daily_2026-05-23_bonus_elite", "slot": "bonus_prestige", "type": "elite_kills", "category": "bonus_stretch", "title": "Defeat Elites", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+		],
+	}
+	mission_manager.apply_validation_state(date_key, local_missions)
+	_assert(bool(mission_manager.has_local_daily_progress()), "MissionManager should detect completed local mission progress before startup restore.")
+	_assert(bool(mission_manager.has_daily_progress_ahead_of_remote(stale_remote)), "MissionManager should detect stale remote progress before replacing local missions.")
+	mission_manager.merge_remote_daily_progress(stale_remote)
+	var restored_summary: Dictionary = mission_manager.get_daily_progress_summary()
+	var ammo_mission := _find_mission_by_type(restored_summary.get("missions", []), "ammo_pickups")
+	_assert(float(ammo_mission.get("progress", 0.0)) == 5.0, "Stale remote mission rows should not downgrade local ammo progress.")
+	_assert(bool(ammo_mission.get("completed", false)), "Stale remote mission rows should not clear local mission completion.")
 
 func _validate_end_run_and_main_screen_refresh(mission_manager: Node, player_profile: Node) -> void:
 	player_profile.apply_validation_state(_base_profile_summary())

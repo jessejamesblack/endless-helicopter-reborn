@@ -448,6 +448,44 @@ func get_daily_sync_summary() -> Dictionary:
 		"bonus_total_count": BONUS_MISSION_COUNT,
 	}
 
+func has_local_daily_progress() -> bool:
+	refresh_daily_missions()
+	for mission in _missions:
+		if bool(mission.get("completed", false)):
+			return true
+		if float(mission.get("progress", 0.0)) > 0.001:
+			return true
+	return false
+
+func has_daily_progress_ahead_of_remote(summary: Dictionary) -> bool:
+	refresh_daily_missions()
+	var mission_date := str(summary.get("mission_date", ""))
+	if mission_date != _today_key:
+		return has_local_daily_progress()
+	var remote_by_id: Dictionary = {}
+	var remote_missions_variant = summary.get("missions", [])
+	if remote_missions_variant is Array:
+		for remote_mission_variant in remote_missions_variant:
+			if remote_mission_variant is not Dictionary:
+				continue
+			var remote_mission := remote_mission_variant as Dictionary
+			remote_by_id[str(remote_mission.get("id", ""))] = remote_mission
+
+	for local_mission in _missions:
+		var mission_id := str(local_mission.get("id", ""))
+		if mission_id.is_empty():
+			continue
+		var remote_mission: Dictionary = remote_by_id.get(mission_id, {})
+		if remote_mission.is_empty():
+			if float(local_mission.get("progress", 0.0)) > 0.001 or bool(local_mission.get("completed", false)):
+				return true
+			continue
+		if float(local_mission.get("progress", 0.0)) > float(remote_mission.get("progress", 0.0)) + 0.001:
+			return true
+		if bool(local_mission.get("completed", false)) and not bool(remote_mission.get("completed", false)):
+			return true
+	return get_completed_count_today() > int(summary.get("completed_count", 0))
+
 func apply_run_summary(summary: Dictionary) -> Dictionary:
 	refresh_daily_missions()
 	var missions_completed_this_run: Array[String] = []
@@ -916,7 +954,7 @@ func _sanitize_missions(raw_value, date_key: String) -> Array[Dictionary]:
 		mission["description"] = str(mission.get("description", ""))
 		mission["target"] = mission.get("target", 1)
 		mission["progress"] = float(mission.get("progress", 0.0))
-		mission["completed"] = bool(mission.get("completed", false))
+		mission["completed"] = bool(mission.get("completed", false)) or float(mission.get("progress", 0.0)) >= float(mission.get("target", 1))
 		mission["progress_mode"] = str(mission.get("progress_mode", "sum"))
 		mission["reward_text"] = str(mission.get("reward_text", "Core unlock progress"))
 		mission["vehicle_id"] = str(mission.get("vehicle_id", ""))

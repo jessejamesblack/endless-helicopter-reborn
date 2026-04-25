@@ -191,8 +191,9 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		return outcome
 	outcome["ok"] = true
 
+	var mission_manager := get_node_or_null("/root/MissionManager")
 	var profile_body := OnlineLeaderboardScript.make_get_player_profile_body()
-	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(Time.get_date_string_from_system(true))
+	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(_get_current_mission_date_key(mission_manager))
 	var request_failures: Array[String] = []
 
 	var profile_response := await _request_json(
@@ -234,15 +235,28 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		return outcome
 	if _is_success_response(mission_response):
 		var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
-		var mission_manager := get_node_or_null("/root/MissionManager")
 		outcome["mission_restored"] = not remote_progress.is_empty()
+		var local_progress_exists := mission_manager != null \
+			and mission_manager.has_method("has_local_daily_progress") \
+			and bool(mission_manager.has_local_daily_progress())
+		var local_ahead_of_remote := mission_manager != null \
+			and mission_manager.has_method("has_daily_progress_ahead_of_remote") \
+			and bool(mission_manager.has_daily_progress_ahead_of_remote(remote_progress))
 		if replace_existing_state:
-			if outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
+			if outcome["mission_restored"] and local_ahead_of_remote and mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
+				mission_manager.merge_remote_daily_progress(remote_progress)
+				if mission_manager.has_method("get_daily_sync_summary"):
+					enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
+			elif outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
 				mission_manager.replace_remote_daily_progress(remote_progress)
-			elif not outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
+			elif not outcome["mission_restored"] and local_progress_exists and mission_manager != null and mission_manager.has_method("get_daily_sync_summary"):
+				enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
+			elif not outcome["mission_restored"] and not local_progress_exists and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
 				mission_manager.reset_current_daily_progress()
 		elif mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
 			mission_manager.merge_remote_daily_progress(remote_progress)
+			if local_ahead_of_remote and mission_manager.has_method("get_daily_sync_summary"):
+				enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
 	else:
 		request_failures.append(_response_error_text(mission_response))
 
@@ -645,6 +659,11 @@ func _drop_all_jobs_for_upgrade_required() -> void:
 
 func _should_replace_local_state_on_startup() -> bool:
 	return not OnlineLeaderboardScript.has_cloud_profile()
+
+func _get_current_mission_date_key(mission_manager: Node) -> String:
+	if mission_manager != null and mission_manager.has_method("get_today_key"):
+		return str(mission_manager.get_today_key())
+	return Time.get_date_string_from_system(true)
 
 func _get_identity_snapshot() -> String:
 	var player_info := AndroidIdentityScript.get_player_identity_info()
