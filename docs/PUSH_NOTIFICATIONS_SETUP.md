@@ -183,6 +183,8 @@ Rules:
 - Devices already on the same or newer `app_version_code` are skipped.
 - Devices with `notifications_enabled = false` are skipped.
 - The client still checks release metadata on launch even if no push was received.
+- App-update pushes include explicit `title` and `body` fields so older Android clients do not render them through score-beaten fallback copy.
+- The Android notification renderer also switches fallback copy by payload `type`: `app_update`, `daily_missions`, and `score_beaten` each have their own safe fallback.
 
 ## 6. Build The Android Plugin AAR
 

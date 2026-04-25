@@ -20,6 +20,7 @@ Version 1.6.9 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
 - Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
 - Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
+- Fixed app-update push notifications so they cannot appear as incorrect score-beaten `0/0` notifications.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
 
 ## Progression And Data Notes

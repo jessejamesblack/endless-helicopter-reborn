@@ -110,6 +110,8 @@ Deno.serve(async (request: Request) => {
   }
 
   const sendUrl = FCM_SEND_URL.replace("%s", requireEnv("FCM_PROJECT_ID"));
+  const notificationTitle = "Update Available";
+  const notificationBody = makeUpdateNotificationBody(latestVersionName, payload.release_summary);
   const historyRows: Record<string, unknown>[] = [];
   const invalidTokenIds: number[] = [];
 
@@ -131,6 +133,8 @@ Deno.serve(async (request: Request) => {
             apk_download_url: apkDownloadUrl,
             release_page_url: releasePageUrl,
             release_notes_url: releaseNotesUrl,
+            title: notificationTitle,
+            body: notificationBody,
             release_summary: truncate(payload.release_summary ?? "", 240),
           },
           android: {
@@ -172,6 +176,14 @@ Deno.serve(async (request: Request) => {
     skipped: eligibleDevices.length === 0,
   });
 });
+
+function makeUpdateNotificationBody(versionName: string, releaseSummary?: string): string {
+  const summary = truncate(String(releaseSummary ?? "").trim(), 120);
+  if (summary !== "") {
+    return `Version ${versionName} is ready. ${summary}`;
+  }
+  return `Version ${versionName} is ready to install.`;
+}
 
 function classifyFcmStatus(statusCode: number, responseText: string): string {
   if (statusCode >= 200 && statusCode < 300) {
