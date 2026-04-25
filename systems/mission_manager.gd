@@ -654,6 +654,7 @@ func apply_validation_state(date_key: String, missions: Array[Dictionary]) -> vo
 	_today_key = date_key
 	_missions = _sanitize_missions(missions, date_key)
 	_recent_run_result = {}
+	begin_run_tracking()
 
 func _pick_mission_for_slot(date_key: String, slot_name: String, pool: Array, used_types: Dictionary) -> Dictionary:
 	var start_index: int = abs(hash("%s|%s" % [date_key, slot_name])) % maxi(pool.size(), 1)
