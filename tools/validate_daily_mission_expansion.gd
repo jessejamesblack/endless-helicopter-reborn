@@ -59,6 +59,8 @@ func _run_validation() -> void:
 	_assert(rare_depth_count <= 1, "Daily missions should include at most one rare objective/elite mission.")
 
 	var mission_manager_text := Helper.read_text("res://systems/mission_manager.gd")
+	_assert(mission_manager_text.contains("record_live_mission_progress"), "MissionManager should support live mission progress for in-run mission screens.")
+	_assert(mission_manager_text.contains("begin_run_tracking"), "MissionManager should reset live progress tracking at run start.")
 	for mission_type in [
 		"run_upgrades_chosen",
 		"run_upgrades_single_run",
@@ -99,6 +101,33 @@ func _run_validation() -> void:
 	var depth_summary: Dictionary = mission_manager.get_daily_progress_summary()
 	_assert(int(depth_summary.get("completed", 0)) == 5, "Depth mission types should progress from run summaries.")
 
+	player_profile.apply_validation_state({
+		"unlocked_vehicles": ["default_scout"],
+		"equipped_vehicle_id": "default_scout",
+		"total_daily_missions_completed": 0,
+		"daily_streak": 0,
+	})
+	var live_missions: Array[Dictionary] = [
+		{"id": "daily_2026-04-21_core_ammo", "slot": "core_easy", "type": "ammo_pickups", "category": "core_easy", "title": "Collect 5 Ammo Pickups", "description": "", "target": 5, "progress": 4.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-04-21_core_runs", "slot": "core_combat", "type": "play_runs", "category": "core_combat", "title": "Fly 99 Runs", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-04-21_core_score", "slot": "core_skill", "type": "score_total", "category": "core_skill", "title": "Earn Score", "description": "", "target": 999999, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-04-21_bonus_powerups", "slot": "bonus_vehicle_or_stretch", "type": "powerups_collected", "category": "bonus_stretch", "title": "Collect Powerups", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+		{"id": "daily_2026-04-21_bonus_elite", "slot": "bonus_prestige", "type": "elite_kills", "category": "bonus_stretch", "title": "Defeat Elites", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+	]
+	mission_manager.apply_validation_state("2026-04-21", live_missions)
+	mission_manager.begin_run_tracking()
+	mission_manager.record_live_mission_progress("ammo_pickups", 1.0)
+	var live_summary: Dictionary = mission_manager.get_daily_progress_summary()
+	var live_ammo_mission := _find_mission_by_type(live_summary.get("missions", []), "ammo_pickups")
+	_assert(not live_ammo_mission.is_empty(), "Validation ammo mission should exist.")
+	_assert(float(live_ammo_mission.get("progress", 0.0)) == 5.0, "Ammo pickup missions should complete immediately when the fifth pickup is collected.")
+	_assert(bool(live_ammo_mission.get("completed", false)), "Ammo pickup missions should unlock immediately from live pickup progress.")
+	_assert(player_profile.get_total_daily_missions_completed() == 1, "Live core mission completion should advance daily unlock credit.")
+	mission_manager.apply_run_summary({"ammo_pickups_collected": 1})
+	var after_run_summary: Dictionary = mission_manager.get_daily_progress_summary()
+	var after_run_ammo_mission := _find_mission_by_type(after_run_summary.get("missions", []), "ammo_pickups")
+	_assert(float(after_run_ammo_mission.get("progress", 0.0)) == 5.0, "End-of-run summaries should not double-count pickups already applied live.")
+
 	Helper.assert_file_exists(_failures, "res://scenes/ui/missions/mission_screen.gd")
 	Helper.assert_file_exists(_failures, "res://scenes/ui/missions/mission_screen.tscn")
 	var mission_screen_text := Helper.read_text("res://scenes/ui/missions/mission_screen.gd")
@@ -112,3 +141,14 @@ func _run_validation() -> void:
 
 func _assert(condition: bool, message: String) -> void:
 	Helper.assert_condition(_failures, condition, message)
+
+func _find_mission_by_type(missions_variant, mission_type: String) -> Dictionary:
+	if missions_variant is not Array:
+		return {}
+	for mission_variant in missions_variant:
+		if mission_variant is not Dictionary:
+			continue
+		var mission := mission_variant as Dictionary
+		if str(mission.get("type", "")) == mission_type:
+			return mission
+	return {}

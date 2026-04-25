@@ -69,6 +69,9 @@ func _ready() -> void:
     var run_stats := _get_run_stats()
     if run_stats != null and run_stats.has_method("start_run"):
         run_stats.start_run()
+    var mission_manager := _get_mission_manager()
+    if mission_manager != null and mission_manager.has_method("begin_run_tracking"):
+        mission_manager.begin_run_tracking()
     var vehicle_id := _get_equipped_vehicle_id()
     var run_upgrade_manager := _get_run_upgrade_manager()
     if run_upgrade_manager != null:

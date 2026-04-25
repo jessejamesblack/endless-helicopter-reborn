@@ -40,4 +40,7 @@ func _on_body_entered(body: Node2D) -> void:
         var run_stats := get_node_or_null("/root/RunStats")
         if run_stats != null and run_stats.has_method("record_pickup_collected"):
             run_stats.record_pickup_collected()
+        var mission_manager := get_node_or_null("/root/MissionManager")
+        if mission_manager != null and mission_manager.has_method("record_live_mission_progress"):
+            mission_manager.record_live_mission_progress("ammo_pickups", 1.0)
         queue_free()

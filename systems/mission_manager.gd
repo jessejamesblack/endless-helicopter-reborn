@@ -346,9 +346,21 @@ const BONUS_PRESTIGE_MISSIONS := [
 var _today_key: String = ""
 var _missions: Array[Dictionary] = []
 var _recent_run_result: Dictionary = {}
+var _live_run_progress_applied: Dictionary = {}
+var _live_run_completed_titles: Array[String] = []
+var _live_run_core_completed_titles: Array[String] = []
+var _live_run_bonus_completed_titles: Array[String] = []
+var _live_run_unlocked_vehicles: Array[String] = []
 
 func _ready() -> void:
 	refresh_daily_missions()
+
+func begin_run_tracking() -> void:
+	_live_run_progress_applied.clear()
+	_live_run_completed_titles.clear()
+	_live_run_core_completed_titles.clear()
+	_live_run_bonus_completed_titles.clear()
+	_live_run_unlocked_vehicles.clear()
 
 func get_today_key() -> String:
 	return EasternTimeScript.get_current_business_day_key()
@@ -442,6 +454,10 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 	var core_missions_completed_this_run: Array[String] = []
 	var bonus_missions_completed_this_run: Array[String] = []
 	var newly_unlocked_vehicles: Array[String] = []
+	missions_completed_this_run.append_array(_live_run_completed_titles)
+	core_missions_completed_this_run.append_array(_live_run_core_completed_titles)
+	bonus_missions_completed_this_run.append_array(_live_run_bonus_completed_titles)
+	newly_unlocked_vehicles.append_array(_live_run_unlocked_vehicles)
 	var had_completion_before_run := get_completed_count_today() > 0
 	var profile: Node = _get_player_profile()
 	var helicopter_skins: Node = _get_helicopter_skins()
@@ -450,24 +466,14 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 		var mission := _missions[index].duplicate(true)
 		var previous_completed := bool(mission.get("completed", false))
 		var progress_variant = _get_progress_increment_for_mission(mission, summary)
+		progress_variant = _subtract_live_run_progress(mission, progress_variant)
 		var new_progress = _calculate_new_progress(mission, progress_variant)
 		mission["progress"] = new_progress
 		mission["completed"] = new_progress >= _get_target_value(mission)
 		_missions[index] = mission
 
 		if not previous_completed and bool(mission.get("completed", false)):
-			var title := str(mission.get("title", "Mission Complete"))
-			missions_completed_this_run.append(title)
-			if bool(mission.get("bonus", false)):
-				bonus_missions_completed_this_run.append(title)
-			else:
-				core_missions_completed_this_run.append(title)
-				if profile != null and profile.has_method("increment_total_daily_missions_completed"):
-					profile.increment_total_daily_missions_completed(1)
-					if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
-						for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
-							if profile.unlock_vehicle(vehicle_id):
-								newly_unlocked_vehicles.append(vehicle_id)
+			_record_completed_mission(mission, missions_completed_this_run, core_missions_completed_this_run, bonus_missions_completed_this_run, newly_unlocked_vehicles, profile, helicopter_skins)
 
 	if not missions_completed_this_run.is_empty() and not had_completion_before_run and profile != null and profile.has_method("update_daily_streak"):
 		profile.update_daily_streak(_today_key)
@@ -488,8 +494,69 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 		"bonus_total_today": BONUS_MISSION_COUNT,
 		"next_unlock": get_next_unlock_progress(),
 	}
+	begin_run_tracking()
 	_emit_missions_changed()
 	return _recent_run_result.duplicate(true)
+
+func record_live_mission_progress(mission_type: String, amount: float = 1.0, summary: Dictionary = {}) -> Dictionary:
+	var clean_type := mission_type.strip_edges()
+	if clean_type.is_empty() or amount <= 0.0:
+		return {}
+	refresh_daily_missions()
+
+	var missions_completed_this_event: Array[String] = []
+	var core_missions_completed_this_event: Array[String] = []
+	var bonus_missions_completed_this_event: Array[String] = []
+	var newly_unlocked_vehicles: Array[String] = []
+	var had_completion_before_event := get_completed_count_today() > 0
+	var profile: Node = _get_player_profile()
+	var helicopter_skins: Node = _get_helicopter_skins()
+	var matched_mission := false
+	var changed := false
+
+	for index in range(_missions.size()):
+		var mission := _missions[index].duplicate(true)
+		if str(mission.get("type", "")) != clean_type:
+			continue
+		if not _live_summary_matches_mission(mission, summary):
+			continue
+		matched_mission = true
+		var previous_progress := float(mission.get("progress", 0.0))
+		var previous_completed := bool(mission.get("completed", false))
+		var new_progress = _calculate_new_progress(mission, amount)
+		mission["progress"] = new_progress
+		mission["completed"] = new_progress >= _get_target_value(mission)
+		_missions[index] = mission
+		changed = changed or absf(previous_progress - float(new_progress)) > 0.001 or previous_completed != bool(mission.get("completed", false))
+
+		if not previous_completed and bool(mission.get("completed", false)):
+			_record_completed_mission(mission, missions_completed_this_event, core_missions_completed_this_event, bonus_missions_completed_this_event, newly_unlocked_vehicles, profile, helicopter_skins)
+
+	if not matched_mission:
+		return {}
+
+	_live_run_progress_applied[clean_type] = float(_live_run_progress_applied.get(clean_type, 0.0)) + amount
+	_live_run_completed_titles.append_array(missions_completed_this_event)
+	_live_run_core_completed_titles.append_array(core_missions_completed_this_event)
+	_live_run_bonus_completed_titles.append_array(bonus_missions_completed_this_event)
+	_live_run_unlocked_vehicles.append_array(newly_unlocked_vehicles)
+
+	if not missions_completed_this_event.is_empty() and not had_completion_before_event and profile != null and profile.has_method("update_daily_streak"):
+		profile.update_daily_streak(_today_key)
+
+	if changed:
+		_save_state()
+		_queue_daily_sync()
+		_emit_missions_changed()
+
+	return {
+		"missions_completed_this_event": missions_completed_this_event,
+		"core_missions_completed_this_event": core_missions_completed_this_event,
+		"bonus_missions_completed_this_event": bonus_missions_completed_this_event,
+		"newly_unlocked_vehicles": newly_unlocked_vehicles,
+		"total_completed_today": get_completed_count_today(),
+		"total_missions_today": get_total_count_today(),
+	}
 
 func consume_recent_run_result() -> Dictionary:
 	var result := _recent_run_result.duplicate(true)
@@ -663,6 +730,39 @@ func _get_valid_vehicle_targets(require_gold_locked: bool = false) -> Array[Stri
 			continue
 		candidates.append(vehicle_id)
 	return candidates
+
+func _record_completed_mission(mission: Dictionary, missions_completed: Array[String], core_missions_completed: Array[String], bonus_missions_completed: Array[String], newly_unlocked_vehicles: Array[String], profile: Node, helicopter_skins: Node) -> void:
+	var title := str(mission.get("title", "Mission Complete"))
+	missions_completed.append(title)
+	if bool(mission.get("bonus", false)):
+		bonus_missions_completed.append(title)
+		return
+
+	core_missions_completed.append(title)
+	if profile == null or not profile.has_method("increment_total_daily_missions_completed"):
+		return
+	profile.increment_total_daily_missions_completed(1)
+	if helicopter_skins == null or not helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
+		return
+	for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
+		if profile.unlock_vehicle(vehicle_id):
+			newly_unlocked_vehicles.append(vehicle_id)
+
+func _subtract_live_run_progress(mission: Dictionary, progress_variant):
+	if str(mission.get("progress_mode", "sum")) != "sum":
+		return progress_variant
+	var mission_type := str(mission.get("type", ""))
+	var already_applied := float(_live_run_progress_applied.get(mission_type, 0.0))
+	if already_applied <= 0.0:
+		return progress_variant
+	return maxf(float(progress_variant) - already_applied, 0.0)
+
+func _live_summary_matches_mission(mission: Dictionary, summary: Dictionary) -> bool:
+	var mission_vehicle_id := str(mission.get("vehicle_id", ""))
+	if mission_vehicle_id.is_empty():
+		return true
+	var run_vehicle_id := str(summary.get("equipped_vehicle_id", summary.get("equipped_skin_id", "")))
+	return mission_vehicle_id == run_vehicle_id
 
 func _get_progress_increment_for_mission(mission: Dictionary, summary: Dictionary):
 	var mission_type := str(mission.get("type", ""))

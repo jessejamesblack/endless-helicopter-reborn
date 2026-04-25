@@ -290,6 +290,9 @@ func _record_shield_absorb() -> void:
     var run_stats := get_node_or_null("/root/RunStats")
     if run_stats != null and run_stats.has_method("record_shield_hit_absorbed"):
         run_stats.record_shield_hit_absorbed()
+    var mission_manager := get_node_or_null("/root/MissionManager")
+    if mission_manager != null and mission_manager.has_method("record_live_mission_progress"):
+        mission_manager.record_live_mission_progress("shield_hits_absorbed", 1.0)
     var main := get_tree().current_scene
     if main != null and main.has_method("_show_floating_text"):
         main._show_floating_text(global_position, "SHIELD", false)
