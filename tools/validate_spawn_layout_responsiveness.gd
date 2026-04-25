@@ -53,6 +53,8 @@ func _validate_spawner_for_size(viewport_size: Vector2i) -> void:
 	for y_mode in ["random_high", "random_mid", "random_low", "bottom_turret"]:
 		var y := float(spawner.call("_resolve_spawn_y", {"y_mode": y_mode}))
 		_assert(y >= 0.0 and y <= actual_height, "%s y should stay on-screen at %s." % [y_mode, _format_viewport_size(viewport_size)])
+		if y_mode == "bottom_turret":
+			_assert(is_equal_approx(y, actual_height - 34.0), "Turret y should anchor to the screen bottom at %s." % _format_viewport_size(viewport_size))
 
 	await _destroy_node(main)
 

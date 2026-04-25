@@ -18,7 +18,7 @@ var ENEMY_DATA := {
 			Vector2(-15, 0),
 			Vector2(-13.5, -10.5),
 		]),
-		"fire_interval": 2.75,
+		"fire_interval": 1.95,
 		"projectile_kind": "turret_round",
 		"projectile_speed": 285.0,
 		"fire_offset": Vector2(-22.5, -13.5),
@@ -43,7 +43,7 @@ var ENEMY_DATA := {
 			Vector2(-22.5, 18),
 			Vector2(-31.5, 6),
 		]),
-		"fire_interval": 2.05,
+		"fire_interval": 1.45,
 		"projectile_kind": "player_missile",
 		"projectile_speed": 500.0,
 		"fire_offset": Vector2(-27, 0),
@@ -87,15 +87,18 @@ var ENEMY_DATA := {
 var enemy_projectile_scene: PackedScene = preload("res://scenes/projectiles/enemy_projectile.tscn")
 var explosion_scene: PackedScene = preload("res://scenes/effects/explosion.tscn")
 
-const TURRET_FIRE_RETRY_SECONDS := 0.25
+const TURRET_FIRE_RETRY_SECONDS := 0.18
 const MAX_ACTIVE_ENEMY_PROJECTILES := 5
-const TURRET_MIN_FIRE_INTERVAL_SECONDS := 1.4
-const DRONE_MIN_FIRE_INTERVAL_SECONDS := 0.9
+const TURRET_MIN_FIRE_INTERVAL_SECONDS := 1.05
+const DRONE_MIN_FIRE_INTERVAL_SECONDS := 0.72
+const FIRST_SHOT_SCREEN_LEAD_PIXELS := 56.0
+const ENTRY_FIRE_RETRY_SECONDS := 0.08
 
 var _base_y: float = 0.0
 var _fire_timer: float = 0.0
 var _time_alive: float = 0.0
 var _hits_remaining: int = 1
+var _has_fired_entry_shot: bool = false
 
 func _ready() -> void:
 	add_to_group("hostile_units")
@@ -123,8 +126,10 @@ func apply_enemy_config() -> void:
 	collision_polygon.rotation = 0.0
 	_hits_remaining = _get_modifier_hit_count()
 
-	var fire_interval := float(data.get("fire_interval", 999.0))
-	_fire_timer = randf_range(0.35, fire_interval)
+	var can_fire := data.has("fire_interval") and data.has("projectile_kind")
+	var should_use_entry_shot := can_fire and _is_spawned_beyond_entry_shot_line()
+	_has_fired_entry_shot = not can_fire or not should_use_entry_shot
+	_fire_timer = 0.0 if should_use_entry_shot else randf_range(0.35, _get_effective_fire_interval(data))
 
 func _process(delta: float) -> void:
 	var data: Dictionary = ENEMY_DATA.get(_resolve_enemy_kind(enemy_kind), ENEMY_DATA["stationary_turret"])
@@ -155,14 +160,17 @@ func _process(delta: float) -> void:
 		collision_polygon.rotation = sprite.rotation
 
 	if data.has("fire_interval") and data.has("projectile_kind"):
-		_fire_timer -= delta
-		if _fire_timer <= 0.0:
-			if _can_fire_projectile(data):
-				fire_projectile(data)
-				var fire_interval := _get_effective_fire_interval(data)
-				_fire_timer = fire_interval + randf_range(-0.25, 0.35)
-			else:
-				_fire_timer = _get_effective_retry_seconds()
+		if not _has_fired_entry_shot:
+			_try_fire_initial_screen_entry_shot(data, delta)
+		else:
+			_fire_timer -= delta
+			if _fire_timer <= 0.0:
+				if _can_fire_projectile(data):
+					fire_projectile(data)
+					var fire_interval := _get_effective_fire_interval(data)
+					_fire_timer = fire_interval + randf_range(-0.18, 0.24)
+				else:
+					_fire_timer = _get_effective_retry_seconds()
 
 	if global_position.x < -250:
 		queue_free()
@@ -176,7 +184,13 @@ func fire_projectile(data: Dictionary) -> void:
 	projectile.rotation = PI
 	projectile.move_speed = float(data.get("projectile_speed", 480.0))
 	projectile.configure(data.get("projectile_kind", "player_missile"))
-	get_tree().current_scene.add_child(projectile)
+	var projectile_parent := get_tree().current_scene
+	if projectile_parent == null:
+		projectile_parent = get_parent()
+	if projectile_parent == null:
+		projectile.queue_free()
+		return
+	projectile_parent.add_child(projectile)
 	_play_fire_sound()
 
 func _on_body_entered(body: Node2D) -> void:
@@ -236,9 +250,32 @@ func _play_fire_sound() -> void:
 func _can_fire_projectile(data: Dictionary) -> bool:
 	if _count_active_enemy_projectiles() >= _get_projectile_cap():
 		return false
-	if str(data.get("projectile_kind", "")) != "turret_round":
+	return not str(data.get("projectile_kind", "")).is_empty()
+
+func _try_fire_initial_screen_entry_shot(data: Dictionary, delta: float) -> void:
+	_fire_timer -= delta
+	if _fire_timer > 0.0:
+		return
+	if not _is_ready_for_entry_shot():
+		return
+	if _can_fire_projectile(data):
+		fire_projectile(data)
+		_has_fired_entry_shot = true
+		_fire_timer = _get_effective_fire_interval(data) + randf_range(-0.12, 0.18)
+	else:
+		_fire_timer = ENTRY_FIRE_RETRY_SECONDS
+
+func _is_ready_for_entry_shot() -> bool:
+	var viewport := get_viewport()
+	if viewport == null:
 		return true
-	return not _has_active_turret_round()
+	return global_position.x <= viewport.get_visible_rect().size.x + FIRST_SHOT_SCREEN_LEAD_PIXELS
+
+func _is_spawned_beyond_entry_shot_line() -> bool:
+	var viewport := get_viewport()
+	if viewport == null:
+		return false
+	return global_position.x > viewport.get_visible_rect().size.x + FIRST_SHOT_SCREEN_LEAD_PIXELS
 
 func _count_active_enemy_projectiles() -> int:
 	var count := 0

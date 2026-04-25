@@ -575,8 +575,7 @@ func _get_lane_y(lane_index: int) -> float:
 	return lerpf(bounds.x, bounds.y, ratio)
 
 func _get_turret_y() -> float:
-	var bounds := _get_effective_spawn_bounds()
-	return minf(get_viewport_rect().size.y - TURRET_BOTTOM_INSET, bounds.y + 18.0)
+	return maxf(0.0, get_viewport_rect().size.y - TURRET_BOTTOM_INSET)
 
 func _choose_enemy_modifier(kind: String) -> String:
 	if kind == "glowing_rock" or kind == "large_spiky_rock":

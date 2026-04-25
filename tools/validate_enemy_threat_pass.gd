@@ -19,8 +19,12 @@ func _validate_enemy_modifier_code() -> void:
 	var enemy_text := Helper.read_text("res://scenes/enemies/enemy_unit.gd")
 	for token in ["enemy_modifier", "armored", "shielded", "elite", "_get_effective_fire_interval", "_get_effective_retry_seconds", "_get_projectile_cap"]:
 		_assert(enemy_text.contains(token), "EnemyUnit should include %s support." % token)
-	_assert(enemy_text.contains("TURRET_MIN_FIRE_INTERVAL_SECONDS := 1.4"), "Turret late-game fire interval minimum should be readable.")
-	_assert(enemy_text.contains("DRONE_MIN_FIRE_INTERVAL_SECONDS := 0.9"), "Drone late-game fire interval minimum should be readable.")
+	_assert(enemy_text.contains('"fire_interval": 1.95'), "Turrets should use a quicker base fire interval.")
+	_assert(enemy_text.contains('"fire_interval": 1.45'), "Alien drones should use a quicker base fire interval.")
+	_assert(enemy_text.contains("TURRET_MIN_FIRE_INTERVAL_SECONDS := 1.05"), "Turret late-game fire interval minimum should be faster but readable.")
+	_assert(enemy_text.contains("DRONE_MIN_FIRE_INTERVAL_SECONDS := 0.72"), "Drone late-game fire interval minimum should be faster but readable.")
+	_assert(enemy_text.contains("FIRST_SHOT_SCREEN_LEAD_PIXELS"), "Enemies should prime a first shot as they enter the screen.")
+	_assert(enemy_text.contains("_try_fire_initial_screen_entry_shot"), "Enemies should fire an entry shot before normal cadence starts.")
 	_assert(enemy_text.contains("record_elite_kill"), "Elite kills should be recorded.")
 	_assert(enemy_text.contains("record_special_enemy_kill"), "Special enemy kills should be recorded.")
 
