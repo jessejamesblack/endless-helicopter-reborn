@@ -1,6 +1,6 @@
-# Endless Helicopter Reborn 1.6.8
+# Endless Helicopter Reborn 1.6.9
 
-Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
+Version 1.6.9 is the depth and feedback sprint. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
 
 ## Highlights
 
@@ -16,9 +16,10 @@ Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Fixed pause spam so rapid pause/resume cannot create a slow-motion advantage.
 - Restored long-run background continuity so existing biome visuals stay coherent until the next biome transition.
 - Improved responsive spawn lanes for tall and tablet layouts.
-- Made kill-score popups more visible and extended the combo window slightly.
+- Made kill-score popups more visible, extended the combo window slightly, and let combo scoring climb a bit higher.
 - Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
 - Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
+- Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
 
 ## Progression And Data Notes
