@@ -54,7 +54,7 @@ func _validate_combo_threshold_feedback_multiplier() -> void:
 	if absf((score_after_award - score_before) - 20.0) > 0.01:
 		_failures.append("Combo threshold award should add the pre-event multiplied points to the score.")
 
-	if absf(float(main.get("combo_multiplier")) - 1.25) > 0.001:
+	if absf(float(main.get("combo_multiplier")) - 1.30) > 0.001:
 		_failures.append("Combo threshold event should still advance the combo multiplier after awarding score.")
 
 	var floating_text := main.find_child("FloatingScoreText", true, false)

@@ -15,6 +15,8 @@ func _run_validation() -> void:
 
 func _validate_combo_window() -> void:
 	_assert(absf(MainScript.COMBO_TIMEOUT_SECONDS - 4.25) < 0.001, "Combo timeout should be 4.25 seconds.")
+	_assert(absf(MainScript.COMBO_STEP - 0.30) < 0.001, "Combo score step should be 0.30x.")
+	_assert(absf(MainScript.COMBO_MAX_MULTIPLIER - 3.5) < 0.001, "Combo max multiplier should be 3.5x.")
 	var main_text := Helper.read_text("res://scenes/game/main/main.gd")
 	_assert(main_text.contains("_get_combo_timeout_bonus"), "Combo window should support run upgrade bonuses.")
 	_assert(main_text.contains('COMBO x%.2f'), "Combo UI should still show multiplier text.")
