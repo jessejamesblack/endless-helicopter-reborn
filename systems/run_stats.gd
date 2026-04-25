@@ -30,6 +30,14 @@ var _encounters_completed: int = 0
 var _breathers_seen: int = 0
 var _highest_director_difficulty: int = 0
 var _forced_rescue_ammo_spawns: int = 0
+var _shield_hits_absorbed: int = 0
+var _elite_kills: int = 0
+var _special_enemy_kills: int = 0
+var _armored_enemy_kills: int = 0
+var _shielded_enemy_kills: int = 0
+var _boundary_timeout_deaths: int = 0
+var _boundary_chain_crashes: int = 0
+var _ammo_refunds: int = 0
 var _current_encounter_id: String = ""
 var _current_director_phase: String = ""
 
@@ -140,6 +148,41 @@ func record_forced_rescue_ammo_spawn() -> void:
 		return
 	_forced_rescue_ammo_spawns += 1
 
+func record_shield_hit_absorbed() -> void:
+	if not _run_active:
+		return
+	_shield_hits_absorbed += 1
+
+func record_elite_kill() -> void:
+	if not _run_active:
+		return
+	_elite_kills += 1
+
+func record_special_enemy_kill(modifier: String = "") -> void:
+	if not _run_active:
+		return
+	_special_enemy_kills += 1
+	match modifier:
+		"armored":
+			_armored_enemy_kills += 1
+		"shielded":
+			_shielded_enemy_kills += 1
+
+func record_boundary_timeout_death() -> void:
+	if not _run_active:
+		return
+	_boundary_timeout_deaths += 1
+
+func record_boundary_chain_crash() -> void:
+	if not _run_active:
+		return
+	_boundary_chain_crashes += 1
+
+func record_ammo_refund() -> void:
+	if not _run_active:
+		return
+	_ammo_refunds += 1
+
 func complete_run(final_score: int, extra_summary: Dictionary = {}) -> Dictionary:
 	var safe_score: int = maxi(final_score, 0)
 	var best_score_before_run: int = _local_best_score
@@ -180,6 +223,14 @@ func complete_run(final_score: int, extra_summary: Dictionary = {}) -> Dictionar
 		"breathers_seen": _breathers_seen,
 		"highest_director_difficulty": _highest_director_difficulty,
 		"forced_rescue_ammo_spawns": _forced_rescue_ammo_spawns,
+		"shield_hits_absorbed": _shield_hits_absorbed,
+		"elite_kills": _elite_kills,
+		"special_enemy_kills": _special_enemy_kills,
+		"armored_enemy_kills": _armored_enemy_kills,
+		"shielded_enemy_kills": _shielded_enemy_kills,
+		"boundary_timeout_deaths": _boundary_timeout_deaths,
+		"boundary_chain_crashes": _boundary_chain_crashes,
+		"ammo_refunds": _ammo_refunds,
 		"crash_encounter_id": _current_encounter_id,
 		"crash_director_phase": _current_director_phase,
 	}
@@ -240,6 +291,14 @@ func _reset_live_stats() -> void:
 	_breathers_seen = 0
 	_highest_director_difficulty = 0
 	_forced_rescue_ammo_spawns = 0
+	_shield_hits_absorbed = 0
+	_elite_kills = 0
+	_special_enemy_kills = 0
+	_armored_enemy_kills = 0
+	_shielded_enemy_kills = 0
+	_boundary_timeout_deaths = 0
+	_boundary_chain_crashes = 0
+	_ammo_refunds = 0
 	_current_encounter_id = ""
 	_current_director_phase = ""
 

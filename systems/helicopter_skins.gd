@@ -140,6 +140,7 @@ const VEHICLES := {
 			Vector2(-50, -2),
 		],
 		"profile": {
+			"passive_id": "flexible_baseline",
 			"jump_velocity": -400.0,
 			"gravity_scale": 1.0,
 			"tilt_speed": 5.0,
@@ -155,7 +156,8 @@ const VEHICLES := {
 		"original_icon_offset": Vector2(0.0, -2.0),
 	},
 	"bubble_chopper": {
-		"display_name": "Little Bird",
+		"display_name": "Bubble Chopper",
+		"flavor_name": "Little Bird",
 		"vehicle_class": "Light Scout",
 		"role": "Quick visual response",
 		"description": "Complete 1 daily mission.",
@@ -192,6 +194,7 @@ const VEHICLES := {
 			Vector2(-36, 2),
 		],
 		"profile": {
+			"passive_id": "near_miss_specialist",
 			"jump_velocity": -430.0,
 			"gravity_scale": 0.94,
 			"tilt_speed": 5.8,
@@ -245,6 +248,7 @@ const VEHICLES := {
 			Vector2(-52, -8),
 		],
 		"profile": {
+			"passive_id": "ammo_utility",
 			"jump_velocity": -392.0,
 			"gravity_scale": 1.0,
 			"tilt_speed": 4.8,
@@ -260,7 +264,8 @@ const VEHICLES := {
 		"original_icon_offset": Vector2(0.0, -2.8),
 	},
 	"blackhawk_shadow": {
-		"display_name": "Shadow Hawk",
+		"display_name": "Blackhawk Shadow",
+		"flavor_name": "Shadow Hawk",
 		"vehicle_class": "Heavy Utility",
 		"role": "Steady heavy carrier",
 		"description": "Complete 7 daily missions.",
@@ -298,6 +303,7 @@ const VEHICLES := {
 			Vector2(-58, -8),
 		],
 		"profile": {
+			"passive_id": "shield_recovery",
 			"jump_velocity": -372.0,
 			"gravity_scale": 1.08,
 			"tilt_speed": 4.4,
@@ -313,7 +319,8 @@ const VEHICLES := {
 		"original_icon_offset": Vector2(0.0, -2.9),
 	},
 	"apache_strike": {
-		"display_name": "Hind Strike",
+		"display_name": "Apache Strike",
+		"flavor_name": "Hind Strike",
 		"vehicle_class": "Armored Striker",
 		"role": "Punchy forward attacker",
 		"description": "Complete 12 daily missions.",
@@ -351,6 +358,7 @@ const VEHICLES := {
 			Vector2(-52, -2),
 		],
 		"profile": {
+			"passive_id": "missile_striker",
 			"jump_velocity": -414.0,
 			"gravity_scale": 1.03,
 			"tilt_speed": 5.2,
@@ -366,7 +374,8 @@ const VEHICLES := {
 		"original_icon_offset": Vector2(0.0, -2.8),
 	},
 	"chinook_lift": {
-		"display_name": "Twin-Lift",
+		"display_name": "Chinook Lift",
+		"flavor_name": "Twin-Lift",
 		"vehicle_class": "Tandem Heavy",
 		"role": "Long-frame momentum machine",
 		"description": "Complete 20 daily missions.",
@@ -405,6 +414,7 @@ const VEHICLES := {
 			Vector2(-64, 2),
 		],
 		"profile": {
+			"passive_id": "combo_stabilizer",
 			"jump_velocity": -360.0,
 			"gravity_scale": 1.12,
 			"tilt_speed": 4.0,
@@ -458,6 +468,7 @@ const VEHICLES := {
 			Vector2(-64, -4),
 		],
 		"profile": {
+			"passive_id": "chaotic_scoring",
 			"jump_velocity": -408.0,
 			"gravity_scale": 0.98,
 			"tilt_speed": 5.25,
@@ -512,6 +523,7 @@ const VEHICLES := {
 			Vector2(-62, -4),
 		],
 		"profile": {
+			"passive_id": "prestige_oddity",
 			"jump_velocity": -405.0,
 			"gravity_scale": 0.99,
 			"tilt_speed": 5.1,

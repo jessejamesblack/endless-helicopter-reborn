@@ -1,0 +1,42 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/pickups/powerup_pickup.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_powerup"]
+radius = 30.0
+
+[node name="PowerupPickup" type="Area2D"]
+script = ExtResource("1_script")
+
+[node name="Shadow" type="Polygon2D" parent="."]
+position = Vector2(3, 4)
+polygon = PackedVector2Array(-42, -22, 26, -22, 42, 0, 26, 22, -42, 22, -52, 0)
+color = Color(0, 0, 0, 0.36)
+
+[node name="Border" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-42, -22, 26, -22, 42, 0, 26, 22, -42, 22, -52, 0)
+color = Color(0.286275, 0.603922, 0.8, 0.95)
+
+[node name="Backplate" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-38, -18, 23, -18, 35, 0, 23, 18, -38, 18, -47, 0)
+color = Color(0.0313726, 0.0784314, 0.145098, 0.94)
+
+[node name="Accent" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-31, -12, -18, 0, -31, 12, -43, 0)
+color = Color(0.819608, 0.92549, 1, 0.98)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 34.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 13
+text = "PWR"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_powerup")

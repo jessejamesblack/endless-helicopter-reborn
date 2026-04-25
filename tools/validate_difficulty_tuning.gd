@@ -12,6 +12,7 @@ func _run_validation() -> void:
 	Helper.assert_condition(_failures, EncounterCatalog.get_phase_for_time(35.0) == EncounterCatalog.PHASE_COMBAT_INTRO, "35 seconds should already be in combat_intro.")
 	Helper.assert_condition(_failures, EncounterCatalog.get_phase_for_time(70.0) == EncounterCatalog.PHASE_PRESSURE, "70 seconds should already be in pressure.")
 	Helper.assert_condition(_failures, EncounterCatalog.get_phase_for_time(145.0) == EncounterCatalog.PHASE_ENDURANCE, "145 seconds should already be in endurance.")
+	Helper.assert_condition(_failures, EncounterCatalog.get_phase_for_time(9.0) == EncounterCatalog.PHASE_WARMUP, "9 seconds should already be in warmup so the run can start faster.")
 	var encounters := EncounterCatalog.get_encounters()
 	var encounter_ids: Array[String] = []
 	for encounter in encounters:
@@ -20,5 +21,10 @@ func _run_validation() -> void:
 	Helper.assert_condition(_failures, encounter_ids.has("advanced_turret_double_drone"), "Difficulty tuning should add advanced_turret_double_drone.")
 	var spawner_text := Helper.read_text("res://scenes/game/main/spawner.gd")
 	Helper.assert_condition(_failures, spawner_text.contains("FIRST_TURRET_SECONDS := 60.0"), "Spawner should keep turrets gated until 60 seconds.")
+	Helper.assert_condition(_failures, spawner_text.contains("SAFE_OPENING_SECONDS := 8.0"), "Spawner should let non-turret pressure start after a shorter safe opening.")
+	Helper.assert_condition(_failures, spawner_text.contains("MAX_ACTIVE_HOSTILES_OPENING := 2"), "Opening should allow enough obstacles for early skill opportunities.")
 	Helper.assert_condition(_failures, spawner_text.contains("MAX_ACTIVE_HOSTILES_PRESSURE := 6"), "Spawner should allow more active hostiles in pressure.")
+	var main_text := Helper.read_text("res://scenes/game/main/main.gd")
+	Helper.assert_condition(_failures, spawner_text.contains("spawn_score_rush_skill_window"), "Spawner should expose a Score Rush skill window helper.")
+	Helper.assert_condition(_failures, main_text.contains("spawn_score_rush_skill_window"), "Score Rush activation should request an immediate skill-scoring window.")
 	Helper.finish(self, _failures, "Difficulty tuning validation completed successfully.")

@@ -43,6 +43,7 @@ var _scroll_dragging: bool = false
 var _scroll_pointer_id: int = -1
 var _scroll_press_position: Vector2 = Vector2.ZERO
 var _scroll_origin: float = 0.0
+var _depth_summary_label: Label
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var panel: Panel = $Panel
@@ -116,6 +117,7 @@ func _ready() -> void:
 	name_help_label.text = "Choose a public name once. This device will remember it."
 	alert_label.text = ""
 	_configure_setup_buttons()
+	_ensure_depth_summary_label()
 	_populate_results_summary()
 	_apply_screen_mode()
 	_configure_touch_scroll()
@@ -361,6 +363,7 @@ func _populate_results_summary() -> void:
 		max_combo_value_label.text = "x1.00"
 		intercepts_value_label.text = "0"
 		skill_score_value_label.text = "0"
+		_populate_depth_summary()
 		_populate_mission_summary()
 		return
 
@@ -376,7 +379,44 @@ func _populate_results_summary() -> void:
 	max_combo_value_label.text = "x%.2f" % float(current_run_summary.get("max_combo_multiplier", 1.0))
 	intercepts_value_label.text = str(int(current_run_summary.get("projectile_intercepts", 0)))
 	skill_score_value_label.text = str(int(current_run_summary.get("skill_score", 0)))
+	_populate_depth_summary()
 	_populate_mission_summary()
+
+func _ensure_depth_summary_label() -> void:
+	if _depth_summary_label != null and is_instance_valid(_depth_summary_label):
+		return
+	if not has_node("Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox"):
+		return
+	_depth_summary_label = Label.new()
+	_depth_summary_label.name = "DepthSummaryLabel"
+	_depth_summary_label.custom_minimum_size = Vector2(0, 24)
+	_depth_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_depth_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_depth_summary_label.add_theme_color_override("font_color", Color(0.921569, 0.94902, 1, 1))
+	_depth_summary_label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
+	_depth_summary_label.add_theme_constant_override("outline_size", 2)
+	_depth_summary_label.add_theme_font_size_override("font_size", 13)
+	$Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox.add_child(_depth_summary_label)
+
+func _populate_depth_summary() -> void:
+	_ensure_depth_summary_label()
+	if _depth_summary_label == null:
+		return
+	if not has_run_context:
+		_depth_summary_label.text = ""
+		return
+	var upgrades := int(current_run_summary.get("upgrades_chosen", 0))
+	var powerups := int(current_run_summary.get("powerups_collected", 0))
+	var objectives := int(current_run_summary.get("objective_events_completed", 0))
+	var elites := int(current_run_summary.get("elite_kills", 0))
+	var passive := str(current_run_summary.get("vehicle_passive_name", ""))
+	_depth_summary_label.text = "Upgrades %d  |  Powerups %d  |  Objectives %d  |  Elites %d%s" % [
+		upgrades,
+		powerups,
+		objectives,
+		elites,
+		"  |  %s" % passive if not passive.is_empty() else "",
+	]
 
 func _populate_mission_summary() -> void:
 	var mission_manager := _get_mission_manager()
@@ -1034,6 +1074,12 @@ func _format_unlock_line(unlock_entry: Dictionary) -> String:
 			return "+ %s / %s skin" % [_get_vehicle_display_name(vehicle_id), _get_skin_display_name(vehicle_id, skin_id)]
 		"global_skin_set":
 			return "+ Original Icon skin set"
+		"depth_upgrade":
+			return "+ Run upgrade: %s" % str(unlock_entry.get("title", "Upgrade"))
+		"depth_powerup":
+			return "+ Powerup: %s" % str(unlock_entry.get("title", "Powerup"))
+		"depth_objective":
+			return "+ Objective: %s" % str(unlock_entry.get("title", "Objective"))
 	return ""
 
 func _has_hangar_unlock_cta() -> bool:

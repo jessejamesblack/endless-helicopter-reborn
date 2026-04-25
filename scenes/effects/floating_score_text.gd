@@ -1,6 +1,6 @@
 extends Node2D
 
-const FLOAT_DURATION_SECONDS := 0.5
+const FLOAT_DURATION_SECONDS := 0.72
 
 @onready var label: Label = $Label
 var _pending_text: String = "+0"
@@ -25,5 +25,7 @@ func _apply_label_state() -> void:
 	label.text = _pending_text
 	if _pending_is_score:
 		label.add_theme_color_override("font_color", Color(0.99, 0.87, 0.58, 1.0))
+		label.add_theme_constant_override("outline_size", 5)
 	else:
 		label.add_theme_color_override("font_color", Color(0.79, 0.92, 1.0, 1.0))
+		label.add_theme_constant_override("outline_size", 4)

@@ -10,6 +10,34 @@ const DEFAULT_SKIN_ID := "factory"
 const GOLD_MASTERY_BONUS_VEHICLE_ID := "crazytaxi"
 const LEADERBOARD_BONUS_VEHICLE_ID := "pottercar"
 const SCORE_MILESTONE_ORIGINAL_ICON := "score_10000"
+const DEFAULT_UNLOCKED_UPGRADES: Array[String] = [
+	"twin_missiles",
+	"bigger_magazine",
+	"temporary_shield",
+	"near_miss_amplifier",
+	"combo_battery",
+	"interceptor_bonus",
+]
+const DEFAULT_UNLOCKED_POWERUPS: Array[String] = ["shield_bubble", "score_rush", "ammo_magnet"]
+const DEFAULT_UNLOCKED_OBJECTIVES: Array[String] = ["rescue_pickup"]
+const ALL_DEPTH_UPGRADES: Array[String] = [
+	"twin_missiles",
+	"homing_missiles",
+	"bigger_magazine",
+	"faster_fire_rate",
+	"bigger_blast",
+	"refund_chamber",
+	"temporary_shield",
+	"stronger_recovery",
+	"stabilizers",
+	"rotor_wash",
+	"near_miss_amplifier",
+	"combo_battery",
+	"interceptor_bonus",
+	"precision_payoff",
+]
+const ALL_DEPTH_POWERUPS: Array[String] = ["shield_bubble", "score_rush", "missile_overdrive", "ammo_magnet", "emp_burst", "afterburner_burst"]
+const ALL_DEPTH_OBJECTIVES: Array[String] = ["rescue_pickup", "reactor_chain"]
 
 var validation_mode_enabled: bool = false
 
@@ -20,6 +48,10 @@ var _equipped_vehicle_skins: Dictionary = {DEFAULT_VEHICLE_ID: DEFAULT_SKIN_ID}
 var _vehicle_skin_progress: Dictionary = {}
 var _global_skin_unlocks: Array[String] = []
 var _best_score_milestones: Dictionary = {SCORE_MILESTONE_ORIGINAL_ICON: false}
+var _unlocked_upgrade_ids: Array[String] = DEFAULT_UNLOCKED_UPGRADES.duplicate()
+var _unlocked_powerup_ids: Array[String] = DEFAULT_UNLOCKED_POWERUPS.duplicate()
+var _unlocked_objective_ids: Array[String] = DEFAULT_UNLOCKED_OBJECTIVES.duplicate()
+var _depth_unlock_progress: Dictionary = {}
 var _seen_vehicle_lore: Array[String] = []
 var _seen_skin_lore: Array[String] = []
 var _vehicle_catalog_version_seen: int = 1
@@ -52,6 +84,10 @@ func load_profile() -> void:
 	_vehicle_skin_progress = _sanitize_vehicle_skin_progress(config.get_value(PROFILE_SECTION, "vehicle_skin_progress", {}))
 	_global_skin_unlocks = _sanitize_string_array(config.get_value(PROFILE_SECTION, "global_skin_unlocks", []))
 	_best_score_milestones = _sanitize_bool_dictionary(config.get_value(PROFILE_SECTION, "best_score_milestones", {SCORE_MILESTONE_ORIGINAL_ICON: false}))
+	_unlocked_upgrade_ids = _sanitize_depth_ids(config.get_value(PROFILE_SECTION, "unlocked_upgrade_ids", DEFAULT_UNLOCKED_UPGRADES), ALL_DEPTH_UPGRADES, DEFAULT_UNLOCKED_UPGRADES)
+	_unlocked_powerup_ids = _sanitize_depth_ids(config.get_value(PROFILE_SECTION, "unlocked_powerup_ids", DEFAULT_UNLOCKED_POWERUPS), ALL_DEPTH_POWERUPS, DEFAULT_UNLOCKED_POWERUPS)
+	_unlocked_objective_ids = _sanitize_depth_ids(config.get_value(PROFILE_SECTION, "unlocked_objective_ids", DEFAULT_UNLOCKED_OBJECTIVES), ALL_DEPTH_OBJECTIVES, DEFAULT_UNLOCKED_OBJECTIVES)
+	_depth_unlock_progress = _sanitize_depth_unlock_progress(config.get_value(PROFILE_SECTION, "depth_unlock_progress", {}))
 	_seen_vehicle_lore = _sanitize_string_array(config.get_value(PROFILE_SECTION, "seen_vehicle_lore", []))
 	_seen_skin_lore = _sanitize_string_array(config.get_value(PROFILE_SECTION, "seen_skin_lore", []))
 	_vehicle_catalog_version_seen = maxi(int(config.get_value(PROFILE_SECTION, "vehicle_catalog_version_seen", 1)), 1)
@@ -77,6 +113,10 @@ func save_profile() -> void:
 	config.set_value(PROFILE_SECTION, "vehicle_skin_progress", _vehicle_skin_progress.duplicate(true))
 	config.set_value(PROFILE_SECTION, "global_skin_unlocks", _global_skin_unlocks.duplicate())
 	config.set_value(PROFILE_SECTION, "best_score_milestones", _best_score_milestones.duplicate(true))
+	config.set_value(PROFILE_SECTION, "unlocked_upgrade_ids", _unlocked_upgrade_ids.duplicate())
+	config.set_value(PROFILE_SECTION, "unlocked_powerup_ids", _unlocked_powerup_ids.duplicate())
+	config.set_value(PROFILE_SECTION, "unlocked_objective_ids", _unlocked_objective_ids.duplicate())
+	config.set_value(PROFILE_SECTION, "depth_unlock_progress", _depth_unlock_progress.duplicate(true))
 	config.set_value(PROFILE_SECTION, "seen_vehicle_lore", _seen_vehicle_lore.duplicate())
 	config.set_value(PROFILE_SECTION, "seen_skin_lore", _seen_skin_lore.duplicate())
 	config.set_value(PROFILE_SECTION, "vehicle_catalog_version_seen", _vehicle_catalog_version_seen)
@@ -117,6 +157,66 @@ func unlock_vehicle(vehicle_id: String) -> bool:
 
 func unlock_skin(skin_id: String) -> bool:
 	return unlock_vehicle(skin_id)
+
+func get_unlocked_upgrade_ids() -> Array[String]:
+	return _unlocked_upgrade_ids.duplicate()
+
+func get_unlocked_powerup_ids() -> Array[String]:
+	return _unlocked_powerup_ids.duplicate()
+
+func get_unlocked_objective_ids() -> Array[String]:
+	return _unlocked_objective_ids.duplicate()
+
+func get_depth_unlock_progress() -> Dictionary:
+	return _depth_unlock_progress.duplicate(true)
+
+func apply_depth_run_progress(summary: Dictionary) -> Array[Dictionary]:
+	var unlocks: Array[Dictionary] = []
+	var previous_json := JSON.stringify({
+		"upgrades": _unlocked_upgrade_ids,
+		"powerups": _unlocked_powerup_ids,
+		"objectives": _unlocked_objective_ids,
+		"progress": _depth_unlock_progress,
+	})
+
+	_depth_unlock_progress["run_upgrades_chosen"] = int(_depth_unlock_progress.get("run_upgrades_chosen", 0)) + int(summary.get("upgrades_chosen", 0))
+	_depth_unlock_progress["powerups_collected"] = int(_depth_unlock_progress.get("powerups_collected", 0)) + int(summary.get("powerups_collected", 0))
+	_depth_unlock_progress["objectives_completed"] = int(_depth_unlock_progress.get("objectives_completed", 0)) + int(summary.get("objective_events_completed", 0))
+	_depth_unlock_progress["elite_kills"] = int(_depth_unlock_progress.get("elite_kills", 0)) + int(summary.get("elite_kills", 0))
+	_depth_unlock_progress["best_run_power"] = maxi(int(_depth_unlock_progress.get("best_run_power", 0)), int(summary.get("upgrades_chosen", 0)) + int(summary.get("powerups_collected", 0)))
+
+	if int(_depth_unlock_progress.get("run_upgrades_chosen", 0)) >= 2:
+		_add_depth_unlock(_unlocked_upgrade_ids, "faster_fire_rate", "upgrade", unlocks)
+	if int(_depth_unlock_progress.get("run_upgrades_chosen", 0)) >= 4:
+		_add_depth_unlock(_unlocked_upgrade_ids, "homing_missiles", "upgrade", unlocks)
+	if int(_depth_unlock_progress.get("run_upgrades_chosen", 0)) >= 7:
+		_add_depth_unlock(_unlocked_upgrade_ids, "refund_chamber", "upgrade", unlocks)
+	if int(_depth_unlock_progress.get("powerups_collected", 0)) >= 2:
+		_add_depth_unlock(_unlocked_powerup_ids, "missile_overdrive", "powerup", unlocks)
+	if int(_depth_unlock_progress.get("powerups_collected", 0)) >= 4:
+		_add_depth_unlock(_unlocked_powerup_ids, "emp_burst", "powerup", unlocks)
+	if int(_depth_unlock_progress.get("powerups_collected", 0)) >= 6:
+		_add_depth_unlock(_unlocked_powerup_ids, "afterburner_burst", "powerup", unlocks)
+	if int(_depth_unlock_progress.get("objectives_completed", 0)) >= 1:
+		_add_depth_unlock(_unlocked_objective_ids, "reactor_chain", "objective", unlocks)
+	if int(_depth_unlock_progress.get("elite_kills", 0)) >= 1:
+		_add_depth_unlock(_unlocked_upgrade_ids, "bigger_blast", "upgrade", unlocks)
+		_add_depth_unlock(_unlocked_upgrade_ids, "stronger_recovery", "upgrade", unlocks)
+	if int(_depth_unlock_progress.get("best_run_power", 0)) >= 5:
+		_add_depth_unlock(_unlocked_upgrade_ids, "stabilizers", "upgrade", unlocks)
+		_add_depth_unlock(_unlocked_upgrade_ids, "rotor_wash", "upgrade", unlocks)
+		_add_depth_unlock(_unlocked_upgrade_ids, "precision_payoff", "upgrade", unlocks)
+
+	var changed := previous_json != JSON.stringify({
+		"upgrades": _unlocked_upgrade_ids,
+		"powerups": _unlocked_powerup_ids,
+		"objectives": _unlocked_objective_ids,
+		"progress": _depth_unlock_progress,
+	})
+	if changed:
+		save_profile()
+		_emit_profile_changed()
+	return unlocks
 
 func get_unlocked_vehicles() -> Array[String]:
 	return _unlocked_vehicles.duplicate()
@@ -331,6 +431,10 @@ func get_profile_sync_summary() -> Dictionary:
 		"vehicle_skin_progress": _vehicle_skin_progress.duplicate(true),
 		"global_skin_unlocks": _global_skin_unlocks.duplicate(),
 		"best_score_milestones": _best_score_milestones.duplicate(true),
+		"unlocked_upgrade_ids": _unlocked_upgrade_ids.duplicate(),
+		"unlocked_powerup_ids": _unlocked_powerup_ids.duplicate(),
+		"unlocked_objective_ids": _unlocked_objective_ids.duplicate(),
+		"depth_unlock_progress": _depth_unlock_progress.duplicate(true),
 		"seen_vehicle_lore": _seen_vehicle_lore.duplicate(),
 		"seen_skin_lore": _seen_skin_lore.duplicate(),
 		"vehicle_catalog_version": _vehicle_catalog_version_seen,
@@ -359,6 +463,10 @@ func replace_remote_profile(summary: Dictionary) -> bool:
 	_vehicle_skin_progress = _sanitize_vehicle_skin_progress(summary.get("vehicle_skin_progress", {}))
 	_global_skin_unlocks = _sanitize_string_array(summary.get("global_skin_unlocks", []))
 	_best_score_milestones = _sanitize_bool_dictionary(summary.get("best_score_milestones", {SCORE_MILESTONE_ORIGINAL_ICON: false}))
+	_unlocked_upgrade_ids = _sanitize_depth_ids(summary.get("unlocked_upgrade_ids", DEFAULT_UNLOCKED_UPGRADES), ALL_DEPTH_UPGRADES, DEFAULT_UNLOCKED_UPGRADES)
+	_unlocked_powerup_ids = _sanitize_depth_ids(summary.get("unlocked_powerup_ids", DEFAULT_UNLOCKED_POWERUPS), ALL_DEPTH_POWERUPS, DEFAULT_UNLOCKED_POWERUPS)
+	_unlocked_objective_ids = _sanitize_depth_ids(summary.get("unlocked_objective_ids", DEFAULT_UNLOCKED_OBJECTIVES), ALL_DEPTH_OBJECTIVES, DEFAULT_UNLOCKED_OBJECTIVES)
+	_depth_unlock_progress = _sanitize_depth_unlock_progress(summary.get("depth_unlock_progress", {}))
 	_seen_vehicle_lore = _sanitize_string_array(summary.get("seen_vehicle_lore", []))
 	_seen_skin_lore = _sanitize_string_array(summary.get("seen_skin_lore", []))
 	_vehicle_catalog_version_seen = maxi(int(summary.get("vehicle_catalog_version", 1)), 1)
@@ -391,6 +499,10 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 	var remote_progress := _sanitize_vehicle_skin_progress(summary.get("vehicle_skin_progress", {}))
 	var remote_global_unlocks := _sanitize_string_array(summary.get("global_skin_unlocks", []))
 	var remote_milestones := _sanitize_bool_dictionary(summary.get("best_score_milestones", {}))
+	var remote_upgrade_ids := _sanitize_depth_ids(summary.get("unlocked_upgrade_ids", DEFAULT_UNLOCKED_UPGRADES), ALL_DEPTH_UPGRADES, DEFAULT_UNLOCKED_UPGRADES)
+	var remote_powerup_ids := _sanitize_depth_ids(summary.get("unlocked_powerup_ids", DEFAULT_UNLOCKED_POWERUPS), ALL_DEPTH_POWERUPS, DEFAULT_UNLOCKED_POWERUPS)
+	var remote_objective_ids := _sanitize_depth_ids(summary.get("unlocked_objective_ids", DEFAULT_UNLOCKED_OBJECTIVES), ALL_DEPTH_OBJECTIVES, DEFAULT_UNLOCKED_OBJECTIVES)
+	var remote_depth_progress := _sanitize_depth_unlock_progress(summary.get("depth_unlock_progress", {}))
 	var remote_seen_vehicle_lore := _sanitize_string_array(summary.get("seen_vehicle_lore", []))
 	var remote_seen_skin_lore := _sanitize_string_array(summary.get("seen_skin_lore", []))
 
@@ -399,6 +511,10 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 	var merged_progress := _merge_vehicle_skin_progress(_vehicle_skin_progress, remote_progress)
 	var merged_global_unlocks := _merge_string_arrays(_global_skin_unlocks, remote_global_unlocks)
 	var merged_milestones := _merge_bool_dictionaries(_best_score_milestones, remote_milestones)
+	var merged_upgrade_ids := _merge_string_arrays(_unlocked_upgrade_ids, remote_upgrade_ids)
+	var merged_powerup_ids := _merge_string_arrays(_unlocked_powerup_ids, remote_powerup_ids)
+	var merged_objective_ids := _merge_string_arrays(_unlocked_objective_ids, remote_objective_ids)
+	var merged_depth_progress := _merge_counter_dictionary(_depth_unlock_progress, remote_depth_progress)
 	var merged_seen_vehicle_lore := _merge_string_arrays(_seen_vehicle_lore, remote_seen_vehicle_lore)
 	var merged_seen_skin_lore := _merge_string_arrays(_seen_skin_lore, remote_seen_skin_lore)
 	var merged_total := maxi(_total_daily_missions_completed, int(summary.get("total_daily_missions_completed", _total_daily_missions_completed)))
@@ -420,6 +536,10 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 		or JSON.stringify(merged_progress) != JSON.stringify(_vehicle_skin_progress) \
 		or merged_global_unlocks != _global_skin_unlocks \
 		or JSON.stringify(merged_milestones) != JSON.stringify(_best_score_milestones) \
+		or merged_upgrade_ids != _unlocked_upgrade_ids \
+		or merged_powerup_ids != _unlocked_powerup_ids \
+		or merged_objective_ids != _unlocked_objective_ids \
+		or JSON.stringify(merged_depth_progress) != JSON.stringify(_depth_unlock_progress) \
 		or merged_seen_vehicle_lore != _seen_vehicle_lore \
 		or merged_seen_skin_lore != _seen_skin_lore \
 		or merged_total != _total_daily_missions_completed \
@@ -439,6 +559,10 @@ func apply_remote_profile_summary(summary: Dictionary) -> bool:
 	_vehicle_skin_progress = merged_progress
 	_global_skin_unlocks = merged_global_unlocks
 	_best_score_milestones = merged_milestones
+	_unlocked_upgrade_ids = merged_upgrade_ids
+	_unlocked_powerup_ids = merged_powerup_ids
+	_unlocked_objective_ids = merged_objective_ids
+	_depth_unlock_progress = merged_depth_progress
 	_seen_vehicle_lore = merged_seen_vehicle_lore
 	_seen_skin_lore = merged_seen_skin_lore
 	_total_daily_missions_completed = merged_total
@@ -468,6 +592,10 @@ func apply_validation_state(summary: Dictionary) -> void:
 	_vehicle_skin_progress = _sanitize_vehicle_skin_progress(summary.get("vehicle_skin_progress", {}))
 	_global_skin_unlocks = _sanitize_string_array(summary.get("global_skin_unlocks", []))
 	_best_score_milestones = _sanitize_bool_dictionary(summary.get("best_score_milestones", {SCORE_MILESTONE_ORIGINAL_ICON: false}))
+	_unlocked_upgrade_ids = _sanitize_depth_ids(summary.get("unlocked_upgrade_ids", DEFAULT_UNLOCKED_UPGRADES), ALL_DEPTH_UPGRADES, DEFAULT_UNLOCKED_UPGRADES)
+	_unlocked_powerup_ids = _sanitize_depth_ids(summary.get("unlocked_powerup_ids", DEFAULT_UNLOCKED_POWERUPS), ALL_DEPTH_POWERUPS, DEFAULT_UNLOCKED_POWERUPS)
+	_unlocked_objective_ids = _sanitize_depth_ids(summary.get("unlocked_objective_ids", DEFAULT_UNLOCKED_OBJECTIVES), ALL_DEPTH_OBJECTIVES, DEFAULT_UNLOCKED_OBJECTIVES)
+	_depth_unlock_progress = _sanitize_depth_unlock_progress(summary.get("depth_unlock_progress", {}))
 	_seen_vehicle_lore = _sanitize_string_array(summary.get("seen_vehicle_lore", []))
 	_seen_skin_lore = _sanitize_string_array(summary.get("seen_skin_lore", []))
 	_vehicle_catalog_version_seen = maxi(int(summary.get("vehicle_catalog_version", 1)), 1)
@@ -670,6 +798,10 @@ func _apply_defaults() -> void:
 	_vehicle_skin_progress = {DEFAULT_VEHICLE_ID: _default_vehicle_skin_progress()}
 	_global_skin_unlocks = []
 	_best_score_milestones = {SCORE_MILESTONE_ORIGINAL_ICON: false}
+	_unlocked_upgrade_ids = DEFAULT_UNLOCKED_UPGRADES.duplicate()
+	_unlocked_powerup_ids = DEFAULT_UNLOCKED_POWERUPS.duplicate()
+	_unlocked_objective_ids = DEFAULT_UNLOCKED_OBJECTIVES.duplicate()
+	_depth_unlock_progress = {}
 	_seen_vehicle_lore = []
 	_seen_skin_lore = []
 	_vehicle_catalog_version_seen = 1
@@ -695,6 +827,10 @@ func _validate_profile_state() -> void:
 			_equipped_vehicle_skins[vehicle_id] = DEFAULT_SKIN_ID
 	if _global_skin_unlocks.has("original_icon"):
 		_best_score_milestones[SCORE_MILESTONE_ORIGINAL_ICON] = true
+	_unlocked_upgrade_ids = _sanitize_depth_ids(_unlocked_upgrade_ids, ALL_DEPTH_UPGRADES, DEFAULT_UNLOCKED_UPGRADES)
+	_unlocked_powerup_ids = _sanitize_depth_ids(_unlocked_powerup_ids, ALL_DEPTH_POWERUPS, DEFAULT_UNLOCKED_POWERUPS)
+	_unlocked_objective_ids = _sanitize_depth_ids(_unlocked_objective_ids, ALL_DEPTH_OBJECTIVES, DEFAULT_UNLOCKED_OBJECTIVES)
+	_depth_unlock_progress = _sanitize_depth_unlock_progress(_depth_unlock_progress)
 
 func _ensure_vehicle_records(vehicle_id: String) -> void:
 	var resolved_vehicle_id := _resolve_vehicle_id(vehicle_id)
@@ -793,6 +929,30 @@ func _sanitize_string_array(raw_value) -> Array[String]:
 			sanitized.append(clean_value)
 	return sanitized
 
+func _sanitize_depth_ids(raw_value, allowed_ids: Array, default_ids: Array) -> Array[String]:
+	var allowed: Array[String] = []
+	for id_variant in allowed_ids:
+		allowed.append(str(id_variant))
+	var sanitized: Array[String] = []
+	if raw_value is Array:
+		for value in raw_value:
+			var clean_value := str(value).strip_edges()
+			if clean_value.is_empty() or sanitized.has(clean_value) or not allowed.has(clean_value):
+				continue
+			sanitized.append(clean_value)
+	for default_variant in default_ids:
+		var default_id := str(default_variant)
+		if allowed.has(default_id) and not sanitized.has(default_id):
+			sanitized.append(default_id)
+	return sanitized
+
+func _sanitize_depth_unlock_progress(raw_value) -> Dictionary:
+	var sanitized := {}
+	if raw_value is Dictionary:
+		for key in raw_value.keys():
+			sanitized[str(key)] = maxi(int(raw_value[key]), 0)
+	return sanitized
+
 func _default_vehicle_skin_progress() -> Dictionary:
 	return {
 		"runs_completed": 0,
@@ -885,6 +1045,19 @@ func _build_skin_unlock_entry(vehicle_id: String, skin_id: String) -> Dictionary
 		"title": "%s / %s" % [get_display_vehicle_name(vehicle_id), get_display_skin_name(vehicle_id, skin_id)],
 	}
 
+func _build_depth_unlock_entry(unlock_type: String, unlock_id: String) -> Dictionary:
+	return {
+		"unlock_type": "depth_%s" % unlock_type,
+		"id": unlock_id,
+		"title": unlock_id.capitalize(),
+	}
+
+func _add_depth_unlock(target: Array[String], unlock_id: String, unlock_type: String, unlocks: Array[Dictionary]) -> void:
+	if target.has(unlock_id):
+		return
+	target.append(unlock_id)
+	unlocks.append(_build_depth_unlock_entry(unlock_type, unlock_id))
+
 func get_display_vehicle_name(vehicle_id: String) -> String:
 	var helicopter_skins := _get_helicopter_skins()
 	if helicopter_skins != null and helicopter_skins.has_method("get_display_name"):
@@ -917,6 +1090,13 @@ func _merge_bool_dictionaries(a: Dictionary, b: Dictionary) -> Dictionary:
 	var merged := a.duplicate(true)
 	for key in b.keys():
 		merged[str(key)] = bool(merged.get(str(key), false)) or bool(b[key])
+	return merged
+
+func _merge_counter_dictionary(a: Dictionary, b: Dictionary) -> Dictionary:
+	var merged := a.duplicate(true)
+	for key in b.keys():
+		var clean_key := str(key)
+		merged[clean_key] = maxi(int(merged.get(clean_key, 0)), int(b[key]))
 	return merged
 
 func _merge_vehicle_skin_unlocks(local_unlocks: Dictionary, remote_unlocks: Dictionary, unlocked_vehicles: Array[String]) -> Dictionary:

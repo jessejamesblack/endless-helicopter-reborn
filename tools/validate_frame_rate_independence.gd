@@ -28,8 +28,8 @@ func _run_validation() -> void:
 	_assert(sixty["final_score"] == one_twenty["final_score"], "Final score should match between 60 FPS and 120 FPS.")
 	_assert(sixty["final_score"] == uneven["final_score"], "Final score should match uneven delta playback.")
 
-	var active_before_timeout := _simulate_combo_state(3.49)
-	var inactive_after_timeout := _simulate_combo_state(3.51)
+	var active_before_timeout := _simulate_combo_state(MainScript.COMBO_TIMEOUT_SECONDS - 0.01)
+	var inactive_after_timeout := _simulate_combo_state(MainScript.COMBO_TIMEOUT_SECONDS + 0.01)
 	_assert(active_before_timeout, "Combo timeout should still be active before the elapsed timeout threshold.")
 	_assert(not inactive_after_timeout, "Combo timeout should expire based on elapsed seconds, not frame count.")
 

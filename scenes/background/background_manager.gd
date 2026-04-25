@@ -225,6 +225,7 @@ func _rebuild_textured_layer(layer: Node2D, biome: Dictionary, layer_kind: Strin
 	var scaled_width := texture_size.x * scale_factor
 	var scaled_height := texture_size.y * scale_factor
 	var extra_width := maxf(0.0, scaled_width - viewport_size.x)
+	var safe_travel_width := maxf(0.0, extra_width * 0.5 - 2.0)
 	var base_x := -extra_width * 0.5
 	var base_y := viewport_size.y - scaled_height
 	var sprite := Sprite2D.new()
@@ -234,7 +235,7 @@ func _rebuild_textured_layer(layer: Node2D, biome: Dictionary, layer_kind: Strin
 	sprite.scale = Vector2.ONE * scale_factor
 	sprite.position = Vector2(base_x, base_y)
 	layer.add_child(sprite)
-	layer.set_meta("max_offset", extra_width)
+	layer.set_meta("max_offset", safe_travel_width)
 	layer.set_meta("base_x", base_x)
 	layer.set_meta("current_offset", 0.0)
 
@@ -255,7 +256,7 @@ func _scroll_repeating_layer(layer: Node2D, delta_x: float) -> void:
 
 func _update_biome_travel(delta: float, intensity_scale: float) -> void:
 	var duration := maxf(_biome_travel_duration_seconds, 1.0)
-	var speed_scale := 1.18 + maxf(intensity_scale - 1.0, 0.0) * 0.55
+	var speed_scale := 0.92 + maxf(intensity_scale - 1.0, 0.0) * 0.08
 	_biome_travel_progress = clampf(_biome_travel_progress + (delta * speed_scale) / duration, 0.0, 1.0)
 
 func _apply_forward_parallax_layer(layer: Node2D) -> void:

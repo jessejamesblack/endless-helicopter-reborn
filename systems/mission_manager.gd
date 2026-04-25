@@ -80,6 +80,32 @@ const CORE_COMBAT_MISSIONS := [
 		"category": "core_combat",
 		"progress_mode": "sum",
 	},
+	{
+		"type": "powerups_collected",
+		"title": "Collect 2 Powerups",
+		"description": "Collect 2 powerups today.",
+		"target": 2,
+		"category": "core_combat",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "elite_kills",
+		"title": "Defeat 2 Elite Enemies",
+		"description": "Take down 2 elite enemies today.",
+		"target": 2,
+		"category": "core_combat",
+		"progress_mode": "sum",
+		"rare_group": "enemy_depth",
+	},
+	{
+		"type": "special_enemy_kills",
+		"title": "Defeat 3 Modified Enemies",
+		"description": "Take down 3 special enemies today.",
+		"target": 3,
+		"category": "core_combat",
+		"progress_mode": "sum",
+		"rare_group": "enemy_depth",
+	},
 ]
 
 const CORE_SKILL_MISSIONS := [
@@ -112,6 +138,46 @@ const CORE_SKILL_MISSIONS := [
 		"title": "Recover 2 Boundary Saves",
 		"description": "Bounce back from the bounds twice today.",
 		"target": 2,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "run_upgrades_chosen",
+		"title": "Pick 2 Upgrades",
+		"description": "Choose 2 run upgrades today.",
+		"target": 2,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "score_rush_seconds",
+		"title": "Spend 10s In Score Rush",
+		"description": "Keep Score Rush active for 10 seconds.",
+		"target": 10,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "shield_hits_absorbed",
+		"title": "Absorb 1 Hit",
+		"description": "Let a shield save you once today.",
+		"target": 1,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "overdrive_seconds",
+		"title": "Spend 8s In Overdrive",
+		"description": "Keep Missile Overdrive active for 8 seconds.",
+		"target": 8,
+		"category": "core_skill",
+		"progress_mode": "sum",
+	},
+	{
+		"type": "emp_activations",
+		"title": "Trigger 1 EMP",
+		"description": "Set off 1 EMP Burst today.",
+		"target": 1,
 		"category": "core_skill",
 		"progress_mode": "sum",
 	},
@@ -185,6 +251,44 @@ const BONUS_VEHICLE_OR_STRETCH_MISSIONS := [
 		"target": 3500,
 		"category": "bonus_stretch",
 		"progress_mode": "best",
+		"bonus": true,
+	},
+	{
+		"type": "run_upgrades_single_run",
+		"title": "Choose 4 Upgrades In One Run",
+		"description": "Choose 4 upgrades before a run ends.",
+		"target": 4,
+		"category": "bonus_stretch",
+		"progress_mode": "best",
+		"bonus": true,
+	},
+	{
+		"type": "objective_events_completed",
+		"title": "Complete 1 Objective",
+		"description": "Complete 1 run objective today.",
+		"target": 1,
+		"category": "bonus_stretch",
+		"progress_mode": "sum",
+		"bonus": true,
+		"rare_group": "objective",
+	},
+	{
+		"type": "objective_rewards_claimed",
+		"title": "Claim 2 Objective Rewards",
+		"description": "Finish objectives and claim 2 rewards.",
+		"target": 2,
+		"category": "bonus_stretch",
+		"progress_mode": "sum",
+		"bonus": true,
+		"rare_group": "objective",
+	},
+	{
+		"type": "powerups_used",
+		"title": "Use 3 Powerups",
+		"description": "Trigger 3 powerups today.",
+		"target": 3,
+		"category": "bonus_stretch",
+		"progress_mode": "sum",
 		"bonus": true,
 	},
 ]
@@ -491,10 +595,19 @@ func _pick_mission_for_slot(date_key: String, slot_name: String, pool: Array, us
 		var mission_type := str(definition.get("type", ""))
 		if used_types.has(mission_type):
 			continue
+		var rare_group := str(definition.get("rare_group", ""))
+		if not rare_group.is_empty() and used_types.has("rare_group:%s" % rare_group):
+			continue
+		if (rare_group == "objective" or rare_group == "enemy_depth") and used_types.has("rare_depth_mission"):
+			continue
 		var vehicle_id := _resolve_vehicle_for_definition(definition, date_key, slot_name)
 		if bool(definition.get("requires_vehicle", false)) and vehicle_id.is_empty():
 			continue
 		used_types[mission_type] = true
+		if not rare_group.is_empty():
+			used_types["rare_group:%s" % rare_group] = true
+		if rare_group == "objective" or rare_group == "enemy_depth":
+			used_types["rare_depth_mission"] = true
 		return _build_mission_entry(date_key, slot_name, definition, vehicle_id)
 	var fallback := (pool[0] as Dictionary).duplicate(true)
 	var fallback_vehicle_id := _resolve_vehicle_for_definition(fallback, date_key, slot_name)
@@ -585,6 +698,34 @@ func _get_progress_increment_for_mission(mission: Dictionary, summary: Dictionar
 			return int(round(float(summary.get("max_combo_multiplier", 1.0)) * 100.0))
 		"skill_score":
 			return int(summary.get("skill_score", 0))
+		"run_upgrades_chosen":
+			return int(summary.get("upgrades_chosen", summary.get("run_upgrades_chosen", 0)))
+		"run_upgrades_single_run":
+			return int(summary.get("upgrades_chosen", summary.get("run_upgrades_chosen", 0)))
+		"powerups_collected":
+			return int(summary.get("powerups_collected", 0))
+		"powerups_used":
+			return int(summary.get("powerups_used", 0))
+		"shield_hits_absorbed":
+			return int(summary.get("shield_hits_absorbed", 0))
+		"score_rush_seconds":
+			return float(summary.get("score_rush_seconds", 0.0))
+		"overdrive_seconds":
+			return float(summary.get("overdrive_seconds", 0.0))
+		"emp_activations":
+			return int(summary.get("emp_activations", 0))
+		"objective_events_completed":
+			return int(summary.get("objective_events_completed", 0))
+		"objective_rewards_claimed":
+			return int(summary.get("objective_rewards_claimed", 0))
+		"elite_kills":
+			return int(summary.get("elite_kills", 0))
+		"special_enemy_kills":
+			return int(summary.get("special_enemy_kills", 0))
+		"armored_enemy_kills":
+			return int(summary.get("armored_enemy_kills", 0))
+		"shielded_enemy_kills":
+			return int(summary.get("shielded_enemy_kills", 0))
 		"vehicle_runs":
 			return 1 if vehicle_matches else 0
 		"vehicle_best_score":

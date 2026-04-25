@@ -4,6 +4,10 @@ This repo ships a project-scoped Codex MCP configuration in [`.codex/config.toml
 
 ## Included By Default
 
+- `godot`
+  Uses `better-godot-mcp` for Godot 4 scene, script, and project operations
+  Runs through `C:\Program Files\nodejs\npx.cmd` so Windows shells do not need a fresh `PATH`
+  Does not require a committed `GODOT_PATH`, `GODOT_PROJECT_PATH`, or a project addon by default
 - `supabase`
   Scoped to project `lxvniafwjlwatbiblwyi`
   Runs in read-only mode on purpose
@@ -51,6 +55,16 @@ If you do not have a personal access token available yet, create one in your Sup
 3. Open the MCP configuration UI if prompted by your agent extension.
 4. Reload the window if the tools do not appear immediately.
 
+## Godot Notes
+
+This repo enables Better Godot MCP in both the project-scoped Codex config and the VS Code MCP config.
+
+- On this machine, Godot MCP is wired to `C:\Program Files\nodejs\npx.cmd` so it behaves the same way as Context7 on Windows.
+- Better Godot MCP tries to auto-detect both the Godot binary and the current project root first.
+- If Godot auto-detect fails, set a local `GODOT_PATH` override to the same Godot 4.6 console executable you use with [tools/validate_godot.ps1](../tools/validate_godot.ps1) and [tools/export_android.ps1](../tools/export_android.ps1).
+- If the server does not resolve this repo automatically, set a local `GODOT_PROJECT_PATH` override to the repository root that contains `project.godot`.
+- Keep both overrides local to your shell, IDE, or user-level MCP config. Do not commit absolute machine paths into the repo config.
+
 ## Context7 Notes
 
 This repo enables Context7 in both the project-scoped Codex config and the VS Code MCP config.
@@ -74,35 +88,53 @@ Source:
 
 Use for PRs, issues, workflow runs, and release/admin tasks beyond plain `git`.
 
-Requirements:
+This repo recommends GitHub's remote MCP server as the only extra add-on beyond the shared defaults.
 
-- Docker
-- `GITHUB_PERSONAL_ACCESS_TOKEN`
+- Keep GitHub auth in a user-local config instead of committing it to the repo.
+- Prefer the remote GitHub MCP server over the Docker-hosted local server for this project.
+- Recommended toolsets when your MCP host supports remote headers or toolset config: `repos,issues,pull_requests,actions`
 
-Recommended Codex config:
+### VS Code Path
+
+Use GitHub's remote MCP with OAuth when available in your VS Code MCP client.
+
+- Remote server URL: `https://api.githubcopilot.com/mcp/`
+- If your client supports remote MCP headers, set `X-MCP-Toolsets` to `repos,issues,pull_requests,actions`
+- VS Code can also use GitHub's built-in MCP registry/install flow for the hosted server
+
+### Codex Path
+
+Use a user-local Codex config entry rather than the committed repo config:
 
 ```toml
 [mcp_servers.github]
-command = "docker"
-args = [
-  "run",
-  "-i",
-  "--rm",
-  "-e",
-  "GITHUB_PERSONAL_ACCESS_TOKEN",
-  "-e",
-  "GITHUB_TOOLSETS",
-  "ghcr.io/github/github-mcp-server",
-]
-env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN"]
-
-[mcp_servers.github.env]
-GITHUB_TOOLSETS = "repos,issues,pull_requests,actions"
+url = "https://api.githubcopilot.com/mcp/"
+bearer_token_env_var = "GITHUB_PAT_TOKEN"
 ```
+
+If your Codex MCP host supports remote headers, add:
+
+```toml
+[mcp_servers.github.headers]
+X-MCP-Toolsets = "repos,issues,pull_requests,actions"
+```
+
+### Not Included By Default
+
+These are intentionally left out of the shared repo config for now:
+
+- `GoPeak`, because it adds plugin and bridge setup the repo does not need as a default
+- a separate Godot docs MCP, because Context7 already covers current Godot/Firebase/Android/Supabase docs well here
+- local Supabase CLI MCP, because this repo does not currently assume a local Supabase CLI workflow
 
 ## References
 
 - OpenAI Codex MCP docs: https://developers.openai.com/codex/mcp
 - OpenAI Docs MCP: https://developers.openai.com/learn/docs-mcp
-- Supabase MCP docs: https://supabase.com/docs/guides/getting-started/mcp
+- Supabase MCP docs: https://supabase.com/mcp
+- Better Godot MCP: https://github.com/n24q02m/better-godot-mcp
+- Better Godot MCP manual setup: https://raw.githubusercontent.com/n24q02m/better-godot-mcp/main/docs/setup-manual.md
 - GitHub MCP server: https://github.com/github/github-mcp-server
+- GitHub MCP for Codex: https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/install-codex.md
+- GitHub remote MCP setup: https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+- GitHub remote toolset config: https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md

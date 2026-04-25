@@ -14,9 +14,24 @@ func _process(delta: float) -> void:
         current_speed *= main.speed_multiplier
         
     position.x -= current_speed * delta
+    _apply_ammo_magnet(delta)
     
     if global_position.x < -200:
         queue_free()
+
+func _apply_ammo_magnet(delta: float) -> void:
+    var powerup_manager := get_node_or_null("/root/PowerupManager")
+    if powerup_manager == null or not powerup_manager.has_method("has_active_effect") or not powerup_manager.has_active_effect("ammo_magnet"):
+        return
+    var main := get_tree().current_scene
+    if main == null:
+        return
+    var player := main.get_node_or_null("Player") as Node2D
+    if player == null:
+        return
+    if global_position.distance_to(player.global_position) > 280.0:
+        return
+    global_position = global_position.move_toward(player.global_position, 430.0 * delta)
 
 func _on_body_entered(body: Node2D) -> void:
     if body.name == "Player":

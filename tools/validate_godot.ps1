@@ -15,6 +15,9 @@ $scripts = @(
     'res://systems/player_profile.gd',
     'res://systems/run_stats.gd',
     'res://systems/mission_manager.gd',
+    'res://systems/run_upgrade_manager.gd',
+    'res://systems/powerup_manager.gd',
+    'res://systems/run_objective_manager.gd',
     'res://systems/supabase_sync_queue.gd',
     'res://systems/build_info.gd',
     'res://systems/eastern_time.gd',
@@ -27,6 +30,7 @@ $scripts = @(
     'res://scenes/background/background_manager.gd',
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',
+    'res://scenes/ui/upgrades/run_upgrade_choice.gd',
     'res://scenes/ui/title_screen/title_screen.gd',
     'res://scenes/ui/start_screen/start_screen.gd',
     'res://scenes/ui/debug/debug_menu.gd',
@@ -43,8 +47,12 @@ $scripts = @(
     'res://scenes/player/player.gd',
     'res://scenes/player/near_miss_detector.gd',
     'res://scenes/enemies/enemy_unit.gd',
+    'res://scenes/enemies/obstacle.gd',
     'res://scenes/projectiles/missile.gd',
     'res://scenes/projectiles/enemy_projectile.gd',
+    'res://scenes/pickups/missile_pickup.gd',
+    'res://scenes/pickups/powerup_pickup.gd',
+    'res://scenes/pickups/objective_pickup.gd',
     'res://scenes/effects/floating_score_text.gd'
 )
 
@@ -84,6 +92,30 @@ Write-Host 'Validating encounter director'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_encounter_director.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot encounter director validation failed'
+}
+
+Write-Host 'Validating depth retention'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_depth_retention.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot depth retention validation failed'
+}
+
+Write-Host 'Validating feedback sprint'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_feedback_sprint.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot feedback sprint validation failed'
+}
+
+Write-Host 'Validating enemy threat pass'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_enemy_threat_pass.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot enemy threat pass validation failed'
+}
+
+Write-Host 'Validating spawn layout responsiveness'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_spawn_layout_responsiveness.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot spawn layout responsiveness validation failed'
 }
 
 Write-Host 'Validating vehicle skins and restore'
@@ -222,6 +254,24 @@ Write-Host 'Validating daily mission expansion'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_daily_mission_expansion.gd
 if ($LASTEXITCODE -ne 0) {
     throw 'Godot daily mission expansion validation failed'
+}
+
+Write-Host 'Validating pause menu missions'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_pause_menu_missions.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot pause menu missions validation failed'
+}
+
+Write-Host 'Validating UI naming consistency'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_ui_naming_consistency.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot UI naming consistency validation failed'
+}
+
+Write-Host 'Validating score feedback and combo'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_score_feedback_and_combo.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot score feedback and combo validation failed'
 }
 
 Write-Host 'Validating hangar UI polish'
