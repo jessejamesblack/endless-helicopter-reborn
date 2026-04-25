@@ -9,15 +9,15 @@ const PHASE_ADVANCED := "advanced"
 const PHASE_ENDURANCE := "endurance"
 
 static func get_phase_for_time(elapsed: float) -> String:
-	if elapsed < 12.0:
+	if elapsed < 8.0:
 		return PHASE_OPENING
-	if elapsed < 28.0:
+	if elapsed < 22.0:
 		return PHASE_WARMUP
-	if elapsed < 55.0:
+	if elapsed < 48.0:
 		return PHASE_COMBAT_INTRO
-	if elapsed < 90.0:
+	if elapsed < 82.0:
 		return PHASE_PRESSURE
-	if elapsed < 130.0:
+	if elapsed < 120.0:
 		return PHASE_ADVANCED
 	return PHASE_ENDURANCE
 
@@ -28,7 +28,7 @@ static func get_encounters() -> Array[Dictionary]:
 			"phases": [PHASE_OPENING, PHASE_WARMUP],
 			"difficulty": 1,
 			"weight": 1.0,
-			"duration": 3.0,
+			"duration": 2.2,
 			"cooldown": 0.0,
 			"tags": ["obstacle", "safe"],
 			"spawns": [
@@ -40,7 +40,7 @@ static func get_encounters() -> Array[Dictionary]:
 			"phases": [PHASE_OPENING, PHASE_WARMUP],
 			"difficulty": 1,
 			"weight": 1.0,
-			"duration": 3.0,
+			"duration": 2.2,
 			"cooldown": 0.0,
 			"tags": ["obstacle", "safe"],
 			"spawns": [
@@ -52,7 +52,7 @@ static func get_encounters() -> Array[Dictionary]:
 			"phases": [PHASE_OPENING, PHASE_WARMUP],
 			"difficulty": 1,
 			"weight": 1.0,
-			"duration": 3.0,
+			"duration": 2.2,
 			"cooldown": 0.0,
 			"tags": ["obstacle", "safe"],
 			"spawns": [
@@ -64,12 +64,12 @@ static func get_encounters() -> Array[Dictionary]:
 			"phases": [PHASE_WARMUP],
 			"difficulty": 2,
 			"weight": 1.05,
-			"duration": 4.0,
-			"cooldown": 4.4,
+			"duration": 3.2,
+			"cooldown": 3.2,
 			"tags": ["obstacle", "safe"],
 			"spawns": [
 				{"at": 0.0, "type": "obstacle", "y_mode": "lane_top"},
-				{"at": 1.7, "type": "obstacle", "y_mode": "lane_bottom"}
+				{"at": 1.25, "type": "obstacle", "y_mode": "lane_bottom"}
 			]
 		},
 		{
@@ -77,12 +77,12 @@ static func get_encounters() -> Array[Dictionary]:
 			"phases": [PHASE_WARMUP, PHASE_COMBAT_INTRO],
 			"difficulty": 1,
 			"weight": 0.9,
-			"duration": 4.5,
-			"cooldown": 8.0,
+			"duration": 3.6,
+			"cooldown": 6.0,
 			"tags": ["obstacle", "ammo", "safe"],
 			"spawns": [
 				{"at": 0.0, "type": "obstacle", "y_mode": "lane_mid"},
-				{"at": 2.2, "type": "pickup", "y_mode": "lane_mid"}
+				{"at": 1.7, "type": "pickup", "y_mode": "lane_mid"}
 			]
 		},
 		{
@@ -90,8 +90,8 @@ static func get_encounters() -> Array[Dictionary]:
 			"phases": [PHASE_WARMUP, PHASE_COMBAT_INTRO],
 			"difficulty": 1,
 			"weight": 0.9,
-			"duration": 3.5,
-			"cooldown": 10.0,
+			"duration": 3.0,
+			"cooldown": 8.0,
 			"tags": ["pickup", "ammo"],
 			"spawns": [
 				{"at": 0.0, "type": "pickup", "y_mode": "lane_mid"}
@@ -101,10 +101,10 @@ static func get_encounters() -> Array[Dictionary]:
 			"id": "warmup_first_drone",
 			"phases": [PHASE_WARMUP, PHASE_COMBAT_INTRO],
 			"difficulty": 2,
-			"weight": 0.95,
-			"duration": 3.8,
-			"cooldown": 6.5,
-			"requires_elapsed": 16.0,
+			"weight": 1.25,
+			"duration": 3.2,
+			"cooldown": 4.5,
+			"requires_elapsed": 9.0,
 			"tags": ["combat", "drone", "teaching"],
 			"spawns": [
 				{"at": 0.0, "type": "enemy", "kind": "alien_drone", "y_mode": "random_mid"}

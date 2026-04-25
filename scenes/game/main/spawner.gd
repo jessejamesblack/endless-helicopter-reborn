@@ -20,12 +20,12 @@ const ENEMY_VARIANTS := [
 	{"kind": "stationary_turret", "weight": 0.12},
 	{"kind": "glowing_rock", "weight": 0.06},
 ]
-const SAFE_OPENING_SECONDS := 12.0
+const SAFE_OPENING_SECONDS := 8.0
 const FIRST_TURRET_SECONDS := 60.0
 const FIRST_GLOWING_SECONDS := 24.0
 const MIN_GLOWING_INTERVAL_SECONDS := 28.0
 const MAX_AMMO_DROUGHT_SECONDS := 22.0
-const MAX_ACTIVE_HOSTILES_OPENING := 1
+const MAX_ACTIVE_HOSTILES_OPENING := 2
 const MAX_ACTIVE_HOSTILES_WARMUP := 3
 const MAX_ACTIVE_HOSTILES_COMBAT_INTRO := 4
 const MAX_ACTIVE_HOSTILES_PRESSURE := 6
@@ -61,6 +61,22 @@ func _ready() -> void:
 
 func reset_for_run() -> void:
 	_reset_director()
+
+func spawn_score_rush_skill_window() -> void:
+	var phase := EncounterCatalog.get_phase_for_time(_elapsed)
+	var max_hostiles := _get_max_active_hostiles_for_phase(phase)
+	var active_hostiles := _count_active_group("hostile_units")
+	if active_hostiles >= max_hostiles:
+		return
+
+	if _elapsed < SAFE_OPENING_SECONDS:
+		spawn_scene_at_y(obstacle_scene, _resolve_spawn_y({"y_mode": "lane_mid"}))
+		return
+
+	spawn_enemy_variant_at_y("alien_drone", _resolve_spawn_y({"y_mode": "random_mid"}))
+	active_hostiles += 1
+	if active_hostiles < max_hostiles and _elapsed >= 22.0:
+		spawn_scene_at_y(obstacle_scene, _resolve_spawn_y({"y_mode": "random_high"}))
 
 func _process(delta: float) -> void:
 	var main := _get_main()
@@ -117,7 +133,7 @@ func _reset_director() -> void:
 	_encounter_elapsed = 0.0
 	_encounter_cooldowns.clear()
 	_last_breather_elapsed = 0.0
-	_next_breather_after = 20.0
+	_next_breather_after = 18.0
 	_last_ammo_elapsed = -999.0
 	_last_glowing_elapsed = -999.0
 	_last_powerup_elapsed = -999.0
@@ -232,7 +248,7 @@ func _start_next_encounter() -> void:
 	if _has_tag(_current_encounter, "breather"):
 		_breathers_seen += 1
 		_last_breather_elapsed = _elapsed
-		_next_breather_after = _rng.randf_range(18.0, 24.0)
+		_next_breather_after = _rng.randf_range(20.0, 26.0)
 		var run_stats := _get_run_stats()
 		if run_stats != null and run_stats.has_method("record_breather_seen"):
 			run_stats.record_breather_seen()

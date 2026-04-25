@@ -550,6 +550,10 @@ func _on_powerup_activated(powerup_id: String, _data: Dictionary) -> void:
     _play_haptic("mission_complete")
     if powerup_id == "emp_burst":
         trigger_emp_burst()
+    elif powerup_id == "score_rush":
+        var spawner := get_node_or_null("Spawner")
+        if spawner != null and spawner.has_method("spawn_score_rush_skill_window"):
+            spawner.spawn_score_rush_skill_window()
     _refresh_player_depth_modifiers()
 
 func _on_objective_started(objective: Dictionary) -> void:

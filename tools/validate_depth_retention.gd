@@ -14,6 +14,7 @@ func _run_validation() -> void:
 	_validate_powerup_manager()
 	_validate_objective_manager()
 	await _validate_main_upgrade_overlay_runtime()
+	await _validate_score_rush_skill_window_runtime()
 	Helper.finish(self, _failures, "Depth retention validation completed successfully.")
 
 func _validate_autoloads_and_files() -> void:
@@ -125,11 +126,47 @@ func _validate_main_upgrade_overlay_runtime() -> void:
 	await _destroy_node(main)
 	paused = false
 
+func _validate_score_rush_skill_window_runtime() -> void:
+	var root_window := get_root()
+	root_window.size = Vector2i(1152, 648)
+	paused = false
+	await process_frame
+
+	var main := MAIN_SCENE.instantiate()
+	root_window.add_child(main)
+	current_scene = main
+	await process_frame
+	await process_frame
+
+	var spawner := main.get_node_or_null("Spawner")
+	if spawner == null:
+		_failures.append("Main scene should include Spawner for Score Rush skill window validation.")
+		await _destroy_node(main)
+		return
+
+	spawner.set("_elapsed", 45.0)
+	main.call("_on_powerup_activated", "score_rush", {})
+	await process_frame
+	_assert(_count_active_group("hostile_units") > 0, "Score Rush should immediately create a skill-scoring opportunity when the screen is quiet.")
+
+	await _destroy_node(main)
+	paused = false
+
 func _destroy_node(node: Node) -> void:
 	if is_instance_valid(node):
 		node.free()
 	current_scene = null
 	await process_frame
+
+func _count_active_group(group_name: String) -> int:
+	var count := 0
+	for node in get_root().get_tree().get_nodes_in_group(group_name):
+		if not is_instance_valid(node):
+			continue
+		if not node.is_inside_tree() or node.is_queued_for_deletion():
+			continue
+		count += 1
+	return count
 
 func _assert(condition: bool, message: String) -> void:
 	Helper.assert_condition(_failures, condition, message)
