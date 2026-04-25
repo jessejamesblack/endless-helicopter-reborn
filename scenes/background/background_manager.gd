@@ -57,9 +57,9 @@ func _process(delta: float) -> void:
 	_update_biome_travel(delta, intensity_scale)
 	_scroll_repeating_layer(_star_layer, base_scroll_speed * _get_speed_factor("star_speed_factor", DEFAULT_STAR_SPEED_FACTOR) * delta * intensity_scale)
 	_scroll_repeating_layer(_accent_layer, base_scroll_speed * _get_speed_factor("accent_speed_factor", DEFAULT_ACCENT_SPEED_FACTOR) * delta * intensity_scale)
-	_apply_forward_parallax_layer(_far_layer)
-	_apply_forward_parallax_layer(_mid_layer)
-	_apply_forward_parallax_layer(_near_layer)
+	_scroll_textured_layer(_far_layer, base_scroll_speed * _get_speed_factor("far_speed_factor", DEFAULT_FAR_SPEED_FACTOR) * delta * intensity_scale)
+	_scroll_textured_layer(_mid_layer, base_scroll_speed * _get_speed_factor("mid_speed_factor", DEFAULT_MID_SPEED_FACTOR) * delta * intensity_scale)
+	_scroll_textured_layer(_near_layer, base_scroll_speed * _get_speed_factor("near_speed_factor", DEFAULT_NEAR_SPEED_FACTOR) * delta * intensity_scale)
 
 	if allow_long_run_transitions and not _transition_in_progress and _elapsed >= _next_transition_elapsed and _biome_rotation.size() > 1:
 		_transition_to_next_biome()
@@ -224,17 +224,19 @@ func _rebuild_textured_layer(layer: Node2D, biome: Dictionary, layer_kind: Strin
 	) * zoom
 	var scaled_width := texture_size.x * scale_factor
 	var scaled_height := texture_size.y * scale_factor
-	var extra_width := maxf(0.0, scaled_width - viewport_size.x)
-	var base_x := -extra_width * 0.5
+	var base_x := 0.0
 	var base_y := viewport_size.y - scaled_height
-	var sprite := Sprite2D.new()
-	sprite.texture = texture
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.centered = false
-	sprite.scale = Vector2.ONE * scale_factor
-	sprite.position = Vector2(base_x, base_y)
-	layer.add_child(sprite)
-	layer.set_meta("max_offset", extra_width)
+	var tile_count := _get_required_chunk_count(scaled_width)
+	for tile_index in range(tile_count):
+		var sprite := Sprite2D.new()
+		sprite.texture = texture
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sprite.centered = false
+		sprite.scale = Vector2.ONE * scale_factor
+		sprite.position = Vector2(base_x + scaled_width * float(tile_index), base_y)
+		layer.add_child(sprite)
+	layer.set_meta("chunk_width", scaled_width)
+	layer.set_meta("max_offset", scaled_width)
 	layer.set_meta("base_x", base_x)
 	layer.set_meta("current_offset", 0.0)
 
@@ -253,6 +255,17 @@ func _scroll_repeating_layer(layer: Node2D, delta_x: float) -> void:
 	while layer.position.x <= -chunk_width:
 		layer.position.x += chunk_width
 
+func _scroll_textured_layer(layer: Node2D, delta_x: float) -> void:
+	if layer == null:
+		return
+	layer.position.x -= delta_x
+	var chunk_width := float(layer.get_meta("chunk_width", 0.0))
+	if chunk_width <= 0.0:
+		return
+	while layer.position.x <= -chunk_width:
+		layer.position.x += chunk_width
+	layer.set_meta("current_offset", -layer.position.x)
+
 func _update_biome_travel(delta: float, intensity_scale: float) -> void:
 	var duration := maxf(_biome_travel_duration_seconds, 1.0)
 	var speed_scale := 1.18 + maxf(intensity_scale - 1.0, 0.0) * 0.55
@@ -263,6 +276,8 @@ func _apply_forward_parallax_layer(layer: Node2D) -> void:
 		return
 	var max_offset := float(layer.get_meta("max_offset", 0.0))
 	if max_offset <= 0.0:
+		return
+	if layer.get_child_count() > 1:
 		return
 	var layer_kind := str(layer.get_meta("layer_kind", ""))
 	var progress_scale := _get_layer_travel_scale(layer_kind)

@@ -111,6 +111,9 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player" and body.has_method("die"):
+		if body.has_method("absorb_incoming_hit") and body.absorb_incoming_hit(self):
+			destroy(true, false)
+			return
 		body.die()
 		queue_free()
 

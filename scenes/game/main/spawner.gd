@@ -4,6 +4,8 @@ const EncounterCatalog = preload("res://scenes/game/main/encounter_catalog.gd")
 
 @export var obstacle_scene: PackedScene
 @export var pickup_scene: PackedScene = preload("res://scenes/pickups/missile_pickup.tscn")
+@export var powerup_scene: PackedScene = preload("res://scenes/pickups/powerup_pickup.tscn")
+@export var objective_pickup_scene: PackedScene = preload("res://scenes/pickups/objective_pickup.tscn")
 @export var enemy_scene: PackedScene = preload("res://scenes/enemies/enemy_unit.tscn")
 @export var spawn_interval: float = 2.0
 @export var spawn_y_min: float = 100.0
@@ -29,6 +31,10 @@ const MAX_ACTIVE_HOSTILES_COMBAT_INTRO := 4
 const MAX_ACTIVE_HOSTILES_PRESSURE := 6
 const MAX_ACTIVE_PROJECTILES := 6
 const TURRET_BOTTOM_INSET := 34.0
+const POWERUP_MIN_INTERVAL_SECONDS := 45.0
+const POWERUP_MAX_INTERVAL_SECONDS := 75.0
+const PLAYFIELD_TOP_RATIO := 0.16
+const PLAYFIELD_BOTTOM_RATIO := 0.84
 
 var _timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
@@ -42,6 +48,8 @@ var _last_breather_elapsed: float = 0.0
 var _next_breather_after: float = 28.0
 var _last_ammo_elapsed: float = -999.0
 var _last_glowing_elapsed: float = -999.0
+var _last_powerup_elapsed: float = -999.0
+var _next_powerup_after: float = 58.0
 var _encounters_started: int = 0
 var _encounters_completed: int = 0
 var _breathers_seen: int = 0
@@ -75,6 +83,11 @@ func _process(delta: float) -> void:
 			run_stats.record_forced_rescue_ammo_spawn()
 		return
 
+	if _should_spawn_powerup_opportunity():
+		_spawn_director_request({"type": "powerup", "y_mode": "random_mid"})
+		_last_powerup_elapsed = _elapsed
+		_next_powerup_after = _rng.randf_range(POWERUP_MIN_INTERVAL_SECONDS, POWERUP_MAX_INTERVAL_SECONDS)
+
 	if _current_encounter.is_empty():
 		_start_next_encounter()
 
@@ -107,6 +120,8 @@ func _reset_director() -> void:
 	_next_breather_after = 20.0
 	_last_ammo_elapsed = -999.0
 	_last_glowing_elapsed = -999.0
+	_last_powerup_elapsed = -999.0
+	_next_powerup_after = _rng.randf_range(POWERUP_MIN_INTERVAL_SECONDS, POWERUP_MAX_INTERVAL_SECONDS)
 	_encounters_started = 0
 	_encounters_completed = 0
 	_breathers_seen = 0
@@ -148,23 +163,44 @@ func spawn_scene_at_y(scene_to_spawn: PackedScene, y: float) -> void:
 		return
 
 	var item := scene_to_spawn.instantiate()
-	item.position = Vector2(0.0, clampf(y, spawn_y_min, spawn_y_max))
+	var bounds := _get_effective_spawn_bounds()
+	item.position = Vector2(0.0, clampf(y, bounds.x, bounds.y))
 	add_child(item)
 
-func spawn_enemy_variant_at_y(kind: String, y: float) -> void:
+func spawn_enemy_variant_at_y(kind: String, y: float, modifier: String = "") -> void:
 	if enemy_scene == null:
 		push_error("Enemy scene is not assigned in the Spawner!")
 		return
 
 	var enemy := enemy_scene.instantiate()
-	enemy.position = Vector2(0.0, clampf(y, spawn_y_min, spawn_y_max))
+	var bounds := _get_effective_spawn_bounds()
+	enemy.position = Vector2(0.0, clampf(y, bounds.x, bounds.y))
 	if kind == "stationary_turret":
-		enemy.position.y = get_viewport_rect().size.y - TURRET_BOTTOM_INSET
+		enemy.position.y = _get_turret_y()
 
 	if enemy.has_method("configure"):
-		enemy.configure(kind)
+		enemy.configure(kind, modifier if not modifier.is_empty() else _choose_enemy_modifier(kind))
 
 	add_child(enemy)
+
+func spawn_powerup_at_y(powerup_id: String, y: float) -> void:
+	if powerup_scene == null:
+		return
+	var item := powerup_scene.instantiate()
+	var bounds := _get_effective_spawn_bounds()
+	item.position = Vector2(0.0, clampf(y, bounds.x, bounds.y))
+	if item.has_method("configure"):
+		item.configure(powerup_id)
+	add_child(item)
+
+func spawn_objective_pickup(action: String = "rescue_pickup") -> void:
+	if objective_pickup_scene == null:
+		return
+	var item := objective_pickup_scene.instantiate()
+	item.position = Vector2(0.0, _resolve_spawn_y({"y_mode": "random_mid"}))
+	if item.has_method("configure"):
+		item.configure(action)
+	add_child(item)
 
 func spawn_scene(scene_to_spawn: PackedScene) -> void:
 	spawn_scene_at_y(scene_to_spawn, _resolve_spawn_y({"y_mode": "random_any"}))
@@ -174,7 +210,7 @@ func spawn_enemy_variant(kind: String) -> void:
 
 func _get_spawn_y_for_kind(kind: String) -> float:
 	if kind == "stationary_turret":
-		return get_viewport_rect().size.y - TURRET_BOTTOM_INSET
+		return _get_turret_y()
 	return _resolve_spawn_y({"y_mode": "random_any"})
 
 func _start_next_encounter() -> void:
@@ -329,12 +365,21 @@ func _spawn_director_request(request: Dictionary) -> void:
 		"pickup":
 			spawn_scene_at_y(pickup_scene, y)
 			_last_ammo_elapsed = _elapsed
+		"powerup":
+			var powerup_manager := get_node_or_null("/root/PowerupManager")
+			var powerup_id := str(request.get("powerup_id", ""))
+			if powerup_id.is_empty() and powerup_manager != null and powerup_manager.has_method("get_random_powerup_id"):
+				powerup_id = str(powerup_manager.get_random_powerup_id())
+			if powerup_id.is_empty():
+				powerup_id = "shield_bubble"
+			spawn_powerup_at_y(powerup_id, y)
+			_last_powerup_elapsed = _elapsed
 		"enemy":
 			var kind := str(request.get("kind", "large_spiky_rock"))
 			if kind == "large_spiky_rock":
 				spawn_scene_at_y(obstacle_scene, y)
 			else:
-				spawn_enemy_variant_at_y(kind, y)
+				spawn_enemy_variant_at_y(kind, y, str(request.get("modifier", "")))
 				if kind == "glowing_rock":
 					_last_glowing_elapsed = _elapsed
 		_:
@@ -345,28 +390,31 @@ func _resolve_spawn_y(request: Dictionary) -> float:
 		return float(request["y"])
 
 	var y_mode := str(request.get("y_mode", "random_any"))
-	var top_mid := lerpf(spawn_y_min, spawn_y_max, 0.35)
-	var middle_min := lerpf(spawn_y_min, spawn_y_max, 0.30)
-	var middle_max := lerpf(spawn_y_min, spawn_y_max, 0.70)
-	var bottom_mid := lerpf(spawn_y_min, spawn_y_max, 0.65)
+	var bounds := _get_effective_spawn_bounds()
+	var effective_min := bounds.x
+	var effective_max := bounds.y
+	var top_mid := lerpf(effective_min, effective_max, 0.35)
+	var middle_min := lerpf(effective_min, effective_max, 0.30)
+	var middle_max := lerpf(effective_min, effective_max, 0.70)
+	var bottom_mid := lerpf(effective_min, effective_max, 0.65)
 
 	match y_mode:
 		"random_high":
-			return _rng.randf_range(spawn_y_min, top_mid)
+			return _rng.randf_range(effective_min, top_mid)
 		"random_mid":
 			return _rng.randf_range(middle_min, middle_max)
 		"random_low":
-			return _rng.randf_range(bottom_mid, spawn_y_max)
+			return _rng.randf_range(bottom_mid, effective_max)
 		"bottom_turret":
-			return get_viewport_rect().size.y - TURRET_BOTTOM_INSET
+			return _get_turret_y()
 		"lane_top":
-			return 160.0
+			return _get_lane_y(0)
 		"lane_mid":
-			return 300.0
+			return _get_lane_y(1)
 		"lane_bottom":
-			return 440.0
+			return _get_lane_y(2)
 		_:
-			return _rng.randf_range(spawn_y_min, spawn_y_max)
+			return _rng.randf_range(effective_min, effective_max)
 
 func _passes_fairness_caps(encounter: Dictionary) -> bool:
 	if _elapsed < SAFE_OPENING_SECONDS:
@@ -394,7 +442,7 @@ func _passes_fairness_caps(encounter: Dictionary) -> bool:
 	var phase := EncounterCatalog.get_phase_for_time(_elapsed)
 	var max_hostiles := _get_max_active_hostiles_for_phase(phase)
 
-	if active_projectiles >= MAX_ACTIVE_PROJECTILES:
+	if active_projectiles >= _get_max_active_projectiles():
 		return false
 
 	if active_hostiles + _get_hostile_spawn_count(encounter) > max_hostiles and not _has_tag(encounter, "breather"):
@@ -409,7 +457,7 @@ func _can_spawn_request(request: Dictionary) -> bool:
 	if spawn_type == "enemy" and str(request.get("kind", "")) == "glowing_rock":
 		return not _has_active_glowing_rock()
 
-	if spawn_type != "pickup":
+	if spawn_type == "enemy" or spawn_type == "obstacle":
 		var phase := EncounterCatalog.get_phase_for_time(_elapsed)
 		if _count_active_group("hostile_units") >= _get_max_active_hostiles_for_phase(phase):
 			return false
@@ -468,15 +516,16 @@ func _has_active_glowing_rock() -> bool:
 	return false
 
 func _get_max_active_hostiles_for_phase(phase: String) -> int:
+	var power_bonus := int(floor(_get_player_run_power_score() / 5.0))
 	match phase:
 		EncounterCatalog.PHASE_OPENING:
 			return MAX_ACTIVE_HOSTILES_OPENING
 		EncounterCatalog.PHASE_WARMUP:
 			return MAX_ACTIVE_HOSTILES_WARMUP
 		EncounterCatalog.PHASE_COMBAT_INTRO:
-			return MAX_ACTIVE_HOSTILES_COMBAT_INTRO
+			return MAX_ACTIVE_HOSTILES_COMBAT_INTRO + power_bonus
 		_:
-			return MAX_ACTIVE_HOSTILES_PRESSURE
+			return MAX_ACTIVE_HOSTILES_PRESSURE + power_bonus
 
 func _should_spawn_rescue_ammo() -> bool:
 	if _elapsed < 18.0:
@@ -494,6 +543,71 @@ func _should_spawn_rescue_ammo() -> bool:
 	if "ammo" in player:
 		return int(player.ammo) <= 1
 	return false
+
+func _should_spawn_powerup_opportunity() -> bool:
+	if _elapsed < 45.0:
+		return false
+	if (_elapsed - _last_powerup_elapsed) < _next_powerup_after:
+		return false
+	if _count_active_group("screen_pickups") >= 3:
+		return false
+	return true
+
+func _get_effective_spawn_bounds() -> Vector2:
+	var viewport_height := get_viewport_rect().size.y
+	var top := maxf(spawn_y_min, viewport_height * PLAYFIELD_TOP_RATIO)
+	var bottom := viewport_height * PLAYFIELD_BOTTOM_RATIO
+	if bottom <= top + 80.0:
+		top = maxf(48.0, viewport_height * 0.14)
+		bottom = maxf(top + 80.0, viewport_height * 0.86)
+	return Vector2(top, bottom)
+
+func _get_lane_y(lane_index: int) -> float:
+	var bounds := _get_effective_spawn_bounds()
+	var ratio := 0.2
+	match lane_index:
+		0:
+			ratio = 0.2
+		1:
+			ratio = 0.5
+		_:
+			ratio = 0.8
+	return lerpf(bounds.x, bounds.y, ratio)
+
+func _get_turret_y() -> float:
+	var bounds := _get_effective_spawn_bounds()
+	return minf(get_viewport_rect().size.y - TURRET_BOTTOM_INSET, bounds.y + 18.0)
+
+func _choose_enemy_modifier(kind: String) -> String:
+	if kind == "glowing_rock" or kind == "large_spiky_rock":
+		return ""
+	var phase := EncounterCatalog.get_phase_for_time(_elapsed)
+	if phase == EncounterCatalog.PHASE_OPENING or phase == EncounterCatalog.PHASE_WARMUP:
+		return ""
+	var base_chance := 0.04
+	if phase == EncounterCatalog.PHASE_ADVANCED:
+		base_chance = 0.1
+	elif phase == EncounterCatalog.PHASE_ENDURANCE:
+		base_chance = 0.16
+	base_chance += _get_player_run_power_score() * 0.012
+	if _rng.randf() > base_chance:
+		return ""
+	var elite_chance := 0.18 + _get_player_run_power_score() * 0.015
+	if phase == EncounterCatalog.PHASE_ENDURANCE and _rng.randf() < elite_chance:
+		return "elite"
+	return ["armored", "shielded"][_rng.randi_range(0, 1)]
+
+func _get_player_run_power_score() -> float:
+	var main := _get_main()
+	if main != null and main.has_method("get_player_run_power_score"):
+		return float(main.get_player_run_power_score())
+	return 0.0
+
+func _get_max_active_projectiles() -> int:
+	var main := _get_main()
+	if main != null and main.has_method("get_enemy_projectile_cap"):
+		return int(main.get_enemy_projectile_cap())
+	return MAX_ACTIVE_PROJECTILES
 
 func get_debug_snapshot() -> Dictionary:
 	var encounter_id := str(_current_encounter.get("id", "idle"))

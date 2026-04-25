@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/pause/pause_menu.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_menu.tscn" id="2_settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/missions/mission_screen.tscn" id="3_missions"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_panel"]
 bg_color = Color(0.0352941, 0.054902, 0.117647, 0.94)
@@ -127,6 +128,21 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Resume"
 
+[node name="MissionsButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
+theme_override_colors/font_focus_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_hover_color = Color(1, 0.92549, 0.705882, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.94902, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+text = "Missions"
+
 [node name="SettingsButton" type="Button" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
@@ -174,3 +190,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 text = "Quit To Menu"
 
 [node name="SettingsMenu" parent="." instance=ExtResource("2_settings")]
+
+[node name="MissionScreen" parent="." instance=ExtResource("3_missions")]
+visible = false
+embedded_mode = true

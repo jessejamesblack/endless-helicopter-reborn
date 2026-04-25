@@ -1,5 +1,7 @@
 extends Control
 
+signal close_requested
+
 const HANGAR_SCENE_PATH := "res://scenes/ui/hangar/hangar_screen.tscn"
 const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const PANEL_MARGIN := 4.0
@@ -12,6 +14,7 @@ const CORE_MISSION_COUNT := 3
 const BONUS_MISSION_COUNT := 2
 
 var validation_mode_enabled: bool = false
+@export var embedded_mode: bool = false
 var _validation_summary: Dictionary = {}
 var _scroll_pointer_active: bool = false
 var _scroll_dragging: bool = false
@@ -37,7 +40,7 @@ var _scroll_origin: float = 0.0
 
 func _ready() -> void:
 	var music_player = get_node_or_null("/root/MusicPlayer")
-	if not validation_mode_enabled and music_player != null and music_player.has_method("play_menu_music"):
+	if not validation_mode_enabled and not embedded_mode and music_player != null and music_player.has_method("play_menu_music"):
 		music_player.play_menu_music()
 
 	back_button.pressed.connect(_on_back_pressed)
@@ -55,7 +58,7 @@ func _ready() -> void:
 			var profile_callback := Callable(self, "_on_profile_changed")
 			if not player_profile.is_connected("profile_changed", profile_callback):
 				player_profile.connect("profile_changed", profile_callback)
-			if player_profile.has_method("has_seen_missions_intro") and not player_profile.has_seen_missions_intro():
+			if not embedded_mode and player_profile.has_method("has_seen_missions_intro") and not player_profile.has_seen_missions_intro():
 				player_profile.mark_missions_intro_seen()
 		var discovery_manager := get_node_or_null("/root/FeatureDiscoveryManager")
 		if discovery_manager != null and discovery_manager.has_method("mark_tip_seen"):
@@ -68,6 +71,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_apply_layout_profile()
 	_configure_touch_scroll()
+	_apply_embedded_mode()
 
 	_refresh_view()
 
@@ -209,9 +213,15 @@ func _format_progress_text(mission: Dictionary) -> String:
 	return "%d / %d%s" % [progress_value, target_value, " COMPLETE" if bool(mission.get("completed", false)) else ""]
 
 func _on_back_pressed() -> void:
+	if embedded_mode:
+		close_requested.emit()
+		visible = false
+		return
 	get_tree().change_scene_to_file(START_SCREEN_SCENE_PATH)
 
 func _on_hangar_pressed() -> void:
+	if embedded_mode:
+		return
 	get_tree().change_scene_to_file(HANGAR_SCENE_PATH)
 
 func _on_missions_changed(_summary: Dictionary) -> void:
@@ -293,6 +303,21 @@ func apply_validation_state(summary: Dictionary) -> void:
 	if is_node_ready():
 		_apply_layout_profile()
 		_refresh_view()
+
+func open_embedded() -> void:
+	embedded_mode = true
+	visible = true
+	_apply_embedded_mode()
+	_refresh_view()
+	back_button.grab_focus()
+
+func _apply_embedded_mode() -> void:
+	if back_button != null:
+		back_button.text = "Back" if embedded_mode else "Back"
+	if hangar_button != null:
+		hangar_button.visible = not embedded_mode
+	if has_node("Background"):
+		$Background.visible = not embedded_mode
 
 func _get_player_profile() -> Node:
 	return get_node_or_null("/root/PlayerProfile")

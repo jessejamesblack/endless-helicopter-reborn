@@ -316,6 +316,47 @@ static func get_encounters() -> Array[Dictionary]:
 			]
 		},
 		{
+			"id": "advanced_powerup_reward_window",
+			"phases": [PHASE_ADVANCED, PHASE_ENDURANCE],
+			"difficulty": 1,
+			"weight": 0.35,
+			"duration": 5.2,
+			"cooldown": 24.0,
+			"requires_elapsed": 95.0,
+			"tags": ["reward", "powerup", "breather"],
+			"spawns": [
+				{"at": 1.4, "type": "powerup", "y_mode": "random_mid"}
+			]
+		},
+		{
+			"id": "advanced_shielded_drone_mix",
+			"phases": [PHASE_ADVANCED, PHASE_ENDURANCE],
+			"difficulty": 5,
+			"weight": 0.82,
+			"duration": 5.4,
+			"cooldown": 10.0,
+			"requires_elapsed": 105.0,
+			"tags": ["combat", "drone", "modifier", "mixed"],
+			"spawns": [
+				{"at": 0.0, "type": "enemy", "kind": "alien_drone", "modifier": "shielded", "y_mode": "random_high"},
+				{"at": 2.1, "type": "obstacle", "y_mode": "random_low"}
+			]
+		},
+		{
+			"id": "endurance_elite_drone_pressure",
+			"phases": [PHASE_ENDURANCE],
+			"difficulty": 6,
+			"weight": 0.72,
+			"duration": 6.0,
+			"cooldown": 18.0,
+			"requires_elapsed": 150.0,
+			"tags": ["combat", "elite", "drone"],
+			"spawns": [
+				{"at": 0.0, "type": "enemy", "kind": "alien_drone", "modifier": "elite", "y_mode": "random_mid"},
+				{"at": 2.6, "type": "powerup", "y_mode": "random_low"}
+			]
+		},
+		{
 			"id": "advanced_rock_drone_rock",
 			"phases": [PHASE_ADVANCED, PHASE_ENDURANCE],
 			"difficulty": 4,

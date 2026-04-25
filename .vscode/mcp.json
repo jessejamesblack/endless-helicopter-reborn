@@ -11,6 +11,11 @@
         "Authorization": "Bearer ${env:SUPABASE_ACCESS_TOKEN}"
       }
     },
+    "godot": {
+      "type": "stdio",
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": ["-y", "@n24q02m/better-godot-mcp@latest"]
+    },
     "context7": {
       "type": "stdio",
       "command": "C:\\Program Files\\nodejs\\npx.cmd",

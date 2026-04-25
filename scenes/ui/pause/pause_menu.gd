@@ -3,15 +3,17 @@ extends Control
 signal resume_requested
 signal quit_to_menu_requested
 
-const PANEL_DESIRED_SIZE := Vector2(400.0, 380.0)
+const PANEL_DESIRED_SIZE := Vector2(400.0, 440.0)
 const PANEL_MARGIN := 24.0
 
 @onready var menu_panel: Panel = $Overlay/Panel
 @onready var resume_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/ResumeButton
+@onready var missions_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/MissionsButton
 @onready var settings_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/SettingsButton
 @onready var director_debug_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/DirectorDebugButton
 @onready var quit_button: Button = $Overlay/Panel/MarginContainer/VBoxContainer/QuitButton
 @onready var settings_menu = $SettingsMenu
+@onready var mission_screen = $MissionScreen
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -20,21 +22,26 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_panel_to_viewport)
 
 	resume_button.pressed.connect(_on_resume_pressed)
+	missions_button.pressed.connect(_on_missions_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	director_debug_button.pressed.connect(_on_director_debug_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	settings_menu.closed.connect(_on_settings_closed)
+	if mission_screen.has_signal("close_requested"):
+		mission_screen.close_requested.connect(_on_missions_closed)
 	_refresh_director_debug_button()
 
 func open_menu() -> void:
 	menu_panel.visible = true
 	settings_menu.close_menu(false)
+	mission_screen.visible = false
 	visible = true
 	_refresh_director_debug_button()
 	resume_button.grab_focus()
 
 func close_menu() -> void:
 	settings_menu.close_menu(false)
+	mission_screen.visible = false
 	visible = false
 
 func _on_resume_pressed() -> void:
@@ -43,6 +50,13 @@ func _on_resume_pressed() -> void:
 func _on_settings_pressed() -> void:
 	menu_panel.visible = false
 	settings_menu.open_menu()
+
+func _on_missions_pressed() -> void:
+	menu_panel.visible = false
+	if mission_screen.has_method("open_embedded"):
+		mission_screen.open_embedded()
+	else:
+		mission_screen.visible = true
 
 func _on_director_debug_pressed() -> void:
 	var main := get_tree().current_scene
@@ -61,6 +75,11 @@ func _on_quit_pressed() -> void:
 	quit_to_menu_requested.emit()
 
 func _on_settings_closed() -> void:
+	menu_panel.visible = true
+	_refresh_director_debug_button()
+	resume_button.grab_focus()
+
+func _on_missions_closed() -> void:
 	menu_panel.visible = true
 	_refresh_director_debug_button()
 	resume_button.grab_focus()

@@ -9,6 +9,12 @@ bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
 startup_timeout_sec = 20
 tool_timeout_sec = 120
 
+[mcp_servers.godot]
+command = "C:\\Program Files\\nodejs\\npx.cmd"
+args = ["-y", "@n24q02m/better-godot-mcp@latest"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+
 [mcp_servers.context7]
 command = "C:\\Program Files\\nodejs\\npx.cmd"
 args = ["-y", "@upstash/context7-mcp@latest"]
@@ -19,24 +25,15 @@ tool_timeout_sec = 120
 PATH = "C:\\Program Files\\nodejs;C:\\Windows\\System32;C:\\Windows"
 PATHEXT = ".COM;.EXE;.BAT;.CMD"
 
-# Optional local MCP servers that fit this project but require extra runtimes:
+# Optional local/user-only MCP servers that fit this project:
 #
-# 2. GitHub's official MCP server for PRs, Actions, and issue workflows.
-#    Requires Docker plus a GITHUB_PERSONAL_ACCESS_TOKEN environment variable.
+# 1. GitHub's remote MCP server for PRs, Actions, and issue workflows.
+#    Keep this in a user-local config instead of committing auth setup here.
 #
 # [mcp_servers.github]
-# command = "docker"
-# args = [
-#   "run",
-#   "-i",
-#   "--rm",
-#   "-e",
-#   "GITHUB_PERSONAL_ACCESS_TOKEN",
-#   "-e",
-#   "GITHUB_TOOLSETS",
-#   "ghcr.io/github/github-mcp-server",
-# ]
-# env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN"]
+# url = "https://api.githubcopilot.com/mcp/"
+# bearer_token_env_var = "GITHUB_PAT_TOKEN"
 #
-# [mcp_servers.github.env]
-# GITHUB_TOOLSETS = "repos,issues,pull_requests,actions"
+# Optional remote GitHub headers when your MCP host supports them:
+# [mcp_servers.github.headers]
+# X-MCP-Toolsets = "repos,issues,pull_requests,actions"
