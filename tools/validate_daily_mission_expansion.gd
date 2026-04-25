@@ -183,6 +183,7 @@ func _run_validation() -> void:
 	var after_run_ammo_mission := _find_mission_by_type(after_run_summary.get("missions", []), "ammo_pickups")
 	_assert(float(after_run_ammo_mission.get("progress", 0.0)) == 5.0, "End-of-run summaries should not double-count pickups already applied live.")
 	_validate_stale_remote_daily_restore(mission_manager)
+	_validate_live_completion_survives_midrun_restore(mission_manager, player_profile)
 
 	_validate_all_run_summary_mission_types(mission_manager, player_profile)
 	_validate_all_live_progress_mission_types(mission_manager, player_profile)
@@ -293,6 +294,35 @@ func _validate_stale_remote_daily_restore(mission_manager: Node) -> void:
 	var ammo_mission := _find_mission_by_type(restored_summary.get("missions", []), "ammo_pickups")
 	_assert(float(ammo_mission.get("progress", 0.0)) == 5.0, "Stale remote mission rows should not downgrade local ammo progress.")
 	_assert(bool(ammo_mission.get("completed", false)), "Stale remote mission rows should not clear local mission completion.")
+
+func _validate_live_completion_survives_midrun_restore(mission_manager: Node, player_profile: Node) -> void:
+	player_profile.apply_validation_state(_base_profile_summary())
+	var date_key := "2026-05-24"
+	var local_missions: Array[Dictionary] = [
+		{"id": "daily_2026-05-24_core_ammo", "slot": "core_easy", "type": "ammo_pickups", "category": "core_easy", "title": "Collect 5 Ammo Pickups", "description": "", "target": 5, "progress": 4.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-05-24_core_runs", "slot": "core_combat", "type": "play_runs", "category": "core_combat", "title": "Fly 99 Runs", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-05-24_core_score", "slot": "core_skill", "type": "score_total", "category": "core_skill", "title": "Earn Score", "description": "", "target": 999999, "progress": 0.0, "completed": false, "progress_mode": "sum"},
+		{"id": "daily_2026-05-24_bonus_powerups", "slot": "bonus_vehicle_or_stretch", "type": "powerups_collected", "category": "bonus_stretch", "title": "Collect Powerups", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+		{"id": "daily_2026-05-24_bonus_elite", "slot": "bonus_prestige", "type": "elite_kills", "category": "bonus_stretch", "title": "Defeat Elites", "description": "", "target": 99, "progress": 0.0, "completed": false, "progress_mode": "sum", "bonus": true, "badge_text": "BONUS"},
+	]
+	var stale_remote := {
+		"mission_date": date_key,
+		"completed_count": 0,
+		"total_count": 5,
+		"missions": local_missions.duplicate(true),
+	}
+	mission_manager.apply_validation_state(date_key, local_missions)
+	mission_manager.begin_run_tracking()
+	mission_manager.record_live_mission_progress("ammo_pickups", 1.0)
+	player_profile.apply_validation_state(_base_profile_summary())
+	mission_manager.replace_remote_daily_progress(stale_remote)
+	var result: Dictionary = mission_manager.apply_run_summary({"ammo_pickups_collected": 1})
+	var summary: Dictionary = mission_manager.get_daily_progress_summary()
+	var ammo_mission := _find_mission_by_type(summary.get("missions", []), "ammo_pickups")
+	_assert(float(ammo_mission.get("progress", 0.0)) == 5.0, "Live mission completion should survive a mid-run stale cloud restore.")
+	_assert(bool(ammo_mission.get("completed", false)), "Live mission completion should stay complete after a mid-run stale cloud restore.")
+	_assert((result.get("missions_completed_this_run", []) as Array).size() == 1, "End screen should report the restored live completion once.")
+	_assert(player_profile.get_total_daily_missions_completed() == 1, "Live core completion credit should be restored if profile sync rolls it back mid-run.")
 
 func _validate_end_run_and_main_screen_refresh(mission_manager: Node, player_profile: Node) -> void:
 	player_profile.apply_validation_state(_base_profile_summary())

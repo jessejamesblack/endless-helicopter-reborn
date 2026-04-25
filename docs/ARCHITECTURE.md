@@ -66,6 +66,7 @@
 - The live-progress ledger is reset at run start and subtracted from the final summary for matching sum-mode mission types so the same pickup cannot count twice.
 - Mission progress sync continues through the existing daily mission summary path; no Supabase schema migration is required for the depth sprint or the live progress fix.
 - Daily mission restore and sync are monotonic by mission row: local completion is not downgraded by stale cloud data, and the sync Edge Function merges progress before writing to Supabase.
+- Live in-run mission completions keep a per-mission progress floor until the final run summary is applied, which prevents a delayed cloud restore from producing end-screen completion text while the authoritative mission state reverts.
 
 ## Enemy Roles
 

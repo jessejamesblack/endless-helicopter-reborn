@@ -351,6 +351,9 @@ var _live_run_completed_titles: Array[String] = []
 var _live_run_core_completed_titles: Array[String] = []
 var _live_run_bonus_completed_titles: Array[String] = []
 var _live_run_unlocked_vehicles: Array[String] = []
+var _live_run_progress_floor_by_id: Dictionary = {}
+var _live_run_completed_ids: Dictionary = {}
+var _live_run_completion_records_by_id: Dictionary = {}
 
 func _ready() -> void:
 	refresh_daily_missions()
@@ -361,6 +364,9 @@ func begin_run_tracking() -> void:
 	_live_run_core_completed_titles.clear()
 	_live_run_bonus_completed_titles.clear()
 	_live_run_unlocked_vehicles.clear()
+	_live_run_progress_floor_by_id.clear()
+	_live_run_completed_ids.clear()
+	_live_run_completion_records_by_id.clear()
 
 func get_today_key() -> String:
 	return EasternTimeScript.get_current_business_day_key()
@@ -502,15 +508,20 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 
 	for index in range(_missions.size()):
 		var mission := _missions[index].duplicate(true)
+		var mission_id := str(mission.get("id", ""))
+		var completed_by_live := bool(_live_run_completed_ids.get(mission_id, false))
 		var previous_completed := bool(mission.get("completed", false))
 		var progress_variant = _get_progress_increment_for_mission(mission, summary)
 		progress_variant = _subtract_live_run_progress(mission, progress_variant)
 		var new_progress = _calculate_new_progress(mission, progress_variant)
+		new_progress = maxf(float(new_progress), float(_live_run_progress_floor_by_id.get(mission_id, 0.0)))
 		mission["progress"] = new_progress
-		mission["completed"] = new_progress >= _get_target_value(mission)
+		mission["completed"] = completed_by_live or new_progress >= _get_target_value(mission)
 		_missions[index] = mission
 
-		if not previous_completed and bool(mission.get("completed", false)):
+		if completed_by_live and not previous_completed:
+			_restore_live_completion_credit_if_needed(mission, newly_unlocked_vehicles, profile, helicopter_skins)
+		elif not previous_completed and bool(mission.get("completed", false)):
 			_record_completed_mission(mission, missions_completed_this_run, core_missions_completed_this_run, bonus_missions_completed_this_run, newly_unlocked_vehicles, profile, helicopter_skins)
 
 	if not missions_completed_this_run.is_empty() and not had_completion_before_run and profile != null and profile.has_method("update_daily_streak"):
@@ -565,10 +576,12 @@ func record_live_mission_progress(mission_type: String, amount: float = 1.0, sum
 		mission["progress"] = new_progress
 		mission["completed"] = new_progress >= _get_target_value(mission)
 		_missions[index] = mission
+		_record_live_progress_floor(mission)
 		changed = changed or absf(previous_progress - float(new_progress)) > 0.001 or previous_completed != bool(mission.get("completed", false))
 
 		if not previous_completed and bool(mission.get("completed", false)):
 			_record_completed_mission(mission, missions_completed_this_event, core_missions_completed_this_event, bonus_missions_completed_this_event, newly_unlocked_vehicles, profile, helicopter_skins)
+			_record_live_completion(mission, profile)
 
 	if not matched_mission:
 		return {}
@@ -785,6 +798,45 @@ func _record_completed_mission(mission: Dictionary, missions_completed: Array[St
 		return
 	for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
 		if profile.unlock_vehicle(vehicle_id):
+			newly_unlocked_vehicles.append(vehicle_id)
+
+func _record_live_progress_floor(mission: Dictionary) -> void:
+	var mission_id := str(mission.get("id", ""))
+	if mission_id.is_empty():
+		return
+	_live_run_progress_floor_by_id[mission_id] = maxf(
+		float(_live_run_progress_floor_by_id.get(mission_id, 0.0)),
+		float(mission.get("progress", 0.0))
+	)
+	if bool(mission.get("completed", false)):
+		_live_run_completed_ids[mission_id] = true
+
+func _record_live_completion(mission: Dictionary, profile: Node) -> void:
+	var mission_id := str(mission.get("id", ""))
+	if mission_id.is_empty():
+		return
+	_live_run_completed_ids[mission_id] = true
+	_live_run_completion_records_by_id[mission_id] = {
+		"title": str(mission.get("title", "Mission Complete")),
+		"bonus": bool(mission.get("bonus", false)),
+		"profile_total_after": profile.get_total_daily_missions_completed() if profile != null and profile.has_method("get_total_daily_missions_completed") else -1,
+	}
+
+func _restore_live_completion_credit_if_needed(mission: Dictionary, newly_unlocked_vehicles: Array[String], profile: Node, helicopter_skins: Node) -> void:
+	if bool(mission.get("bonus", false)):
+		return
+	if profile == null or not profile.has_method("get_total_daily_missions_completed") or not profile.has_method("increment_total_daily_missions_completed"):
+		return
+	var mission_id := str(mission.get("id", ""))
+	var completion_record: Dictionary = _live_run_completion_records_by_id.get(mission_id, {})
+	var expected_total_after := int(completion_record.get("profile_total_after", -1))
+	var current_total := int(profile.get_total_daily_missions_completed())
+	if expected_total_after > current_total:
+		profile.increment_total_daily_missions_completed(expected_total_after - current_total)
+	if helicopter_skins == null or not helicopter_skins.has_method("get_vehicle_unlocks_for_completed_missions"):
+		return
+	for vehicle_id in helicopter_skins.get_vehicle_unlocks_for_completed_missions(profile.get_total_daily_missions_completed()):
+		if profile.unlock_vehicle(vehicle_id) and not newly_unlocked_vehicles.has(vehicle_id):
 			newly_unlocked_vehicles.append(vehicle_id)
 
 func _subtract_live_run_progress(mission: Dictionary, progress_variant):

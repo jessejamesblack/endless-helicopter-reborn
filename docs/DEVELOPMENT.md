@@ -72,6 +72,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - Update folder `SKILL.md` files when an implementation rule should guide future agent work.
 - Keep mission progress live when it is visible mid-run from the pause menu; use `MissionManager.record_live_mission_progress()` for immediate pickup/effect events and preserve the end-of-run summary path for final totals.
 - Keep daily mission sync monotonic. Startup restore should preserve local progress when it is ahead of Supabase, and `sync-daily-mission-progress` should merge per-mission progress instead of overwriting rows with stale payloads.
+- Cover delayed cloud restore cases when changing missions: a live completion must remain complete even if remote mission/profile state is restored before the run reaches the results screen.
 - When preparing a device-test or release candidate, keep `export_presets.cfg`, `systems/build_info.gd`, [docs/release_notes/latest.md](release_notes/latest.md), and [docs/release_notes/discord_summary.md](release_notes/discord_summary.md) in agreement.
 
 ## CI
