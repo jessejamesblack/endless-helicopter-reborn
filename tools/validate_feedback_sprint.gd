@@ -36,9 +36,10 @@ func _validate_pause_protection() -> void:
 
 func _validate_background_continuity() -> void:
 	var manager_text := Helper.read_text("res://scenes/background/background_manager.gd")
-	_assert(manager_text.contains("_scroll_textured_layer"), "BackgroundManager should scroll textured layers with wrap logic.")
-	_assert(manager_text.contains("_get_required_chunk_count"), "BackgroundManager should compute repeated texture chunk counts.")
-	_assert(manager_text.contains('"chunk_width"'), "Textured background chunks should carry their repeat width.")
+	_assert(manager_text.contains("_apply_forward_parallax_layer"), "BackgroundManager should preserve the main-branch forward parallax look.")
+	_assert(manager_text.contains("safe_travel_width"), "Textured background travel should be capped to safe overlap.")
+	_assert(manager_text.contains("extra_width * 0.5"), "Textured background travel should not exceed the visible texture overlap.")
+	_assert(not manager_text.contains("_scroll_textured_layer"), "Textured backgrounds should not use tiled strip scrolling.")
 
 func _validate_run_stats_expansion() -> void:
 	var stats := RunStatsScript.new()
