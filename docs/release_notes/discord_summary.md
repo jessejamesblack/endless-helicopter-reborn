@@ -1,4 +1,5 @@
-- Stable Android release 1.6.7 (161).
-- Fixed a leaderboard regression that could block higher scores from updating for an existing player after restore/reinstall.
-- Discord achievement screenshot posts now include the player name in the notification heading and embed.
-- Same-device automatic restore continues to depend on the official stable release-signed build path introduced in the cutover release.
+- Stable Android release 1.6.8 (162).
+- Adds run upgrades, temporary powerups, short objectives, and clearer vehicle passives.
+- Enemies now apply more pressure with variants, faster firing, entry shots, and stronger early pacing.
+- Fixes boundary abuse, pause spam, long-run background continuity, and responsive spawn lanes.
+- Adds pause-menu missions, new depth-system daily missions, clearer score feedback, and UI polish for new depth displays.
