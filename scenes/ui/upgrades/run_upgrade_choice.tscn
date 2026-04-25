@@ -9,10 +9,10 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.380392, 0.639216, 0.87451, 0.95)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
 shadow_color = Color(0, 0, 0, 0.38)
 shadow_size = 10
 
@@ -105,13 +105,14 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.964706, 0.843137, 0.54902, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 30
 text = "Choose An Upgrade"
 horizontal_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="Overlay/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
 theme_override_font_sizes/font_size = 15
 text = "Milestone reward"
 horizontal_alignment = 1

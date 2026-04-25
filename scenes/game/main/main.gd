@@ -603,6 +603,7 @@ func _create_depth_hud() -> void:
     _active_effects_panel.offset_top = 146
     _active_effects_panel.offset_right = 180
     _active_effects_panel.offset_bottom = 184
+    _active_effects_panel.add_theme_stylebox_override("panel", _create_depth_hud_panel_style(false))
     ui.add_child(_active_effects_panel)
 
     _active_effects_label = Label.new()
@@ -612,9 +613,9 @@ func _create_depth_hud() -> void:
     _active_effects_label.offset_right = -10
     _active_effects_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     _active_effects_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-    _active_effects_label.add_theme_color_override("font_color", Color(0.921569, 0.94902, 1, 1))
-    _active_effects_label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
-    _active_effects_label.add_theme_constant_override("outline_size", 2)
+    _active_effects_label.add_theme_color_override("font_color", Color(0.819608, 0.92549, 1, 1))
+    _active_effects_label.add_theme_color_override("font_outline_color", Color(0.0470588, 0.109804, 0.180392, 1))
+    _active_effects_label.add_theme_constant_override("outline_size", 3)
     _active_effects_label.add_theme_font_size_override("font_size", 14)
     _active_effects_panel.add_child(_active_effects_label)
 
@@ -627,6 +628,7 @@ func _create_depth_hud() -> void:
     _objective_panel.offset_top = 86
     _objective_panel.offset_right = 210
     _objective_panel.offset_bottom = 136
+    _objective_panel.add_theme_stylebox_override("panel", _create_depth_hud_panel_style(true))
     ui.add_child(_objective_panel)
 
     _objective_label = Label.new()
@@ -637,11 +639,27 @@ func _create_depth_hud() -> void:
     _objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     _objective_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
     _objective_label.add_theme_color_override("font_color", Color(0.964706, 0.843137, 0.54902, 1))
-    _objective_label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
-    _objective_label.add_theme_constant_override("outline_size", 2)
+    _objective_label.add_theme_color_override("font_outline_color", Color(0.0470588, 0.109804, 0.180392, 1))
+    _objective_label.add_theme_constant_override("outline_size", 3)
     _objective_label.add_theme_font_size_override("font_size", 15)
     _objective_panel.add_child(_objective_label)
     _update_active_effects_ui()
+
+func _create_depth_hud_panel_style(is_accent: bool) -> StyleBoxFlat:
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.0313726, 0.0784314, 0.145098, 0.86)
+    style.border_width_left = 3
+    style.border_width_top = 3
+    style.border_width_right = 3
+    style.border_width_bottom = 3
+    style.border_color = Color(0.964706, 0.788235, 0.403922, 0.92) if is_accent else Color(0.286275, 0.603922, 0.8, 0.95)
+    style.corner_radius_top_left = 12
+    style.corner_radius_top_right = 12
+    style.corner_radius_bottom_left = 12
+    style.corner_radius_bottom_right = 12
+    style.shadow_color = Color(0, 0, 0, 0.45)
+    style.shadow_size = 6
+    return style
 
 func _update_active_effects_ui() -> void:
     if _active_effects_panel == null or _active_effects_label == null:

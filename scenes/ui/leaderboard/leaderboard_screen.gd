@@ -393,6 +393,8 @@ func _ensure_depth_summary_label() -> void:
 	_depth_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_depth_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_depth_summary_label.add_theme_color_override("font_color", Color(0.921569, 0.94902, 1, 1))
+	_depth_summary_label.add_theme_color_override("font_outline_color", Color(0.0156863, 0.0313726, 0.0823529, 1))
+	_depth_summary_label.add_theme_constant_override("outline_size", 2)
 	_depth_summary_label.add_theme_font_size_override("font_size", 13)
 	$Panel/MarginContainer/VBoxContainer/ResultsCard/ResultsVBox.add_child(_depth_summary_label)
 
