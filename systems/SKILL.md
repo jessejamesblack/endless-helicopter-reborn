@@ -19,10 +19,12 @@ description: Use when editing shared runtime systems under systems/, including a
 - Summary dictionaries should be backward compatible with missing old fields and unknown future fields.
 - Mission generation must keep the current 3 core plus 2 bonus structure unless a product change says otherwise.
 - Mission progress that is visible from the pause menu should update live when the event happens. Use `MissionManager.record_live_mission_progress()` for immediate pickup/effect counters and keep the final `apply_run_summary()` path from double-counting live-applied progress.
+- Guard live mission mutation from reentrant disk reloads. Profile or UI refresh callbacks must not call through to stale saved mission state while live mission progress is being applied.
 
 ## Supabase And Sync
 
 - Keep Supabase sync best-effort and retryable.
+- Keep queued daily mission sync monotonic. When replacing a pending mission sync job for the same date, merge per-mission progress upward instead of using last-write-wins.
 - Do not expose raw Android identity values; keep app-owned hashed identifiers.
 - Use existing profile JSON summary shapes when possible.
 - No live data writes from systems work unless covered by a runbook or deterministic script.

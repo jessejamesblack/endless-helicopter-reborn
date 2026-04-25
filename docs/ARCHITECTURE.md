@@ -65,7 +65,8 @@
 - Live mission progress can complete a mission mid-run and award core daily unlock credit immediately.
 - The live-progress ledger is reset at run start and subtracted from the final summary for matching sum-mode mission types so the same pickup cannot count twice.
 - Mission progress sync continues through the existing daily mission summary path; no Supabase schema migration is required for the depth sprint or the live progress fix.
-- Daily mission restore and sync are monotonic by mission row: local completion is not downgraded by stale cloud data, and the sync Edge Function merges progress before writing to Supabase.
+- Daily mission restore and sync are monotonic by mission row: local completion is not downgraded by stale cloud data, pending mission sync jobs merge upward before flush, and the sync Edge Function merges progress before writing to Supabase.
+- Mission state blocks disk reloads while live mission progress is mutating, so profile-change UI refreshes cannot roll a newly completed local mission back to stale saved progress before it is persisted.
 - Live in-run mission completions keep a per-mission progress floor until the final run summary is applied, which prevents a delayed cloud restore from producing end-screen completion text while the authoritative mission state reverts.
 
 ## Enemy Roles

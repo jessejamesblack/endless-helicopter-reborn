@@ -113,9 +113,11 @@ func _run_validation() -> void:
 	_assert(mission_manager_text.contains("begin_run_tracking"), "MissionManager should reset live progress tracking at run start.")
 	_assert(mission_manager_text.contains("has_local_daily_progress"), "MissionManager should expose local daily progress detection for cloud restore safety.")
 	_assert(mission_manager_text.contains("has_daily_progress_ahead_of_remote"), "MissionManager should detect when local mission progress is ahead of cloud progress.")
+	_assert(mission_manager_text.contains("_mission_state_mutation_depth"), "MissionManager should block disk refresh rollback while mission state is mutating.")
 	var sync_queue_text := Helper.read_text("res://systems/supabase_sync_queue.gd")
 	_assert(sync_queue_text.contains("_get_current_mission_date_key"), "Supabase startup restore should use the MissionManager daily mission date key.")
 	_assert(sync_queue_text.contains("has_daily_progress_ahead_of_remote"), "Supabase startup restore should not replace local daily progress with stale cloud rows.")
+	_assert(sync_queue_text.contains("_merge_daily_sync_payload"), "Supabase sync queue should merge pending daily mission payloads instead of replacing newer progress.")
 	for mission_type in [
 		"run_upgrades_chosen",
 		"run_upgrades_single_run",
@@ -184,6 +186,7 @@ func _run_validation() -> void:
 	_assert(float(after_run_ammo_mission.get("progress", 0.0)) == 5.0, "End-of-run summaries should not double-count pickups already applied live.")
 	_validate_stale_remote_daily_restore(mission_manager)
 	_validate_live_completion_survives_midrun_restore(mission_manager, player_profile)
+	_validate_daily_sync_queue_payload_merge()
 
 	_validate_all_run_summary_mission_types(mission_manager, player_profile)
 	_validate_all_live_progress_mission_types(mission_manager, player_profile)
@@ -323,6 +326,36 @@ func _validate_live_completion_survives_midrun_restore(mission_manager: Node, pl
 	_assert(bool(ammo_mission.get("completed", false)), "Live mission completion should stay complete after a mid-run stale cloud restore.")
 	_assert((result.get("missions_completed_this_run", []) as Array).size() == 1, "End screen should report the restored live completion once.")
 	_assert(player_profile.get_total_daily_missions_completed() == 1, "Live core completion credit should be restored if profile sync rolls it back mid-run.")
+
+func _validate_daily_sync_queue_payload_merge() -> void:
+	var queue = load("res://systems/supabase_sync_queue.gd").new()
+	var stale_payload := {
+		"mission_date": "2026-05-25",
+		"completed_count": 0,
+		"total_count": 5,
+		"missions": [
+			{"id": "daily_2026-05-25_core_ammo", "slot": "core_easy", "type": "ammo_pickups", "target": 5, "progress": 4.0, "completed": false},
+			{"id": "daily_2026-05-25_core_runs", "slot": "core_combat", "type": "play_runs", "target": 99, "progress": 0.0, "completed": false},
+		],
+	}
+	var completed_payload := {
+		"mission_date": "2026-05-25",
+		"completed_count": 1,
+		"total_count": 5,
+		"missions": [
+			{"id": "daily_2026-05-25_core_ammo", "slot": "core_easy", "type": "ammo_pickups", "target": 5, "progress": 5.0, "completed": true},
+			{"id": "daily_2026-05-25_core_runs", "slot": "core_combat", "type": "play_runs", "target": 99, "progress": 0.0, "completed": false},
+		],
+	}
+	var merged_forward: Dictionary = queue.call("_merge_daily_sync_payload", stale_payload, completed_payload)
+	var merged_backward: Dictionary = queue.call("_merge_daily_sync_payload", completed_payload, stale_payload)
+	var forward_ammo := _find_mission_by_type(merged_forward.get("missions", []), "ammo_pickups")
+	var backward_ammo := _find_mission_by_type(merged_backward.get("missions", []), "ammo_pickups")
+	_assert(int(merged_forward.get("completed_count", 0)) == 1, "Daily sync queue should keep completed_count when newer progress arrives.")
+	_assert(bool(forward_ammo.get("completed", false)) and float(forward_ammo.get("progress", 0.0)) == 5.0, "Daily sync queue should merge stale then completed mission payloads upward.")
+	_assert(int(merged_backward.get("completed_count", 0)) == 1, "Daily sync queue should keep completed_count when a stale payload arrives second.")
+	_assert(bool(backward_ammo.get("completed", false)) and float(backward_ammo.get("progress", 0.0)) == 5.0, "Daily sync queue should not let a stale payload replace completed mission progress.")
+	queue.free()
 
 func _validate_end_run_and_main_screen_refresh(mission_manager: Node, player_profile: Node) -> void:
 	player_profile.apply_validation_state(_base_profile_summary())

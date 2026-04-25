@@ -1,6 +1,6 @@
-# Endless Helicopter Reborn 1.6.11
+# Endless Helicopter Reborn 1.6.12
 
-Version 1.6.11 is the depth and feedback sprint plus a daily mission sync repair. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
+Version 1.6.12 is the depth and feedback sprint plus a stronger daily mission sync repair. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
 
 ## Highlights
 
@@ -21,6 +21,8 @@ Version 1.6.11 is the depth and feedback sprint plus a daily mission sync repair
 - Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
 - Daily mission cloud sync now preserves the highest per-mission progress and completion state, so a stale cloud row cannot roll a completed mission back to `4/5`.
 - Live mission completions now survive a stale cloud restore that finishes mid-run, keeping the end-screen completion text, local mission list, profile credit, and sync payload aligned.
+- Mission state now blocks disk reloads while live progress is being applied, preventing profile-change UI refreshes from rolling the mission list back before it is saved.
+- Pending daily mission sync jobs now merge upward locally, so a stale queued payload cannot replace a newer completed mission payload before the queue flushes.
 - Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
 - Fixed app-update push notifications so they cannot appear as incorrect score-beaten `0/0` notifications.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.

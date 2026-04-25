@@ -29,8 +29,8 @@ Runs now combine execution, choices, pickups, objectives, and progression:
 - Objectives currently include rescue pickups and reactor chains, with score plus powerup or upgrade-choice rewards.
 - Vehicles use canonical names such as Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar, each with a clearer passive identity.
 - Daily mission progress updates live for in-run pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs, so the pause-menu mission view reflects the current run.
-- Daily mission cloud sync is local-first and monotonic: startup restore preserves local mission progress when the device is ahead, and the Supabase sync function merges per-mission progress instead of overwriting it with stale rows.
-- Live daily mission completions keep an in-run progress floor, so a cloud restore that finishes mid-run cannot make the end screen say complete while the mission list and sync payload fall back to older progress.
+- Daily mission cloud sync is local-first and monotonic: startup restore preserves local mission progress when the device is ahead, queued local sync payloads merge upward, and the Supabase sync function merges per-mission progress instead of overwriting it with stale rows.
+- Live daily mission completions keep an in-run progress floor and block reentrant stale disk refreshes while they are being applied, so profile/UI refreshes or cloud restores cannot make the end screen say complete while the mission list and sync payload fall back to older progress.
 
 ## Project Layout
 

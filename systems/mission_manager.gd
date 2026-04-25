@@ -354,6 +354,7 @@ var _live_run_unlocked_vehicles: Array[String] = []
 var _live_run_progress_floor_by_id: Dictionary = {}
 var _live_run_completed_ids: Dictionary = {}
 var _live_run_completion_records_by_id: Dictionary = {}
+var _mission_state_mutation_depth: int = 0
 
 func _ready() -> void:
 	refresh_daily_missions()
@@ -373,6 +374,8 @@ func get_today_key() -> String:
 
 func refresh_daily_missions() -> void:
 	if validation_mode_enabled:
+		return
+	if _mission_state_mutation_depth > 0:
 		return
 	var loaded_state := _load_state()
 	var current_key := get_today_key()
@@ -443,14 +446,17 @@ func get_daily_progress_summary() -> Dictionary:
 
 func get_daily_sync_summary() -> Dictionary:
 	refresh_daily_missions()
+	return _build_daily_sync_summary()
+
+func _build_daily_sync_summary() -> Dictionary:
 	return {
 		"mission_date": _today_key,
-		"missions": get_daily_missions(),
-		"completed_count": get_completed_count_today(),
-		"total_count": get_total_count_today(),
-		"core_completed_count": get_core_completed_count_today(),
+		"missions": _missions.duplicate(true),
+		"completed_count": _count_completed_missions(false),
+		"total_count": _missions.size(),
+		"core_completed_count": _count_completed_missions(false, true),
 		"core_total_count": CORE_MISSION_COUNT,
-		"bonus_completed_count": get_bonus_completed_count_today(),
+		"bonus_completed_count": _count_completed_missions(true),
 		"bonus_total_count": BONUS_MISSION_COUNT,
 	}
 
@@ -494,6 +500,7 @@ func has_daily_progress_ahead_of_remote(summary: Dictionary) -> bool:
 
 func apply_run_summary(summary: Dictionary) -> Dictionary:
 	refresh_daily_missions()
+	_begin_mission_state_mutation()
 	var missions_completed_this_run: Array[String] = []
 	var core_missions_completed_this_run: Array[String] = []
 	var bonus_missions_completed_this_run: Array[String] = []
@@ -544,6 +551,7 @@ func apply_run_summary(summary: Dictionary) -> Dictionary:
 		"next_unlock": get_next_unlock_progress(),
 	}
 	begin_run_tracking()
+	_end_mission_state_mutation()
 	_emit_missions_changed()
 	return _recent_run_result.duplicate(true)
 
@@ -552,6 +560,7 @@ func record_live_mission_progress(mission_type: String, amount: float = 1.0, sum
 	if clean_type.is_empty() or amount <= 0.0:
 		return {}
 	refresh_daily_missions()
+	_begin_mission_state_mutation()
 
 	var missions_completed_this_event: Array[String] = []
 	var core_missions_completed_this_event: Array[String] = []
@@ -584,6 +593,7 @@ func record_live_mission_progress(mission_type: String, amount: float = 1.0, sum
 			_record_live_completion(mission, profile)
 
 	if not matched_mission:
+		_end_mission_state_mutation()
 		return {}
 
 	_live_run_progress_applied[clean_type] = float(_live_run_progress_applied.get(clean_type, 0.0)) + amount
@@ -598,6 +608,8 @@ func record_live_mission_progress(mission_type: String, amount: float = 1.0, sum
 	if changed:
 		_save_state()
 		_queue_daily_sync()
+	_end_mission_state_mutation()
+	if changed:
 		_emit_missions_changed()
 
 	return {
@@ -1018,10 +1030,16 @@ func _queue_daily_sync() -> void:
 		return
 	var sync_queue := get_node_or_null("/root/SupabaseSyncQueue")
 	if sync_queue != null and sync_queue.has_method("enqueue_sync_daily_mission_progress"):
-		sync_queue.enqueue_sync_daily_mission_progress(get_daily_sync_summary())
+		sync_queue.enqueue_sync_daily_mission_progress(_build_daily_sync_summary())
 
 func _emit_missions_changed() -> void:
 	missions_changed.emit(get_daily_progress_summary())
+
+func _begin_mission_state_mutation() -> void:
+	_mission_state_mutation_depth += 1
+
+func _end_mission_state_mutation() -> void:
+	_mission_state_mutation_depth = maxi(_mission_state_mutation_depth - 1, 0)
 
 func _replace_daily_progress_with_summary(summary: Dictionary) -> bool:
 	var previous_summary_json := JSON.stringify(get_daily_sync_summary())
