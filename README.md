@@ -42,7 +42,7 @@ For normal device testing, prefer the latest versioned release. Same-device upda
 - Mobile-friendly tap/click/space controls
 - Missiles, ammo pickups, glowing-rock clears, and varied enemy roles
 - Periodic 1-of-3 run upgrades, temporary powerups, and short objective events
-- Distinct vehicle identities with passive run modifiers
+- Distinct vehicle identities with passive run modifiers and Hangar stat readouts
 - Enemy variants and stronger mid/late-run projectile pressure
 - Boundary and pause-spam fairness protections
 - Adjustable master/music/SFX volume, fire-button side, mirrored HUD layout, haptics intensity, and frame-rate cap
@@ -62,6 +62,7 @@ Runs now combine execution, choices, pickups, objectives, and progression:
 - Powerups include Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
 - Objectives currently include rescue pickups and reactor chains, with score plus powerup or upgrade-choice rewards.
 - Vehicles use canonical names such as Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar, each with a clearer passive identity.
+- The Hangar shows selected-vehicle stats for ammo capacity, lift, handling, gravity, recovery, and passive perks.
 - Daily mission progress updates live for in-run pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs, so the pause-menu mission view reflects the current run.
 - Daily mission cloud sync is local-first and monotonic: startup restore preserves local mission progress when the device is ahead, queued local sync payloads merge upward, and the Supabase sync function merges per-mission progress instead of overwriting it with stale rows.
 - Live daily mission completions keep an in-run progress floor and block reentrant stale disk refreshes while they are being applied, so profile/UI refreshes or cloud restores cannot make the end screen say complete while the mission list and sync payload fall back to older progress.

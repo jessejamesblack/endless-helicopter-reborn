@@ -16,6 +16,7 @@ func _ready() -> void:
 
 func configure(action: String) -> void:
 	objective_action = action
+	_apply_objective_visuals()
 
 func _process(delta: float) -> void:
 	var current_speed := move_speed
@@ -29,6 +30,40 @@ func _process(delta: float) -> void:
 	position.x -= current_speed * delta
 	if global_position.x < -220:
 		queue_free()
+
+func _apply_objective_visuals() -> void:
+	if icon == null or label == null:
+		return
+	match objective_action:
+		"black_box_pickup":
+			icon.color = Color(0.35, 0.86, 1.0, 0.96)
+			icon.polygon = PackedVector2Array([
+				Vector2(-28, -20),
+				Vector2(28, -20),
+				Vector2(28, 20),
+				Vector2(-28, 20),
+			])
+			label.text = "BOX"
+		"signal_gate":
+			icon.color = Color(0.56, 1.0, 0.68, 0.94)
+			icon.polygon = PackedVector2Array([
+				Vector2(0, -32),
+				Vector2(30, -14),
+				Vector2(30, 14),
+				Vector2(0, 32),
+				Vector2(-30, 14),
+				Vector2(-30, -14),
+			])
+			label.text = "GATE"
+		_:
+			icon.color = Color(0.964706, 0.843137, 0.54902, 0.95)
+			icon.polygon = PackedVector2Array([
+				Vector2(0, -30),
+				Vector2(28, 0),
+				Vector2(0, 30),
+				Vector2(-28, 0),
+			])
+			label.text = "OBJ"
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name != "Player":

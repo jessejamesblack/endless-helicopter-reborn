@@ -343,6 +343,35 @@ static func get_encounters() -> Array[Dictionary]:
 			]
 		},
 		{
+			"id": "pressure_ion_mine_layer",
+			"phases": [PHASE_PRESSURE, PHASE_ADVANCED, PHASE_ENDURANCE],
+			"difficulty": 4,
+			"weight": 0.78,
+			"duration": 5.4,
+			"cooldown": 10.5,
+			"requires_elapsed": 72.0,
+			"tags": ["combat", "mine_layer", "biome_event", "ion_storm"],
+			"spawns": [
+				{"at": 0.0, "type": "enemy", "kind": "mine_layer", "y_mode": "random_mid"},
+				{"at": 2.2, "type": "obstacle", "y_mode": "random_high"}
+			]
+		},
+		{
+			"id": "advanced_storm_pocket_reward",
+			"phases": [PHASE_ADVANCED, PHASE_ENDURANCE],
+			"difficulty": 3,
+			"weight": 0.46,
+			"duration": 6.0,
+			"cooldown": 18.0,
+			"requires_elapsed": 104.0,
+			"tags": ["biome_event", "ion_storm", "reward", "powerup"],
+			"spawns": [
+				{"at": 0.0, "type": "obstacle", "y_mode": "random_low"},
+				{"at": 1.8, "type": "enemy", "kind": "mine_layer", "modifier": "armored", "y_mode": "random_high"},
+				{"at": 3.9, "type": "powerup", "y_mode": "random_mid"}
+			]
+		},
+		{
 			"id": "endurance_elite_drone_pressure",
 			"phases": [PHASE_ENDURANCE],
 			"difficulty": 6,
@@ -354,6 +383,21 @@ static func get_encounters() -> Array[Dictionary]:
 			"spawns": [
 				{"at": 0.0, "type": "enemy", "kind": "alien_drone", "modifier": "elite", "y_mode": "random_mid"},
 				{"at": 2.6, "type": "powerup", "y_mode": "random_low"}
+			]
+		},
+		{
+			"id": "endurance_elite_minefield",
+			"phases": [PHASE_ENDURANCE],
+			"difficulty": 6,
+			"weight": 0.58,
+			"duration": 6.2,
+			"cooldown": 18.0,
+			"requires_elapsed": 165.0,
+			"tags": ["combat", "elite", "mine_layer", "biome_event"],
+			"spawns": [
+				{"at": 0.0, "type": "enemy", "kind": "mine_layer", "modifier": "elite", "y_mode": "random_mid"},
+				{"at": 2.3, "type": "enemy", "kind": "alien_drone", "y_mode": "random_high"},
+				{"at": 4.2, "type": "pickup", "y_mode": "random_low"}
 			]
 		},
 		{

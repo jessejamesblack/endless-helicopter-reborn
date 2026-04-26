@@ -43,9 +43,25 @@ var PROJECTILE_DATA := {
 		"turn_rate": 0.85,
 		"retarget_interval": 0.35,
 	},
+	"ion_mine": {
+		"region": Rect2(2393, 1123, 351, 277),
+		"scale": Vector2(0.13, 0.13),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-18, -18),
+			Vector2(18, -18),
+			Vector2(24, 0),
+			Vector2(18, 18),
+			Vector2(-18, 18),
+			Vector2(-24, 0),
+		]),
+		"score": 35,
+		"homing_enabled": false,
+		"turn_rate": 0.0,
+		"rotation_speed": 1.2,
+	},
 }
 
-@export_enum("player_missile", "turret_round") var projectile_kind: String = "player_missile"
+@export_enum("player_missile", "turret_round", "ion_mine") var projectile_kind: String = "player_missile"
 @export var move_speed: float = 480.0
 
 @onready var sprite: Sprite2D = $Sprite2D
@@ -104,6 +120,10 @@ func _process(delta: float) -> void:
 			direction = direction.rotated(clamped_turn).normalized()
 
 	global_position += direction * current_speed * delta
+	if projectile_kind == "ion_mine":
+		sprite.rotation += float(PROJECTILE_DATA["ion_mine"].get("rotation_speed", 0.0)) * delta
+	else:
+		sprite.rotation = 0.0
 	rotation = direction.angle()
 
 	if global_position.x < -150 or global_position.y < -100 or global_position.y > get_viewport_rect().size.y + 100:

@@ -6,7 +6,7 @@ const ENEMY_UNIT_SCENE := preload("res://scenes/enemies/enemy_unit.tscn")
 const ENEMY_PROJECTILE_SCENE := preload("res://scenes/projectiles/enemy_projectile.tscn")
 
 const VALID_SPAWN_TYPES := ["obstacle", "enemy", "pickup", "powerup"]
-const VALID_ENEMY_KINDS := ["large_spiky_rock", "alien_drone", "stationary_turret", "glowing_rock"]
+const VALID_ENEMY_KINDS := ["large_spiky_rock", "alien_drone", "mine_layer", "stationary_turret", "glowing_rock"]
 
 var _failures: Array[String] = []
 

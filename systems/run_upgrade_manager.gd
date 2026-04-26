@@ -312,6 +312,10 @@ func get_vehicle_passive_name() -> String:
 	var passive: Dictionary = VEHICLE_PASSIVES.get(_vehicle_id, VEHICLE_PASSIVES["default_scout"])
 	return str(passive.get("name", "Flexible Baseline"))
 
+func get_vehicle_passive_data(vehicle_id: String) -> Dictionary:
+	var passive: Dictionary = VEHICLE_PASSIVES.get(vehicle_id, VEHICLE_PASSIVES["default_scout"])
+	return passive.duplicate(true)
+
 func get_summary() -> Dictionary:
 	return {
 		"upgrades_chosen": _choices_made,

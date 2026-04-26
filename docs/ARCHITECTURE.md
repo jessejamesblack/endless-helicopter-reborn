@@ -54,7 +54,7 @@
 - Run upgrades are run-only and reset on each new run. Milestone choices happen at 35, 75, 120, and 170 seconds, capped at four choices per run.
 - Upgrade effects are exposed as shared run modifiers so player handling, missiles, scoring, and vehicle passives can compose without UI-specific hard-coding.
 - Powerups activate temporary effects such as shields, score rush, missile overdrive, ammo magnet, EMP, and afterburner. Their active timers feed the HUD and run summary.
-- Run objectives are lightweight events. The first set includes `rescue_pickup` and `reactor_chain`; objectives reward score plus either a powerup or an upgrade-choice trigger.
+- Run objectives are lightweight events. The first set includes `rescue_pickup`, `reactor_chain`, `black_box_recovery`, and `signal_gates`; objectives reward score plus either a powerup or an upgrade-choice trigger.
 - Player profile depth progression stores unlocked upgrade, powerup, and objective ids in the existing profile summary shape. It unlocks possibilities, not paid power or currency upgrades.
 
 ## Daily Mission Runtime
@@ -73,6 +73,7 @@
 
 - `large_spiky_rock`: baseline obstacle and most common hostile
 - `alien_drone`: mid-frequency flying enemy that fires straight projectiles
+- `mine_layer`: mid/late-run pressure enemy that drops slow ion mines to create navigational decisions and intercept opportunities
 - `stationary_turret`: rarer bottom-lane enemy that fires gently homing missiles
 - `glowing_rock`: rarest enemy; when destroyed by the player it triggers a screen-clear blast that removes hostiles and pickups currently on screen
 - Enemy modifiers add mid/late-run variety without a new roster: `armored`, `shielded`, and `elite`.
@@ -83,6 +84,7 @@
 - `spawner.gd` now defaults to a seeded encounter director instead of a flat timer-plus-weighted-random loop.
 - The director advances through time-based phases: opening, warmup, combat intro, pressure, advanced, and endurance.
 - Encounters are authored chunks from `encounter_catalog.gd` that can include obstacles, drones, turrets, glowing rocks, ammo pickups, powerups, modifiers, and breathers.
+- Event-style chunks such as storm pockets and minefield pressure add biome-flavored variety without changing scoring, missions, or background biome state.
 - Director timing is based on real elapsed run time. Gameplay still accelerates through `Main.speed_multiplier`, but encounter durations and breather cadence are not compressed by it.
 - Fairness guards cap active hostiles/projectiles, prevent early turrets, keep glowing rocks spaced out, and allow only one active turret or glowing rock at a time.
 - Ammo comes from authored encounters, breather pickups, and rare rescue ammo when the player is on a drought.
@@ -106,6 +108,7 @@
 - `helicopter_skins.gd` remains the compatibility entry point, but Sprint 5 treats it as the vehicle catalog.
 - Vehicles own silhouette, texture, collision polygon, and any per-vehicle handling/profile differences.
 - Canonical vehicle names are the primary UI labels: Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar.
+- The Hangar surfaces selected-vehicle stats for ammo capacity, lift, handling, gravity, recovery, and passive modifiers using the shared vehicle profile/passive data.
 - Vehicle passives are exposed through shared run modifiers:
   - Scout: flexible baseline with a small upgrade-choice bias.
   - Bubble Chopper: near-miss and combo-window specialist.

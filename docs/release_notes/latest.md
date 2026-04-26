@@ -1,14 +1,21 @@
-# Endless Helicopter Reborn 1.6.12
+# Endless Helicopter Reborn 1.6.13
 
-Version 1.6.12 is the depth and feedback sprint plus a stronger daily mission sync repair. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
+Version 1.6.13 is a release-trust, public polish, and gameplay-content update. It keeps the 1.6.12 depth sprint intact while adding clearer install/repo surfaces, stricter release metadata validation, more run objective variety, and a new mid/late-run enemy pressure role.
 
 ## Highlights
 
+- Added Black Box Recovery and Signal Gates as new short objective events.
+- Added Mine Layer enemies that drop slow ion mines, creating extra navigation pressure and missile-intercept opportunities.
+- Added storm-pocket and minefield encounter chunks for more mid/late-run variety.
+- Added release hygiene validation so Android export metadata, checked-in build info, release notes, Discord summary, and public GitHub release metadata stay aligned.
+- Improved the public README with latest APK links, current gameplay media, controls, roadmap links, and clearer Android install guidance.
+- Added a public roadmap and GitHub issue templates for bugs, gameplay tuning, Android installs, and backend/sync issues.
 - Added periodic 1-of-3 run upgrades at milestone moments so each run can build in a different direction.
 - Added temporary powerup pickups: Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
-- Added short objective events, including rescue pickups and reactor chains, with score and reward hooks.
+- Added short objective events, including rescue pickups, reactor chains, black box recovery, and signal gates, with score and reward hooks.
 - Strengthened vehicle identities with handling differences and run passives for near misses, ammo economy, shields, missiles, combo stability, and scoring.
-- Expanded enemy pressure with armored, shielded, and elite variants, faster turret/drone firing, immediate entry shots, and more responsive early pacing.
+- Added Hangar vehicle stat readouts for ammo capacity, lift, handling, gravity, recovery, and passive perks.
+- Expanded enemy pressure with armored, shielded, and elite variants, Mine Layers, faster turret/drone firing, immediate entry shots, and more responsive early pacing.
 
 ## Player-Facing Fixes And Polish
 
@@ -26,10 +33,12 @@ Version 1.6.12 is the depth and feedback sprint plus a stronger daily mission sy
 - Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
 - Fixed app-update push notifications so they cannot appear as incorrect score-beaten `0/0` notifications.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
+- Added fresh README media capture tooling and validation for public polish docs/templates/media.
 
 ## Progression And Data Notes
 
 - Added unlock-pool meta progression for upgrades, powerups, and objective possibilities without adding a shop, paid upgrades, or a currency economy.
+- Expanded objective unlock pools to include the new Black Box Recovery and Signal Gates possibilities.
 - Expanded run stats for upgrades, powerups, objectives, elite/special kills, shield absorbs, effect seconds, ammo refunds, and boundary crash reasons.
 - Kept profile sync within the existing JSON summary path; no Supabase schema migration is required for this release.
 - Live mission progress is reconciled against the final run summary so the same pickup or effect cannot count twice.

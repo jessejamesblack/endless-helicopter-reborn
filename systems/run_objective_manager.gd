@@ -28,9 +28,29 @@ const OBJECTIVE_CATALOG := {
 		"reward_score": 220,
 		"reward": "upgrade",
 	},
+	"black_box_recovery": {
+		"title": "Black Box Recovery",
+		"description": "Collect 3 black boxes.",
+		"action": "black_box_pickup",
+		"target": 3,
+		"duration": 30.0,
+		"reward_score": 240,
+		"reward": "powerup",
+		"spawn_pickup": true,
+	},
+	"signal_gates": {
+		"title": "Signal Gates",
+		"description": "Fly through 3 signal gates.",
+		"action": "signal_gate",
+		"target": 3,
+		"duration": 26.0,
+		"reward_score": 260,
+		"reward": "upgrade",
+		"spawn_pickup": true,
+	},
 }
 
-const DEFAULT_UNLOCKED_OBJECTIVES := ["rescue_pickup", "reactor_chain"]
+const DEFAULT_UNLOCKED_OBJECTIVES := ["rescue_pickup", "reactor_chain", "black_box_recovery", "signal_gates"]
 
 var _rng := RandomNumberGenerator.new()
 var _elapsed_seconds: float = 0.0

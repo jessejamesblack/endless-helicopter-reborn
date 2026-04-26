@@ -120,6 +120,12 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Godot enemy threat pass validation failed'
 }
 
+Write-Host 'Validating gameplay content variety'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_gameplay_content_variety.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot gameplay content variety validation failed'
+}
+
 Write-Host 'Validating spawn layout responsiveness'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_spawn_layout_responsiveness.gd
 if ($LASTEXITCODE -ne 0) {
