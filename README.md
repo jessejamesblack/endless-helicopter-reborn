@@ -16,9 +16,17 @@ For normal device testing, prefer the latest versioned release. Same-device upda
 | --- | --- |
 | ![Title screen](docs/media/readme-title.png) | ![Gameplay run](docs/media/readme-run.png) |
 
+| Upgrade Choice | Results |
+| --- | --- |
+| ![Run upgrade choice](docs/media/readme-upgrades.png) | ![Run results](docs/media/readme-results.png) |
+
 | Hangar | Missions |
 | --- | --- |
 | ![Vehicle hangar](docs/media/readme-hangar.png) | ![Daily missions](docs/media/readme-missions.png) |
+
+| Pause | Settings |
+| --- | --- |
+| ![Pause menu](docs/media/readme-pause.png) | ![Settings menu](docs/media/readme-settings.png) |
 
 ## Controls
 
@@ -40,7 +48,7 @@ For normal device testing, prefer the latest versioned release. Same-device upda
 
 - Endless survival-style arcade gameplay
 - Mobile-friendly tap/click/space controls
-- Missiles, ammo pickups, glowing-rock clears, and varied enemy roles
+- Missiles, ammo pickups that convert to score when full, glowing-rock clears, and varied enemy roles
 - Periodic run upgrades, temporary powerups, and short objective events
 - Distinct vehicle identities with passive run modifiers and Hangar stat readouts
 - Enemy variants and stronger mid/late-run projectile pressure
@@ -60,8 +68,9 @@ Runs now combine execution, choices, pickups, objectives, and progression:
 
 - Upgrade choices appear at milestone times around 35, 75, 120, and 170 seconds, capped at four picks per run. Scout starts with a Reliable Frame passive that offers 4 cards on the first choice; other choices offer 3.
 - Powerups include Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
+- Ammo pickups still refill missiles, but grabbing one at full ammo now awards score with the same floating score feedback as other skill rewards.
 - Objectives can start around 42 seconds, can appear up to three times per run, and include Rescue Pickup, Reactor Chain, Black Box Recovery, Signal Gates, No-Fire Signal, Barrage Intercept, Bounty Drone, and Clean Flight.
-- Vehicles use canonical names such as Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar, each with a clearer passive identity.
+- Vehicles use canonical names such as Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Hind Strike, Chinook Lift, Crazy Taxi, and Pottercar, each with a clearer passive identity.
 - The Hangar shows selected-vehicle stats for ammo capacity, lift, handling, gravity, recovery, and passive perks.
 - Daily mission progress updates live for in-run pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs, so the pause-menu mission view reflects the current run.
 - Daily mission cloud sync is local-first and monotonic: startup restore preserves local mission progress when the device is ahead, queued local sync payloads merge upward, and the Supabase sync function merges per-mission progress instead of overwriting it with stale rows.
@@ -126,7 +135,7 @@ On Windows PowerShell:
 powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
 
-The full validator includes script parsing plus focused checks for depth retention, enemy pressure, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, and Android continuity-adjacent systems.
+The full validator includes script parsing plus focused checks for depth retention, enemy pressure, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, profile name gating, release notes, and Android continuity-adjacent systems.
 
 README media can be refreshed from the current scenes with:
 
@@ -152,7 +161,7 @@ Current leaderboard/profile behavior:
 - The raw Android source value stays internal; the app hashes it into its own stable `player_id` and `device_id` instead of exposing the system identifier directly.
 - Returning players on the same phone should restore automatically after reinstall once their profile has been migrated onto that canonical app-owned id.
 - Manual support restore by old `player_id` is still available in Settings, and current builds try to permanently migrate that old profile onto the phone's canonical Android-backed app id so future reinstalls on that device restore automatically.
-- A public name is only required for leaderboard submission. Cloud profile restore and progression sync can exist before the player picks a public leaderboard name.
+- Configured online builds require a valid 1-12 character public pilot name before Play, Scores, Missions, Hangar, leaderboard publishing, cloud profile sync, or progression publishing. Unconfigured/offline dev builds still allow local play without a name.
 - Android exports now leave user data backup enabled and request data retention on uninstall, so local profile/config files still have a platform backup safety net.
 - Same-device continuity now depends on one permanent signing key track. The app exposes the signing mode and signing-certificate preview in Debug so reinstall testing can confirm the expected key is in use.
 - After the stable release-key cutover release has shipped and the fresh-start wipe has been executed, official Android builds are expected to restore automatically on the same device after uninstall/reinstall. See [docs/ANDROID_CONTINUITY_CUTOVER.md](docs/ANDROID_CONTINUITY_CUTOVER.md) for the procedural cutover runbook and support expectations.
@@ -251,8 +260,12 @@ The canonical public track is the permanent stable release key. The same-device 
 This repo intentionally follows a lightweight harness-engineering approach:
 
 - short `AGENTS.md` as a map
+- root and folder-level `SKILL.md` files for repeatable agent workflows and local implementation taste
 - docs as the source of truth
 - deterministic validation/export scripts
+- generated README media from current Godot scenes via `tools/capture_readme_media.gd`
+- release-hygiene checks that keep version metadata, release notes, and public docs aligned
+- profile/name-gate and daily-mission sync validators for the online progression paths touched by recent releases
 - CI as a feedback loop
 
 See [docs/AI_COLLABORATION.md](docs/AI_COLLABORATION.md) for the project-specific rules.

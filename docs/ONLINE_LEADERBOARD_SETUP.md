@@ -68,10 +68,10 @@ If you want one world-wide board for everyone who installs the app, set:
 - Android exports also keep user-data backup enabled and request retain-data-on-uninstall, so local profile/config files have a backup safety net on supported devices.
 - Same-device reinstall stability still depends on reinstalling builds signed with the same key. Official continuity now assumes the stable release key. The optional stable debug keystore is for controlled testing only, and temporary debug keys are test-only.
 - The current restore model assumes a stable release signing epoch for official builds. The planned fresh-start gameplay-data wipe will retire pre-cutover cloud data when the cutover is executed; see [ANDROID_CONTINUITY_CUTOVER.md](ANDROID_CONTINUITY_CUTOVER.md) for the procedural cutover policy and support expectations.
-- Each device saves a public player name locally after the first submitted run.
-- Cloud profile restore and progression sync do not require a public name; the player only needs to choose one before publishing a leaderboard score.
+- Configured online builds require a valid 1-12 character public player name before Play, Scores, Missions, Hangar, leaderboard publishing, cloud profile sync, or progression publishing. Unconfigured/offline dev builds can still play locally without a name.
+- Each device saves that public player name locally after setup or the first valid leaderboard name entry.
 - Player names use a simple profanity filter.
-- The database enforces unique public names within a leaderboard.
+- The database enforces unique public names within both the leaderboard and synced player profiles.
 - The database stores one current best score per player.
 - In-app score-beaten alerts are stored in `family_notifications`.
 - The post-run results screen shows a synced `Personal Best` view when a cloud profile exists and falls back to on-device wording when it does not.

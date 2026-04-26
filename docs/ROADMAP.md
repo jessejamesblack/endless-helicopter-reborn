@@ -16,6 +16,7 @@ This roadmap keeps the project pointed at small, testable milestones. It is not 
 - Add biome events such as storm pockets, low-visibility sections, gravity pulses, or temporary hazard waves.
 - Expand enemy roles with a small number of readable threats, such as mine layers, shield projectors, carrier drones, or warning-based turrets.
 - Add vehicle-specific challenges that help players understand each passive identity.
+- Add more vehicles and skin sets after the current vehicle identities are balanced, with each new vehicle bringing a clear silhouette, passive hook, and Hangar-readable stats.
 
 ## 1.8 refactor
 
@@ -36,10 +37,12 @@ This roadmap keeps the project pointed at small, testable milestones. It is not 
 - Harden public competition paths with server-side sanity checks, rate limits, narrower write policies, and stronger identity assumptions.
 - Investigate Android APK size, exported resource scope, audio compression, texture sizes, memory use, and low-end device performance.
 - Add first-run onboarding, a clearer crash summary, post-run tips, a vehicle/passive glossary, and accessibility polish.
+- Implement a non-AI art pass for core player-facing assets, prioritizing vehicles, skins, pickups, enemies, backgrounds, and store/release media that need a cohesive final style.
 - Decide whether the project is still friends-and-family focused or ready for broader public leaderboard expectations.
 
 ## Backlog Seeds
 
 - Balance report or CSV export for run length, death reasons, vehicle differences, upgrade picks, powerup use, and objective outcomes.
 - More README media and release-page polish as the art and UI stabilize.
+- Vehicle and skin concept backlog with unlock requirements, passive identity notes, silhouette requirements, and non-AI final-art status.
 - Play Store readiness work only after signing, privacy, telemetry, and public leaderboard expectations are settled.

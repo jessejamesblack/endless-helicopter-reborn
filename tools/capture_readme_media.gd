@@ -14,6 +14,16 @@ const CAPTURES := [
 		"frames": 36,
 	},
 	{
+		"scene": "res://scenes/game/main/main.tscn",
+		"output": "readme-upgrades.png",
+		"frames": 18,
+	},
+	{
+		"scene": "res://scenes/ui/leaderboard/leaderboard_screen.tscn",
+		"output": "readme-results.png",
+		"frames": 18,
+	},
+	{
 		"scene": "res://scenes/ui/hangar/hangar_screen.tscn",
 		"output": "readme-hangar.png",
 		"frames": 18,
@@ -23,6 +33,16 @@ const CAPTURES := [
 		"output": "readme-missions.png",
 		"frames": 18,
 		"mission_preview": true,
+	},
+	{
+		"scene": "res://scenes/ui/pause/pause_menu.tscn",
+		"output": "readme-pause.png",
+		"frames": 12,
+	},
+	{
+		"scene": "res://scenes/ui/settings/settings_menu.tscn",
+		"output": "readme-settings.png",
+		"frames": 12,
 	},
 ]
 
@@ -98,12 +118,25 @@ func _capture_scene(capture: Dictionary) -> void:
 
 	node.free()
 	current_scene = null
+	paused = false
 	await process_frame
 
 func _prepare_scene_for_capture(node: Node, output_name: String) -> void:
-	if output_name != "readme-run.png":
-		return
+	match output_name:
+		"readme-run.png":
+			_prepare_run_capture(node)
+		"readme-upgrades.png":
+			_prepare_upgrade_capture(node)
+		"readme-results.png":
+			_prepare_results_capture(node)
+		"readme-pause.png":
+			if node.has_method("open_menu"):
+				node.call("open_menu")
+		"readme-settings.png":
+			if node.has_method("open_menu"):
+				node.call("open_menu")
 
+func _prepare_run_capture(node: Node) -> void:
 	var powerup_manager := get_root().get_node_or_null("PowerupManager")
 	if powerup_manager != null and powerup_manager.has_method("activate_powerup"):
 		powerup_manager.activate_powerup("score_rush")
@@ -116,6 +149,14 @@ func _prepare_scene_for_capture(node: Node, output_name: String) -> void:
 	if node.has_method("award_skill_score"):
 		node.award_skill_score(225, "INTERCEPT", Vector2(760, 270), true)
 		node.award_skill_score(325, "ELITE HIT", Vector2(850, 220), true)
+
+func _prepare_upgrade_capture(node: Node) -> void:
+	if node.has_method("_on_upgrade_choice_ready"):
+		node.call("_on_upgrade_choice_ready", _build_upgrade_preview_offers(), "milestone")
+
+func _prepare_results_capture(node: Node) -> void:
+	if node.has_method("apply_validation_state"):
+		node.call("apply_validation_state", 0, _build_results_preview_summary(), false, false, false)
 
 func _wait_frames(frame_count: int) -> void:
 	for _index in range(maxi(frame_count, 1)):
@@ -132,7 +173,7 @@ func _build_mission_preview_summary() -> Dictionary:
 		"daily_streak": 3,
 		"perfect_day": false,
 		"next_unlock": {
-			"display_name": "Apache Strike",
+			"display_name": "Hind Strike",
 			"progress_text": "3 missions to unlock",
 		},
 		"missions": [
@@ -182,6 +223,71 @@ func _build_mission_preview_summary() -> Dictionary:
 				"completed": false,
 				"bonus": true,
 				"badge_text": "BONUS",
+			},
+		],
+	}
+
+func _build_upgrade_preview_offers() -> Array[Dictionary]:
+	return [
+		{
+			"id": "twin_missiles",
+			"name": "Twin Missiles",
+			"description": "Fire an extra missile in a tight spread.",
+			"level": 1,
+			"max_level": 1,
+		},
+		{
+			"id": "score_battery",
+			"name": "Combo Battery",
+			"description": "Keep your combo alive a little longer.",
+			"level": 2,
+			"max_level": 3,
+		},
+		{
+			"id": "temporary_shield",
+			"name": "Temporary Shield",
+			"description": "Start holding a one-hit shield charge.",
+			"level": 1,
+			"max_level": 2,
+		},
+		{
+			"id": "near_miss_amplifier",
+			"name": "Near-Miss Amplifier",
+			"description": "Threading danger pays more score.",
+			"level": 1,
+			"max_level": 3,
+		},
+	]
+
+func _build_results_preview_summary() -> Dictionary:
+	return {
+		"score": 6840,
+		"best_score_before_run": 5100,
+		"best_score_after_run": 6840,
+		"is_new_best": true,
+		"distance_to_best_before_run": 0,
+		"time_survived": 138.2,
+		"time_survived_seconds": 138.2,
+		"survival_score": 1382,
+		"skill_score": 5458,
+		"missiles_fired": 28,
+		"hostiles_destroyed": 17,
+		"ammo_pickups_collected": 6,
+		"glowing_rocks_triggered": 2,
+		"boundary_bounces": 1,
+		"near_misses": 14,
+		"max_combo_multiplier": 2.2,
+		"projectile_intercepts": 5,
+		"upgrades_chosen": 3,
+		"powerups_collected": 4,
+		"objective_events_completed": 2,
+		"elite_kills": 1,
+		"vehicle_passive_name": "Reliable Frame",
+		"equipped_vehicle_id": "default_scout",
+		"post_run_unlocks": [
+			{
+				"unlock_type": "vehicle",
+				"vehicle_id": "bubble_chopper",
 			},
 		],
 	}

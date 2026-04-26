@@ -1,5 +1,6 @@
-- Stable Android release 1.7.0 (168).
-- Objectives now start earlier, can appear up to three times per run, and avoid repeats before the deck is exhausted.
-- Adds No-Fire Signal, Barrage Intercept, Bounty Drone, and Clean Flight objectives while polishing Black Box Recovery and Signal Gates.
-- Reworks Scout with Reliable Frame: the first upgrade choice offers four cards instead of three.
-- Adds validation for objective cadence, timer/fail objectives, bounty/intercept completion, lane pickups, and the four-card upgrade overlay.
+- Stable Android release 1.7.6 (174).
+- Configured online builds now require a valid public pilot name before Play, Scores, Missions, Hangar, cloud profile sync, or progression publishing; blank cached names are cleared instead of becoming `Player`.
+- Hind Strike is now the canonical vehicle name across Hangar, missions, results, docs, and validation, and saved vehicle missions now repair stale rendered names.
+- Full-ammo pickups now convert into score with the normal floating notifier; README media adds upgrade/results/Hangar/pause/settings captures; roadmap calls out non-AI art plus more vehicles and skins.
+- AI collaboration docs now mention root/folder `SKILL.md` guidance, README media capture, release hygiene, and progression-path validators.
+- Supabase profile sync now rejects missing names, returns profile names directly, and enforces required unique profile names after cleanup.

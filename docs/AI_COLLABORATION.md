@@ -13,6 +13,7 @@ This project borrows practical ideas from OpenAI's harness-engineering approach 
 
 - Important context should live in the repo, not only in chat.
 - `AGENTS.md` is the map.
+- Root and folder-level `SKILL.md` files hold recurring agent workflows and local implementation taste.
 - `docs/` holds the deeper sources of truth.
 
 ### 3. Agent legibility matters
@@ -20,6 +21,7 @@ This project borrows practical ideas from OpenAI's harness-engineering approach 
 - The repo is organized by feature so agents can navigate it quickly.
 - Shared systems and setup files are separated from scene logic.
 - Validation commands live in `tools/`.
+- README media is generated from current Godot scenes through `tools/capture_readme_media.gd`, so public screenshots can stay tied to the actual app.
 
 ### 4. Encode repeatable behavior
 
@@ -32,13 +34,16 @@ This project borrows practical ideas from OpenAI's harness-engineering approach 
 - Validate changed scripts with Godot.
 - Build Android artifacts in CI on push.
 - Update docs when the system shape changes.
+- Keep release hygiene checks green when changing versioned docs, public media, or user-facing release notes.
 
 ## Expectations For Future AI Work
 
 - Read `AGENTS.md` first.
+- Read the root `SKILL.md`, then the narrow folder `SKILL.md` for the files being changed.
 - Prefer the smallest relevant doc instead of stuffing everything into one file.
 - Keep structural changes deliberate and documented.
 - If a new recurring rule appears, promote it into docs or tooling.
+- When touching public-facing docs or README media, run the public-polish and release-hygiene validators in addition to any code-focused checks.
 - When working on Android identity, reinstall, restore, push-device ownership, or leaderboard migration:
   - assume same-device continuity depends on a stable signing key track, not just code changes
   - treat reinstall/restore tests as invalid unless the build is exported with `SigningMode` `release_stable` or `debug_stable`

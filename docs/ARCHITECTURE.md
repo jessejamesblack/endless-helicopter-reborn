@@ -34,20 +34,21 @@
 ## Gameplay Flow
 
 1. The app starts in `start_screen.tscn`.
-2. Players can open `Settings` from the start screen to adjust audio, controls, and haptics.
-3. Pressing `Play Game` opens `main.tscn`.
-4. The player survives, scores over elapsed time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
-5. `RunUpgradeManager`, `PowerupManager`, and `RunObjectiveManager` start fresh for each run. They add periodic upgrade choices, temporary powerups, short objectives, and capped run-power pressure.
-6. Near misses, direct missile hits, projectile intercepts, objectives, and hit streaks feed a combo-based skill-score loop with floating feedback and compact combo/effect/objective HUD elements.
-7. During gameplay, `Pause` can resume, open missions, open settings, or quit cleanly back to the menu. Pause toggles are debounced so pause spam cannot create a slow-motion advantage.
-8. On crash, `main.gd` finalizes the run in `RunStats` and transitions to `leaderboard_screen.tscn`.
-9. Mission progress can update during the run for visible pickup/effect events, while `MissionManager` keeps a per-run live-progress ledger so the final run summary does not double-count those same events.
-10. The post-run flow finalizes `RunStats`, applies remaining mission/profile/depth progression once, queues best-effort Supabase sync, queues run-achievement screenshots, and transitions to the results screen.
-11. The post-run screen shows score, synced `Personal Best` when a cloud profile exists, on-device fallback best-score wording when it does not, run-depth summary stats, a compact daily mission summary, unlock summaries, and keeps `Try Again` as the primary action.
-12. The player can open the mission screen from the menu, pause menu, or post-run screen, inspect today's progress, and open the Hangar to equip unlocked vehicles and finishes.
-13. The same results screen can still switch into leaderboard mode, submit the run if manual name setup is needed, and show shared scores.
-14. Run-based achievement screenshots now wait for the results screen before capture so Discord shares reflect the end-of-run state rather than the menu or another transient screen.
-15. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode. If a daily-mission push is opened from the menu or app launch, it routes to the mission screen.
+2. Configured online builds wait for startup profile restore, then require a valid public pilot name before Play, Scores, Missions, or Hangar can open. Settings, Debug, Credits, and required update prompts stay accessible. Unconfigured/offline dev builds skip this gate.
+3. Players can open `Settings` from the start screen to adjust audio, controls, and haptics.
+4. Pressing `Play Game` opens `main.tscn`.
+5. The player survives, scores over elapsed time, bounces off the top and bottom bounds to recover from mistakes, and interacts with enemies/pickups.
+6. `RunUpgradeManager`, `PowerupManager`, and `RunObjectiveManager` start fresh for each run. They add periodic upgrade choices, temporary powerups, short objectives, and capped run-power pressure.
+7. Near misses, direct missile hits, projectile intercepts, objectives, and hit streaks feed a combo-based skill-score loop with floating feedback and compact combo/effect/objective HUD elements.
+8. During gameplay, `Pause` can resume, open missions, open settings, or quit cleanly back to the menu. Pause toggles are debounced so pause spam cannot create a slow-motion advantage.
+9. On crash, `main.gd` finalizes the run in `RunStats` and transitions to `leaderboard_screen.tscn`.
+10. Mission progress can update during the run for visible pickup/effect events, while `MissionManager` keeps a per-run live-progress ledger so the final run summary does not double-count those same events.
+11. The post-run flow finalizes `RunStats`, applies remaining mission/profile/depth progression once, queues best-effort Supabase sync only when a valid cached public name exists, queues run-achievement screenshots, and transitions to the results screen.
+12. The post-run screen shows score, synced `Personal Best` when a cloud profile exists, on-device fallback best-score wording when it does not, run-depth summary stats, a compact daily mission summary, unlock summaries, and keeps `Try Again` as the primary action.
+13. The player can open the mission screen from the menu, pause menu, or post-run screen, inspect today's progress, and open the Hangar to equip unlocked vehicles and finishes.
+14. The same results screen can still switch into leaderboard mode, submit the run if manual name setup is needed, and show shared scores.
+15. Run-based achievement screenshots now wait for the results screen before capture so Discord shares reflect the end-of-run state rather than the menu or another transient screen.
+16. If a score-beaten push notification is opened, the push service routes the app back to the leaderboard screen in leaderboard mode. If a daily-mission push is opened from the menu or app launch, it routes to the mission screen.
 
 ## Run Depth Systems
 
@@ -66,6 +67,7 @@
 - The live-progress ledger is reset at run start and subtracted from the final summary for matching sum-mode mission types so the same pickup cannot count twice.
 - Mission progress sync continues through the existing daily mission summary path; no Supabase schema migration is required for the depth sprint or the live progress fix.
 - Daily mission restore and sync are monotonic by mission row: local completion is not downgraded by stale cloud data, pending mission sync jobs merge upward before flush, and the sync Edge Function merges progress before writing to Supabase.
+- Cloud profile creation and progression publishing require a valid cached public name. The Start Screen name gate prevents configured online builds from entering Play, Scores, Missions, or Hangar while nameless, and `SupabaseSyncQueue` drops stale nameless profile-sync jobs.
 - Mission state blocks disk reloads while live mission progress is mutating, so profile-change UI refreshes cannot roll a newly completed local mission back to stale saved progress before it is persisted.
 - Live in-run mission completions keep a per-mission progress floor until the final run summary is applied, which prevents a delayed cloud restore from producing end-screen completion text while the authoritative mission state reverts.
 
@@ -87,7 +89,7 @@
 - Event-style chunks such as storm pockets and minefield pressure add biome-flavored variety without changing scoring, missions, or background biome state.
 - Director timing is based on real elapsed run time. Gameplay still accelerates through `Main.speed_multiplier`, but encounter durations and breather cadence are not compressed by it.
 - Fairness guards cap active hostiles/projectiles, prevent early turrets, keep glowing rocks spaced out, and allow only one active turret or glowing rock at a time.
-- Ammo comes from authored encounters, breather pickups, and rare rescue ammo when the player is on a drought.
+- Ammo comes from authored encounters, breather pickups, and rare rescue ammo when the player is on a drought. Pickups collected while already at full ammo convert into skill score through the same floating score feedback path as other run rewards.
 - Powerup opportunities come from breather/reward windows and a restrained 45-75 second opportunity cadence.
 - Spawn y-bounds and lanes are derived from the current viewport/playfield instead of fixed lane values.
 - In debug builds, the main HUD can show the current director phase, encounter id, seed, and active hostile count for reproducible tuning.
@@ -107,14 +109,14 @@
 
 - `helicopter_skins.gd` remains the compatibility entry point, but Sprint 5 treats it as the vehicle catalog.
 - Vehicles own silhouette, texture, collision polygon, and any per-vehicle handling/profile differences.
-- Canonical vehicle names are the primary UI labels: Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar.
+- Canonical vehicle names are the primary UI labels: Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Hind Strike, Chinook Lift, Crazy Taxi, and Pottercar.
 - The Hangar surfaces selected-vehicle stats for ammo capacity, lift, handling, gravity, recovery, and passive modifiers using the shared vehicle profile/passive data.
 - Vehicle passives are exposed through shared run modifiers:
-  - Scout: flexible baseline with a small upgrade-choice bias.
+  - Scout: Reliable Frame offers four cards on the first upgrade choice of the run.
   - Bubble Chopper: near-miss and combo-window specialist.
   - Huey Runner: ammo capacity and refund utility.
   - Blackhawk Shadow: shield and boundary recovery utility.
-  - Apache Strike: missile score and fire-rate striker.
+  - Hind Strike: missile score and fire-rate striker.
   - Chinook Lift: long-run combo stability and steadier gravity.
   - Crazy Taxi: chaotic scoring through near misses and precision bonuses.
   - Pottercar: leaderboard prestige oddity with light choice/combo support.
@@ -151,6 +153,7 @@
 
 - Supabase powers the shared leaderboard.
 - Supabase also stores synced player profiles, daily mission progress, best-run expanded stats, and append-only run history.
+- Synced player profiles are name-required: the client, Edge Function, and SQL RPC all reject blank profile names, and profile names are unique within a family using the same normalization as leaderboard names.
 - Supabase Edge Functions and Firebase Cloud Messaging power Android push notifications.
 - GitHub Actions builds Android APK artifacts.
 

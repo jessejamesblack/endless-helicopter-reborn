@@ -34,6 +34,7 @@ For narrow iteration on recent run-depth changes, useful focused scripts include
 - `res://tools/validate_pause_menu_missions.gd`
 - `res://tools/validate_ui_naming_consistency.gd`
 - `res://tools/validate_score_feedback_and_combo.gd`
+- `res://tools/validate_profile_name_gate.gd`
 
 ### Validate live reinstall and restore migration
 
@@ -88,6 +89,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - Keep daily mission sync monotonic. Startup restore should preserve local progress when it is ahead of Supabase, queued local daily mission sync payloads should merge upward, and `sync-daily-mission-progress` should merge per-mission progress instead of overwriting rows with stale payloads.
 - Do not call `refresh_daily_missions()` from a path that can interrupt live mission mutation unless the mutation guard is active; profile-change UI refreshes must not reload stale mission state before live progress is saved.
 - Cover delayed cloud restore cases when changing missions: a live completion must remain complete even if remote mission/profile state is restored before the run reaches the results screen.
+- For configured online builds, cloud profile sync and progression publishing require a valid cached public name. When changing Start Screen, profile sync, or Supabase restore behavior, run `res://tools/validate_profile_name_gate.gd`.
 - When preparing a device-test or release candidate, keep `export_presets.cfg`, `systems/build_info.gd`, [docs/release_notes/latest.md](release_notes/latest.md), and [docs/release_notes/discord_summary.md](release_notes/discord_summary.md) in agreement.
 - For release-only checks, run `powershell -ExecutionPolicy Bypass -File .\tools\validate_release_hygiene.ps1`. On `main`, CI also runs it after GitHub release publication with `-CheckGithubLatest` so the public latest release tag/title must match the checked-in version.
 

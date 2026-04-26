@@ -32,10 +32,12 @@ function Require-Text {
 
 $readmeItem = Require-File "README.md"
 $roadmapItem = Require-File "docs/ROADMAP.md"
+$aiCollaborationItem = Require-File "docs/AI_COLLABORATION.md"
 $agentsItem = Require-File "AGENTS.md"
 
 $readmeText = if ($readmeItem -ne $null) { Get-Content -Raw -LiteralPath $readmeItem.FullName } else { "" }
 $roadmapText = if ($roadmapItem -ne $null) { Get-Content -Raw -LiteralPath $roadmapItem.FullName } else { "" }
+$aiCollaborationText = if ($aiCollaborationItem -ne $null) { Get-Content -Raw -LiteralPath $aiCollaborationItem.FullName } else { "" }
 $agentsText = if ($agentsItem -ne $null) { Get-Content -Raw -LiteralPath $agentsItem.FullName } else { "" }
 
 Require-Text $readmeText "## Download Latest APK" "README should include a near-top latest APK download section."
@@ -43,14 +45,23 @@ Require-Text $readmeText "https://github.com/jessejamesblack/endless-helicopter-
 Require-Text $readmeText "https://github.com/jessejamesblack/endless-helicopter-reborn/releases/tag/android-latest" "README should link to the rolling android-latest release alias."
 Require-Text $readmeText "## Gameplay Preview" "README should include a gameplay preview section."
 Require-Text $readmeText "## Controls" "README should include a controls preview section."
+Require-Text $readmeText "SKILL.md" "README AI collaboration section should mention repo-local skill files."
+Require-Text $readmeText "tools/capture_readme_media.gd" "README AI collaboration section should mention the README media capture workflow."
 Require-Text $readmeText "docs/ROADMAP.md" "README should link to the project roadmap."
 Require-Text $agentsText "docs/ROADMAP.md" "AGENTS.md should include the roadmap in the docs map."
+Require-Text $aiCollaborationText "SKILL.md" "AI collaboration docs should mention repo-local skill files."
+Require-Text $aiCollaborationText "tools/capture_readme_media.gd" "AI collaboration docs should mention README media capture."
+Require-Text $aiCollaborationText "release-hygiene" "AI collaboration docs should mention release hygiene checks."
 
 $mediaFiles = @(
     "docs/media/readme-title.png",
     "docs/media/readme-run.png",
+    "docs/media/readme-upgrades.png",
+    "docs/media/readme-results.png",
     "docs/media/readme-hangar.png",
-    "docs/media/readme-missions.png"
+    "docs/media/readme-missions.png",
+    "docs/media/readme-pause.png",
+    "docs/media/readme-settings.png"
 )
 
 foreach ($relativePath in $mediaFiles) {

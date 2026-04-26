@@ -1,37 +1,34 @@
-# Endless Helicopter Reborn 1.7.0
+# Endless Helicopter Reborn 1.7.6
 
-Version 1.7.0 is a run-variety and skill-expression update. It builds on the 1.6 depth sprint by making objectives appear earlier, adding more ways to succeed or fail inside a run, and giving Scout a visible upgrade-choice identity.
+Version 1.7.6 is a profile-name, cloud-data hygiene, vehicle naming consistency, scoring polish, roadmap clarity, README media, and AI-collaboration documentation release. It keeps local development playable, but configured online builds now require a valid public pilot name before cloud profile creation, progression publishing, or protected online-facing menu flows.
 
 ## Highlights
 
-- Objectives can now begin around 42 seconds, are spaced at least 32 seconds apart, and can appear up to three times per run.
-- Expanded the objective deck to eight events: Rescue Pickup, Reactor Chain, Black Box Recovery, Signal Gates, No-Fire Signal, Barrage Intercept, Bounty Drone, and Clean Flight.
-- No-Fire Signal rewards restraint by failing if the player successfully fires a missile before the timer ends.
-- Clean Flight rewards control by failing if the player uses boundary recovery before the timer ends.
-- Barrage Intercept spawns a small drone pressure setup and rewards projectile interception with an ammo refill.
-- Bounty Drone spawns a marked elite drone after the run has reached the later objective window and rewards the kill with an upgrade choice.
-- Black Box Recovery now uses two alternating-lane boxes, and Signal Gates reward Score Rush for precision flight.
-- Objective selection avoids repeating the same event in one run until the available deck is exhausted.
+- Added a Start Screen pilot-name gate for configured online builds.
+- Play, Scores, Missions, and Hangar now wait for startup profile restore and then require a valid 1-12 character public name when no restored/cached name exists.
+- Settings, Debug, Credits, and required update prompts remain accessible while the name gate is active.
+- Blank or blocked cached names are now cleared instead of silently becoming `"Player"`.
+- Profile sync jobs are no longer queued or flushed without a valid cached name.
+- Hind Strike is now the canonical primary vehicle name in Hangar, missions, results, docs, and validation.
+- Saved daily vehicle missions repair stale rendered vehicle names so mission copy stays aligned with the current Hangar name.
+- Ammo pickups collected while already at full ammo now convert into score and show the normal floating score notifier.
+- The roadmap now calls out future non-AI final art work plus more vehicles and skin sets.
+- README gameplay media now includes current captures for upgrade choices, results, Hangar stats, pause, settings, missions, and the run view.
+- README and AI collaboration docs now mention the repo's root/folder `SKILL.md` guidance, README media capture workflow, release-hygiene checks, and progression-path validators.
 
-## Vehicle And UI Changes
+## Backend And Data Hygiene
 
-- Scout now uses the Reliable Frame passive.
-- Reliable Frame makes Scout's first upgrade choice offer four cards instead of three, giving the starter vehicle a clearer identity.
-- Later Scout choices and all other vehicle choices continue to use the normal three-card upgrade flow.
-- The upgrade choice overlay now supports the four-card Scout layout on supported phone and tablet widths.
-- The Hangar stat readout now describes Scout's first-choice card bonus.
-
-## Technical Notes
-
-- Objective data now supports timer completion, fail actions, elapsed gating, start events, lane-mode pickup spawning, and reward-specific handling.
-- Main gameplay now records objective actions for successful missile fire, projectile intercepts, boundary recovery, reactor kills, and bounty kills.
-- The spawner can launch objective-specific events for Barrage Intercept and Bounty Drone and can place objective pickups in requested lanes.
-- Marked bounty enemies use existing elite behavior plus objective-destroy action plumbing.
-- Default objective availability now includes the full v1.7 objective deck, while existing profile objective fields remain backward-compatible.
-- No Supabase schema migration or backend update is required.
+- `sync-player-profile` now rejects missing names with HTTP `422` before calling the database RPC.
+- `sync_player_profile` now requires a 1-12 character name, writes the submitted valid name, and returns `name`.
+- `get_player_profile` now returns `name` directly from the RPC, so the Edge Function no longer needs a fallback profile-table query.
+- Supabase setup SQL backfills existing blank profile/run-history names, generates safe temporary `Pilotxxxxxx` names when needed, and aborts if duplicate normalized profile names remain.
+- Synced profile names now have a required-name constraint, non-null column enforcement, and family-scoped normalized uniqueness.
 
 ## Validation
 
-- Added behavior validation for objective cadence, the eight-objective catalog, no-repeat objective selection, elapsed gating, timer completion, fail actions, projectile-intercept completion, bounty completion, lane pickup support, and Scout's four-card first choice.
-- Updated depth-retention, gameplay-content, hangar-polish, and feedback validators for the new release behavior.
-- Full Godot validation passes for this release candidate.
+- Added focused validation for strict cached-name handling, Start Screen gate behavior, protected menu blocking, profile-sync queue guards, Edge Function validation, and SQL data hygiene.
+- Updated naming validation so Hangar, results, and mission copy use backend canonical vehicle names.
+- Added coverage for saved vehicle missions with stale names being repaired to Hind Strike.
+- Added coverage that full-ammo pickups use the shared score-award path and show feedback at the pickup position.
+- Updated public-polish validation so every README media path, including the new captures, must exist and be referenced.
+- Updated live reinstall/restore validation so synthetic profile rows use valid public names.
