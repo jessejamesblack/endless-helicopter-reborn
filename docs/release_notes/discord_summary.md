@@ -1,5 +1,6 @@
-- Stable Android release 1.6.12 (166).
-- Adds run upgrades, temporary powerups, short objectives, and clearer vehicle passives.
-- Enemies now apply more pressure with variants, faster firing, entry shots, and stronger early pacing.
-- Fixes boundary abuse, pause spam, long-run background continuity, and responsive spawn lanes.
-- Adds pause-menu missions, live in-run mission progress, mid-run restore protection, monotonic daily mission cloud sync, local queued-payload merge protection, mission mutation refresh guards, new depth-system daily missions, broader mission progress validation, stronger combo scoring, clearer score feedback, safer app-update push copy, and UI polish for new depth displays.
+- Stable Android release 1.6.13 (167).
+- Adds Black Box Recovery and Signal Gates objectives, plus Mine Layer enemies, ion mines, and new storm/minefield encounter chunks.
+- Adds release hygiene validation so export metadata, build info, release notes, Discord summary, and GitHub releases stay aligned.
+- Refreshes the public README with latest APK links, gameplay media, controls, roadmap links, clearer Android install guidance, and issue templates.
+- Keeps the depth sprint foundation: run upgrades, temporary powerups, clearer vehicle passives, enemy variants, faster firing, and entry shots.
+- Keeps the recent fairness/sync fixes for boundary abuse, pause spam, background continuity, responsive spawns, live missions, app-update push copy, and mission cloud sync.
