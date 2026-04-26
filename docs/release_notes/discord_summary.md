@@ -2,5 +2,5 @@
 - Adds Black Box Recovery and Signal Gates objectives, plus Mine Layer enemies, ion mines, and new storm/minefield encounter chunks.
 - Adds release hygiene validation so export metadata, build info, release notes, Discord summary, and GitHub releases stay aligned.
 - Refreshes the public README with latest APK links, gameplay media, controls, roadmap links, clearer Android install guidance, and issue templates.
-- Keeps the depth sprint foundation: run upgrades, temporary powerups, clearer vehicle passives, enemy variants, faster firing, and entry shots.
+- Keeps the depth sprint foundation: run upgrades, temporary powerups, clearer vehicle passives, Hangar stats, enemy variants, faster firing, and entry shots.
 - Keeps the recent fairness/sync fixes for boundary abuse, pause spam, background continuity, responsive spawns, live missions, app-update push copy, and mission cloud sync.

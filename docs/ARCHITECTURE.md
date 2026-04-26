@@ -108,6 +108,7 @@
 - `helicopter_skins.gd` remains the compatibility entry point, but Sprint 5 treats it as the vehicle catalog.
 - Vehicles own silhouette, texture, collision polygon, and any per-vehicle handling/profile differences.
 - Canonical vehicle names are the primary UI labels: Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar.
+- The Hangar surfaces selected-vehicle stats for ammo capacity, lift, handling, gravity, recovery, and passive modifiers using the shared vehicle profile/passive data.
 - Vehicle passives are exposed through shared run modifiers:
   - Scout: flexible baseline with a small upgrade-choice bias.
   - Bubble Chopper: near-miss and combo-window specialist.

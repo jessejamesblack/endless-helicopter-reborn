@@ -11,11 +11,14 @@ func _initialize() -> void:
 func _run_validation() -> void:
 	var player_profile := get_root().get_node_or_null("PlayerProfile")
 	var helicopter_skins := get_root().get_node_or_null("HelicopterSkins")
+	var run_upgrade_manager := get_root().get_node_or_null("RunUpgradeManager")
 	_assert(player_profile != null, "PlayerProfile autoload should exist for hangar validation.")
 	_assert(helicopter_skins != null, "HelicopterSkins autoload should exist for hangar validation.")
-	if player_profile == null or helicopter_skins == null:
+	_assert(run_upgrade_manager != null, "RunUpgradeManager autoload should exist for hangar vehicle stats.")
+	if player_profile == null or helicopter_skins == null or run_upgrade_manager == null:
 		Helper.finish(self, _failures, "Sprint 7 hangar UI validation completed successfully.")
 		return
+	_assert(run_upgrade_manager.has_method("get_vehicle_passive_data"), "RunUpgradeManager should expose passive data for hangar stats.")
 
 	player_profile.apply_validation_state({
 		"unlocked_vehicles": ["default_scout", "bubble_chopper"],
@@ -37,6 +40,16 @@ func _run_validation() -> void:
 	get_root().add_child(hangar)
 	await process_frame
 	await process_frame
+
+	var stats_label := hangar.get_node_or_null("Panel/MarginContainer/VBoxContainer/VehicleStatsCard/VehicleStatsMargin/VehicleStatsLabel") as Label
+	_assert(stats_label != null, "Hangar should include a selected-vehicle stats area.")
+	if stats_label != null:
+		var default_stats := str(hangar.call("get_vehicle_stats_text"))
+		_assert(default_stats.contains("AMMO 2"), "Scout stats should show the baseline ammo capacity.")
+		_assert(default_stats.contains("PASSIVE Flexible Baseline"), "Scout stats should show the passive name.")
+		var huey_stats := str(hangar.call("_build_vehicle_stats_text", "huey_runner", helicopter_skins.get_vehicle_data("huey_runner")))
+		_assert(huey_stats.contains("AMMO 3"), "Huey Runner stats should include the ammo utility passive capacity.")
+		_assert(huey_stats.contains("refund chance"), "Huey Runner stats should show the ammo refund passive.")
 
 	var locked_skin_text := str(hangar.call("_build_skin_button_text", "default_scout", "gold", player_profile, helicopter_skins))
 	_assert(locked_skin_text.contains("Locked"), "Locked skins should show Locked state in Hangar.")

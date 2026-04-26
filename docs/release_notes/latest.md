@@ -14,6 +14,7 @@ Version 1.6.13 is a release-trust, public polish, and gameplay-content update. I
 - Added temporary powerup pickups: Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
 - Added short objective events, including rescue pickups, reactor chains, black box recovery, and signal gates, with score and reward hooks.
 - Strengthened vehicle identities with handling differences and run passives for near misses, ammo economy, shields, missiles, combo stability, and scoring.
+- Added Hangar vehicle stat readouts for ammo capacity, lift, handling, gravity, recovery, and passive perks.
 - Expanded enemy pressure with armored, shielded, and elite variants, Mine Layers, faster turret/drone firing, immediate entry shots, and more responsive early pacing.
 
 ## Player-Facing Fixes And Polish

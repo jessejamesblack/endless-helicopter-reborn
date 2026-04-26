@@ -2,6 +2,7 @@ extends Control
 
 const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const TouchScrollButtonScript = preload("res://systems/touch_scroll_button.gd")
+const PlayerScript = preload("res://scenes/player/player.gd")
 const PREVIEW_CENTER := Vector2(152, 94)
 const PREVIEW_SCALE_MULTIPLIER := 2.55
 const TOUCH_SCROLL_DEADZONE := 10.0
@@ -27,6 +28,7 @@ var _scroll_origin: float = 0.0
 @onready var skin_list_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentRow/SkinListCard/SkinListScroll
 @onready var skin_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentRow/SkinListCard/SkinListScroll/SkinList
 @onready var vehicle_lore_label: Label = $Panel/MarginContainer/VBoxContainer/VehicleLoreCard/VehicleLoreLabel
+@onready var vehicle_stats_label: Label = $Panel/MarginContainer/VBoxContainer/VehicleStatsCard/VehicleStatsMargin/VehicleStatsLabel
 @onready var skin_lore_label: Label = $Panel/MarginContainer/VBoxContainer/SkinLoreCard/SkinLoreLabel
 @onready var requirement_label: Label = $Panel/MarginContainer/VBoxContainer/RequirementLabel
 @onready var equip_vehicle_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonRow/EquipVehicleButton
@@ -190,6 +192,7 @@ func _update_details() -> void:
 	if not dossier_parts.is_empty():
 		vehicle_lines.append(" • ".join(dossier_parts))
 	vehicle_lore_label.text = _join_non_empty_lines(vehicle_lines)
+	vehicle_stats_label.text = _build_vehicle_stats_text(_selected_vehicle_id, vehicle_data)
 
 	var skin_lines: Array[String] = [
 		str(skin_data.get("display_name", "Factory")),
@@ -246,6 +249,125 @@ func _build_requirement_text(player_profile: Node, helicopter_skins: Node) -> St
 		"original_icon":
 			return "Original Icon: Score 10,000+ in one run."
 	return str(skin_data.get("unlock_requirement", "Unlock this skin by flying more runs."))
+
+func _build_vehicle_stats_text(vehicle_id: String, vehicle_data: Dictionary) -> String:
+	var profile: Dictionary = vehicle_data.get("profile", {})
+	var passive_data := _get_vehicle_passive_data(vehicle_id)
+	var passive_name := str(passive_data.get("name", _format_passive_id(str(profile.get("passive_id", "")))))
+	var passive_modifiers: Dictionary = passive_data.get("modifiers", {})
+	var ammo_capacity := PlayerScript.BASE_AMMO_CAPACITY + int(round(float(passive_modifiers.get("max_ammo_bonus", 0.0))))
+	ammo_capacity = maxi(ammo_capacity, PlayerScript.BASE_AMMO_CAPACITY)
+
+	var stat_line := "STATS  AMMO %d  |  LIFT %s  |  HANDLING %s" % [
+		ammo_capacity,
+		_get_lift_rating(float(profile.get("jump_velocity", -400.0))),
+		_get_handling_rating(float(profile.get("tilt_speed", 5.0)), float(profile.get("max_tilt", 0.5))),
+	]
+	var support_line := "GRAVITY %s  |  RECOVERY %s  |  PASSIVE %s" % [
+		_get_gravity_rating(float(profile.get("gravity_scale", 1.0))),
+		_get_recovery_rating(profile, passive_modifiers),
+		passive_name,
+	]
+	var modifier_line := "PERK  %s" % _format_modifier_summary(passive_modifiers)
+	return "\n".join([stat_line, support_line, modifier_line])
+
+func _get_lift_rating(jump_velocity_value: float) -> String:
+	var lift_strength := absf(jump_velocity_value)
+	if lift_strength >= 420.0:
+		return "High"
+	if lift_strength <= 375.0:
+		return "Heavy"
+	return "Balanced"
+
+func _get_handling_rating(tilt_speed_value: float, max_tilt_value: float) -> String:
+	var handling_score := tilt_speed_value + max_tilt_value * 4.0
+	if handling_score >= 7.6:
+		return "Agile"
+	if handling_score <= 6.1:
+		return "Steady"
+	return "Balanced"
+
+func _get_gravity_rating(gravity_scale: float) -> String:
+	if gravity_scale <= 0.96:
+		return "Light"
+	if gravity_scale >= 1.08:
+		return "Heavy"
+	return "Standard"
+
+func _get_recovery_rating(profile: Dictionary, passive_modifiers: Dictionary) -> String:
+	if int(passive_modifiers.get("run_shield_charges", 0)) > 0:
+		return "Shielded"
+	var recovery_bonus := float(passive_modifiers.get("boundary_recovery_multiplier", 0.0))
+	if recovery_bonus > 0.0:
+		return "Strong"
+	var bounce_score := float(profile.get("boundary_bounce_up_speed", 360.0)) + float(profile.get("boundary_bounce_down_speed", 300.0))
+	if bounce_score >= 700.0:
+		return "Strong"
+	if bounce_score <= 640.0:
+		return "Gentle"
+	return "Standard"
+
+func _format_modifier_summary(modifiers: Dictionary) -> String:
+	var parts: Array[String] = []
+	var ammo_bonus := int(round(float(modifiers.get("max_ammo_bonus", 0.0))))
+	if ammo_bonus > 0:
+		parts.append("+%d ammo" % ammo_bonus)
+	var refund_chance := float(modifiers.get("ammo_refund_chance", 0.0))
+	if refund_chance > 0.0:
+		parts.append("%d%% refund chance" % int(round(refund_chance * 100.0)))
+	var shield_charges := int(modifiers.get("run_shield_charges", 0))
+	if shield_charges > 0:
+		parts.append("%d shield" % shield_charges)
+	var near_miss_bonus := float(modifiers.get("near_miss_multiplier", 0.0))
+	if near_miss_bonus > 0.0:
+		parts.append("+%d%% near misses" % int(round(near_miss_bonus * 100.0)))
+	var combo_bonus := float(modifiers.get("combo_timeout_bonus", 0.0))
+	if combo_bonus > 0.0:
+		parts.append("+%.2fs combo" % combo_bonus)
+	var recovery_bonus := float(modifiers.get("boundary_recovery_multiplier", 0.0))
+	if recovery_bonus > 0.0:
+		parts.append("+%d%% recovery" % int(round(recovery_bonus * 100.0)))
+	var missile_score_bonus := int(round(float(modifiers.get("missile_score_bonus", 0.0))))
+	if missile_score_bonus > 0:
+		parts.append("+%d missile score" % missile_score_bonus)
+	var missile_cooldown_multiplier := float(modifiers.get("missile_cooldown_multiplier", 0.0))
+	if missile_cooldown_multiplier < 0.0:
+		parts.append("%d%% faster fire" % int(round(absf(missile_cooldown_multiplier) * 100.0)))
+	var precision_bonus := int(round(float(modifiers.get("precision_bonus", 0.0))))
+	if precision_bonus > 0:
+		parts.append("+%d precision" % precision_bonus)
+	var gravity_multiplier := float(modifiers.get("gravity_multiplier", 0.0))
+	if gravity_multiplier < 0.0:
+		parts.append("lighter gravity")
+	elif gravity_multiplier > 0.0:
+		parts.append("heavier gravity")
+	var choice_weight_bonus := float(modifiers.get("choice_weight_bonus", 0.0))
+	if choice_weight_bonus > 0.0:
+		parts.append("upgrade choice bias")
+	if parts.is_empty():
+		return "No passive modifier."
+	return ", ".join(parts)
+
+func _get_vehicle_passive_data(vehicle_id: String) -> Dictionary:
+	var run_upgrade_manager := get_node_or_null("/root/RunUpgradeManager")
+	if run_upgrade_manager != null and run_upgrade_manager.has_method("get_vehicle_passive_data"):
+		return run_upgrade_manager.get_vehicle_passive_data(vehicle_id)
+	var helicopter_skins := _get_helicopter_skins()
+	var passive_id := "flexible_baseline"
+	if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_profile"):
+		passive_id = str(helicopter_skins.get_vehicle_profile(vehicle_id).get("passive_id", passive_id))
+	return {
+		"passive_id": passive_id,
+		"name": _format_passive_id(passive_id),
+		"modifiers": {},
+	}
+
+func _format_passive_id(passive_id: String) -> String:
+	var words := passive_id.replace("_", " ").split(" ", false)
+	var formatted: Array[String] = []
+	for word in words:
+		formatted.append(word.capitalize())
+	return " ".join(formatted)
 
 func _get_selected_vehicle_skin(player_profile: Node, vehicle_id: String) -> String:
 	if player_profile != null and player_profile.has_method("get_equipped_vehicle_skin_id"):
@@ -378,6 +500,9 @@ func get_preview_state() -> Dictionary:
 		"position": preview_sprite.position if preview_sprite != null else Vector2.ZERO,
 		"scale": preview_sprite.scale if preview_sprite != null else Vector2.ZERO,
 	}
+
+func get_vehicle_stats_text() -> String:
+	return vehicle_stats_label.text if vehicle_stats_label != null else ""
 
 func _join_non_empty_lines(lines: Array[String]) -> String:
 	var filtered: Array[String] = []

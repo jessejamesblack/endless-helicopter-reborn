@@ -204,6 +204,29 @@ text = "Scout"
 vertical_alignment = 1
 autowrap_mode = 2
 
+[node name="VehicleStatsCard" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VehicleStatsMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/VehicleStatsCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="VehicleStatsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/VehicleStatsCard/VehicleStatsMargin"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/line_spacing = 1
+theme_override_font_sizes/font_size = 13
+text = "STATS"
+vertical_alignment = 1
+autowrap_mode = 2
+
 [node name="SkinLoreCard" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
