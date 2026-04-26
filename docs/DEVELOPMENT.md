@@ -8,9 +8,21 @@
 powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
 
-This full validator parses the main scripts and runs the focused gameplay checks added for the depth/feedback work, including depth retention, feedback fairness, enemy threat, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, and feature discovery.
+This full validator parses the main scripts and runs the focused gameplay checks added for the depth/feedback work, including depth retention, feedback fairness, enemy threat, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, public polish docs, and feature discovery.
 
 It also runs release hygiene validation before Godot starts, checking that `export_presets.cfg`, `systems/build_info.gd`, and release notes all agree on the same version name/code.
+
+Public-facing README, roadmap, issue template, and media paths can be checked directly with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\validate_public_polish.ps1
+```
+
+README media can be refreshed from the current Godot scenes with:
+
+```powershell
+Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_readme_media.gd
+```
 
 For narrow iteration on recent run-depth changes, useful focused scripts include:
 

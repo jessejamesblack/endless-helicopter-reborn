@@ -1,0 +1,43 @@
+name: Gameplay Tuning
+description: Suggest a balance, pacing, vehicle, mission, enemy, or scoring adjustment.
+title: "[Tuning]: "
+labels: ["enhancement", "area:gameplay"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Tuning area
+      options:
+        - Vehicle identity
+        - Upgrades or powerups
+        - Objectives or missions
+        - Enemy pressure
+        - Scoring or combos
+        - Spawning or layout
+    validations:
+      required: true
+  - type: textarea
+    id: current_feel
+    attributes:
+      label: Current feel
+      description: What feels too strong, too weak, confusing, slow, unfair, or flat?
+    validations:
+      required: true
+  - type: textarea
+    id: desired_feel
+    attributes:
+      label: Desired feel
+      description: What should the player experience instead?
+    validations:
+      required: true
+  - type: input
+    id: build_version
+    attributes:
+      label: Build version
+      placeholder: "1.6.12 (166)"
+  - type: textarea
+    id: notes
+    attributes:
+      label: Run details
+      description: Vehicle, time survived, mission/powerup state, device layout, or anything else that affects tuning.
+

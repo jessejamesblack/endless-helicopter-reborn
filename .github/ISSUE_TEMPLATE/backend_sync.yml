@@ -1,0 +1,42 @@
+name: Backend Or Sync
+description: Report leaderboard, profile restore, daily mission sync, Supabase, or push delivery issues.
+title: "[Sync]: "
+labels: ["bug", "area:backend", "area:sync"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Daily missions
+        - Profile restore
+        - Leaderboard submission
+        - Push notification
+        - Achievement share
+        - Other backend sync
+    validations:
+      required: true
+  - type: input
+    id: player_id
+    attributes:
+      label: Player ID
+      description: Include the in-app player id only if you are comfortable sharing it in this issue.
+      placeholder: "android-player-..."
+  - type: input
+    id: build_version
+    attributes:
+      label: Build version
+      placeholder: "1.6.12 (166)"
+  - type: textarea
+    id: symptoms
+    attributes:
+      label: Symptoms
+      description: What did the app show, what did the backend show, and what should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: timing
+    attributes:
+      label: Timing
+      description: Include approximate date/time, timezone, and whether the app was offline, freshly installed, or just updated.
+
