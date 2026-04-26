@@ -6,6 +6,13 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+
+Write-Host 'Validating release version hygiene'
+& (Join-Path $PSScriptRoot 'validate_release_hygiene.ps1')
+
+Write-Host 'Validating public polish docs'
+& (Join-Path $PSScriptRoot 'validate_public_polish.ps1')
+
 $scripts = @(
     'res://systems/game_settings.gd',
     'res://systems/haptics_manager.gd',
@@ -27,6 +34,7 @@ $scripts = @(
     'res://systems/android_identity.gd',
     'res://systems/feature_discovery_manager.gd',
     'res://systems/hangar_navigation_state.gd',
+    'res://tools/capture_readme_media.gd',
     'res://scenes/background/background_manager.gd',
     'res://scenes/game/main/encounter_catalog.gd',
     'res://scenes/game/main/spawner.gd',

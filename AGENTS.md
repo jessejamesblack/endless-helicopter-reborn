@@ -14,6 +14,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - [README.md](README.md): project overview, Android install flow, CI build flow.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): scene layout, gameplay flow, service boundaries.
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): day-to-day commands and validation workflow.
+- [docs/ROADMAP.md](docs/ROADMAP.md): public milestone direction and near-term priorities.
 - [docs/MCP_SETUP.md](docs/MCP_SETUP.md): project MCP servers for Codex and VS Code.
 - [docs/AI_COLLABORATION.md](docs/AI_COLLABORATION.md): how this repo applies harness-engineering ideas.
 - [docs/ANDROID_CONTINUITY_CUTOVER.md](docs/ANDROID_CONTINUITY_CUTOVER.md): canonical Android signing cutover and fresh-start restore runbook.

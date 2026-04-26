@@ -1,0 +1,44 @@
+name: Android Install Or Update
+description: Report APK install, update, signing, restore, or push notification trouble.
+title: "[Android]: "
+labels: ["bug", "area:android"]
+body:
+  - type: input
+    id: build_version
+    attributes:
+      label: APK version
+      placeholder: "1.6.12 (166)"
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: APK source
+      options:
+        - Latest GitHub Release
+        - android-latest release alias
+        - GitHub Actions artifact
+        - Local export
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: "Pixel 8, Android 15"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include the install/update error, restore problem, or notification behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: In-app diagnostics
+      description: If available, include signing mode, signing-certificate preview, Firebase readiness, and push bridge status from Debug.
+

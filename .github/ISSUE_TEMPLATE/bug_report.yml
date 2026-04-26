@@ -1,0 +1,51 @@
+name: Bug Report
+description: Report a gameplay, UI, crash, or regression bug.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Clear device/build details help us reproduce it quickly.
+  - type: input
+    id: build_version
+    attributes:
+      label: Build version
+      description: Include the in-app version/code if you can.
+      placeholder: "1.6.12 (166)"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android APK
+        - Windows Godot editor
+        - GitHub Actions build
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a run with ...
+        2. Collect ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add logs, clips, captures, or device details if relevant.
+
