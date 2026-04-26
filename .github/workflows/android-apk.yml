@@ -84,6 +84,11 @@ jobs:
             echo "STANDARD_APK_PATH=$STANDARD_APK_PATH"
           } >> "$GITHUB_ENV"
 
+      - name: Validate checked-in release metadata
+        shell: pwsh
+        run: |
+          & ./tools/validate_release_hygiene.ps1 -AppName "$env:APP_NAME"
+
       - name: Prepare Firebase Android config
         shell: bash
         run: |
@@ -299,6 +304,14 @@ jobs:
             gh release create android-latest --title "${APP_NAME} Latest APK" --notes "Rolling latest Android build.\n\nVersioned release: ${RELEASE_URL}" --prerelease
           fi
           gh release upload android-latest "$STANDARD_APK_PATH" --clobber
+
+      - name: Validate GitHub latest release metadata
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          & ./tools/validate_release_hygiene.ps1 -CheckGithubLatest -Repository "$env:GITHUB_REPOSITORY" -AppName "$env:APP_NAME"
 
       - name: Publish release metadata to Supabase
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

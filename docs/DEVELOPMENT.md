@@ -10,6 +10,8 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C
 
 This full validator parses the main scripts and runs the focused gameplay checks added for the depth/feedback work, including depth retention, feedback fairness, enemy threat, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, and feature discovery.
 
+It also runs release hygiene validation before Godot starts, checking that `export_presets.cfg`, `systems/build_info.gd`, and release notes all agree on the same version name/code.
+
 For narrow iteration on recent run-depth changes, useful focused scripts include:
 
 - `res://tools/validate_depth_retention.gd`
@@ -75,6 +77,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - Do not call `refresh_daily_missions()` from a path that can interrupt live mission mutation unless the mutation guard is active; profile-change UI refreshes must not reload stale mission state before live progress is saved.
 - Cover delayed cloud restore cases when changing missions: a live completion must remain complete even if remote mission/profile state is restored before the run reaches the results screen.
 - When preparing a device-test or release candidate, keep `export_presets.cfg`, `systems/build_info.gd`, [docs/release_notes/latest.md](release_notes/latest.md), and [docs/release_notes/discord_summary.md](release_notes/discord_summary.md) in agreement.
+- For release-only checks, run `powershell -ExecutionPolicy Bypass -File .\tools\validate_release_hygiene.ps1`. On `main`, CI also runs it after GitHub release publication with `-CheckGithubLatest` so the public latest release tag/title must match the checked-in version.
 
 ## CI
 

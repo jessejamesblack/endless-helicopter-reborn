@@ -6,6 +6,10 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+
+Write-Host 'Validating release version hygiene'
+& (Join-Path $PSScriptRoot 'validate_release_hygiene.ps1')
+
 $scripts = @(
     'res://systems/game_settings.gd',
     'res://systems/haptics_manager.gd',
