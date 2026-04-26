@@ -29,9 +29,9 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 content_margin_left = 16.0
-content_margin_top = 10.0
+content_margin_top = 8.0
 content_margin_right = 16.0
-content_margin_bottom = 10.0
+content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
 bg_color = Color(0.0705882, 0.105882, 0.196078, 0.95)
@@ -45,9 +45,9 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 content_margin_left = 18.0
-content_margin_top = 10.0
+content_margin_top = 8.0
 content_margin_right = 18.0
-content_margin_bottom = 10.0
+content_margin_bottom = 8.0
 
 [node name="HangarScreen" type="Control"]
 layout_mode = 3
@@ -101,9 +101,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 26
-theme_override_constants/margin_top = 14
+theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 26
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_bottom = 10
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
@@ -114,62 +114,59 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 26
 text = "Vehicles"
 horizontal_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Choose a vehicle, tune its finish, and read the hangar dossier."
 horizontal_alignment = 1
 
 [node name="ContentRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 164)
 layout_mode = 2
-size_flags_vertical = 3
 theme_override_constants/separation = 8
 
 [node name="PreviewCard" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow"]
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="PreviewMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow/PreviewCard"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
 
 [node name="PreviewViewportContainer" type="SubViewportContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow/PreviewCard/PreviewMargin"]
-custom_minimum_size = Vector2(304, 188)
+custom_minimum_size = Vector2(280, 152)
 layout_mode = 2
 stretch = true
 
 [node name="PreviewViewport" type="SubViewport" parent="Panel/MarginContainer/VBoxContainer/ContentRow/PreviewCard/PreviewMargin/PreviewViewportContainer"]
 transparent_bg = true
 handle_input_locally = false
-size = Vector2i(304, 188)
+size = Vector2i(280, 152)
 
 [node name="PreviewRoot" type="Node2D" parent="Panel/MarginContainer/VBoxContainer/ContentRow/PreviewCard/PreviewMargin/PreviewViewportContainer/PreviewViewport"]
 
 [node name="PreviewSprite" type="Sprite2D" parent="Panel/MarginContainer/VBoxContainer/ContentRow/PreviewCard/PreviewMargin/PreviewViewportContainer/PreviewViewport/PreviewRoot"]
-position = Vector2(152, 94)
+position = Vector2(140, 80)
 
 [node name="VehicleListCard" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VehicleListScroll" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow/VehicleListCard"]
-custom_minimum_size = Vector2(0, 188)
+custom_minimum_size = Vector2(0, 152)
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="VehicleList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow/VehicleListCard/VehicleListScroll"]
-custom_minimum_size = Vector2(0, 188)
+custom_minimum_size = Vector2(0, 152)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
@@ -177,16 +174,14 @@ theme_override_constants/separation = 0
 [node name="SkinListCard" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="SkinListScroll" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow/SkinListCard"]
-custom_minimum_size = Vector2(0, 188)
+custom_minimum_size = Vector2(0, 152)
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="SkinList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentRow/SkinListCard/SkinListScroll"]
-custom_minimum_size = Vector2(0, 188)
+custom_minimum_size = Vector2(0, 152)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
@@ -196,10 +191,10 @@ layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VehicleLoreLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/VehicleLoreCard"]
-custom_minimum_size = Vector2(0, 72)
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 theme_override_constants/line_spacing = 0
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Scout"
 vertical_alignment = 1
 autowrap_mode = 2
@@ -211,18 +206,18 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 [node name="VehicleStatsMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/VehicleStatsCard"]
 layout_mode = 2
 theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 8
+theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_bottom = 4
 
 [node name="VehicleStatsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/VehicleStatsCard/VehicleStatsMargin"]
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 2
-theme_override_constants/line_spacing = 1
-theme_override_font_sizes/font_size = 13
+theme_override_constants/line_spacing = 0
+theme_override_font_sizes/font_size = 12
 text = "STATS"
 vertical_alignment = 1
 autowrap_mode = 2
@@ -232,10 +227,10 @@ layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="SkinLoreLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SkinLoreCard"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_constants/line_spacing = 0
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Factory"
 vertical_alignment = 1
 autowrap_mode = 2
@@ -244,7 +239,7 @@ autowrap_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.921569, 0.94902, 1, 1)
 theme_override_constants/line_spacing = 0
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Unlocked by default."
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -254,34 +249,34 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="BackButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Back"
 
 [node name="EquipVehicleButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "EQUIP VEHICLE"
 
 [node name="EquipSkinButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.952941, 0.835294, 0.564706, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.0313726, 0.0823529, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "EQUIP SKIN"

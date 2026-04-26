@@ -3,13 +3,13 @@ extends Control
 const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen/start_screen.tscn"
 const TouchScrollButtonScript = preload("res://systems/touch_scroll_button.gd")
 const PlayerScript = preload("res://scenes/player/player.gd")
-const PREVIEW_CENTER := Vector2(152, 94)
+const PREVIEW_CENTER := Vector2(140, 80)
 const PREVIEW_SCALE_MULTIPLIER := 2.55
 const TOUCH_SCROLL_DEADZONE := 10.0
 const TOUCH_SCROLL_AXIS_BIAS := 1.2
 const MOUSE_POINTER_ID := -1000
-const LIST_BUTTON_HEIGHT := 42.0
-const LIST_BUTTON_FONT_SIZE := 15
+const LIST_BUTTON_HEIGHT := 38.0
+const LIST_BUTTON_FONT_SIZE := 14
 
 var _selected_vehicle_id: String = "default_scout"
 var _selected_skin_id: String = "factory"
@@ -258,18 +258,15 @@ func _build_vehicle_stats_text(vehicle_id: String, vehicle_data: Dictionary) -> 
 	var ammo_capacity := PlayerScript.BASE_AMMO_CAPACITY + int(round(float(passive_modifiers.get("max_ammo_bonus", 0.0))))
 	ammo_capacity = maxi(ammo_capacity, PlayerScript.BASE_AMMO_CAPACITY)
 
-	var stat_line := "STATS  AMMO %d  |  LIFT %s  |  HANDLING %s" % [
+	var stat_line := "STATS  AMMO %d | LIFT %s | HANDLING %s | GRAVITY %s | RECOVERY %s" % [
 		ammo_capacity,
 		_get_lift_rating(float(profile.get("jump_velocity", -400.0))),
 		_get_handling_rating(float(profile.get("tilt_speed", 5.0)), float(profile.get("max_tilt", 0.5))),
-	]
-	var support_line := "GRAVITY %s  |  RECOVERY %s  |  PASSIVE %s" % [
 		_get_gravity_rating(float(profile.get("gravity_scale", 1.0))),
 		_get_recovery_rating(profile, passive_modifiers),
-		passive_name,
 	]
-	var modifier_line := "PERK  %s" % _format_modifier_summary(passive_modifiers)
-	return "\n".join([stat_line, support_line, modifier_line])
+	var modifier_line := "PASSIVE %s | %s" % [passive_name, _format_modifier_summary(passive_modifiers)]
+	return "\n".join([stat_line, modifier_line])
 
 func _get_lift_rating(jump_velocity_value: float) -> String:
 	var lift_strength := absf(jump_velocity_value)
