@@ -10,7 +10,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C
 
 This full validator parses the main scripts and runs the focused gameplay checks added for the depth/feedback work, including depth retention, feedback fairness, enemy threat, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, public polish docs, and feature discovery.
 
-It also runs release hygiene validation before Godot starts, checking that `export_presets.cfg`, `systems/build_info.gd`, and release notes all agree on the same version name/code.
+It also runs release hygiene validation before Godot starts, checking that `export_presets.cfg`, `systems/build_info.gd`, and release notes all agree on the same version name/code. On public release builds, CI also checks that GitHub's latest versioned release and the rolling `android-latest` alias point at the checked-in version.
 
 Public-facing README, roadmap, issue template, and media paths can be checked directly with:
 
@@ -91,14 +91,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - Cover delayed cloud restore cases when changing missions: a live completion must remain complete even if remote mission/profile state is restored before the run reaches the results screen.
 - For configured online builds, cloud profile sync and progression publishing require a valid cached public name. When changing Start Screen, profile sync, or Supabase restore behavior, run `res://tools/validate_profile_name_gate.gd`.
 - When preparing a device-test or release candidate, keep `export_presets.cfg`, `systems/build_info.gd`, [docs/release_notes/latest.md](release_notes/latest.md), and [docs/release_notes/discord_summary.md](release_notes/discord_summary.md) in agreement.
-- For release-only checks, run `powershell -ExecutionPolicy Bypass -File .\tools\validate_release_hygiene.ps1`. On `main`, CI also runs it after GitHub release publication with `-CheckGithubLatest` so the public latest release tag/title must match the checked-in version.
+- For release-only checks, run `powershell -ExecutionPolicy Bypass -File .\tools\validate_release_hygiene.ps1`. On `main`, CI also runs it after GitHub release publication with `-CheckGithubLatest` so the public latest release tag/title and `android-latest` APK alias must match the checked-in version.
 
 ## CI
 
 - Workflow: `.github/workflows/android-apk.yml`
 - Before any release build, always bump `export_presets.cfg` `version/code` and `version/name`, then update `docs/release_notes/latest.md` and `docs/release_notes/discord_summary.md` to match.
 - Pull requests to `main` run validation and produce an APK artifact.
-- Pushes to `main` run validation, build an Android APK, publish a versioned GitHub release, and refresh the rolling `android-latest` prerelease alias.
+- Pushes to `main` run validation, build an Android APK, publish a versioned GitHub release, refresh the rolling `android-latest` prerelease alias, and remove stale APK assets from those releases before uploading the current APK.
 - Manual workflow runs only publish a release when they target `main`; branch and PR runs stay artifact-only.
 - CI also builds the Android FCM plugin AARs before exporting the APK.
 - Outputs include a workflow artifact containing the generated APK.

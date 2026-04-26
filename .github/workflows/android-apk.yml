@@ -290,12 +290,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
+          EXPECTED_APK_ASSET="${APP_NAME}.apk"
+
+          delete_stale_apk_assets() {
+            local release_tag="$1"
+            local asset_names
+            asset_names="$(gh release view "$release_tag" --json assets --jq '.assets[].name')"
+            while IFS= read -r asset_name; do
+              local asset_name_lower="${asset_name,,}"
+              if [[ -n "$asset_name" && "$asset_name_lower" == *.apk && "$asset_name" != "$EXPECTED_APK_ASSET" ]]; then
+                gh release delete-asset "$release_tag" "$asset_name" --yes
+              fi
+            done <<< "$asset_names"
+          }
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release edit "$RELEASE_TAG" --title "${APP_NAME} ${VERSION_NAME} (${VERSION_CODE})" --notes-file "$RELEASE_NOTES_FILE"
           else
-            gh release create "$RELEASE_TAG" "$STANDARD_APK_PATH" --title "${APP_NAME} ${VERSION_NAME} (${VERSION_CODE})" --notes-file "$RELEASE_NOTES_FILE"
+            gh release create "$RELEASE_TAG" --title "${APP_NAME} ${VERSION_NAME} (${VERSION_CODE})" --notes-file "$RELEASE_NOTES_FILE"
           fi
+          delete_stale_apk_assets "$RELEASE_TAG"
           gh release upload "$RELEASE_TAG" "$STANDARD_APK_PATH" --clobber
 
           if gh release view android-latest >/dev/null 2>&1; then
@@ -303,6 +317,7 @@ jobs:
           else
             gh release create android-latest --title "${APP_NAME} Latest APK" --notes "Rolling latest Android build.\n\nVersioned release: ${RELEASE_URL}" --prerelease
           fi
+          delete_stale_apk_assets android-latest
           gh release upload android-latest "$STANDARD_APK_PATH" --clobber
 
       - name: Validate GitHub latest release metadata
