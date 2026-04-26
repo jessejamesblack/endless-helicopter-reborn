@@ -2,6 +2,7 @@ extends SceneTree
 
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 const HANGAR_SCENE := preload("res://scenes/ui/hangar/hangar_screen.tscn")
+const HANGAR_VIEWPORT_SIZE := Vector2i(1100, 619)
 
 var _failures: Array[String] = []
 
@@ -9,6 +10,7 @@ func _initialize() -> void:
 	call_deferred("_run_validation")
 
 func _run_validation() -> void:
+	get_root().size = HANGAR_VIEWPORT_SIZE
 	var player_profile := get_root().get_node_or_null("PlayerProfile")
 	var helicopter_skins := get_root().get_node_or_null("HelicopterSkins")
 	var run_upgrade_manager := get_root().get_node_or_null("RunUpgradeManager")
@@ -40,6 +42,7 @@ func _run_validation() -> void:
 	get_root().add_child(hangar)
 	await process_frame
 	await process_frame
+	_assert_hangar_layout_fits(hangar)
 
 	var stats_label := hangar.get_node_or_null("Panel/MarginContainer/VBoxContainer/VehicleStatsCard/VehicleStatsMargin/VehicleStatsLabel") as Label
 	_assert(stats_label != null, "Hangar should include a selected-vehicle stats area.")
@@ -68,6 +71,23 @@ func _run_validation() -> void:
 	_assert(hangar_text.contains("return \"%s  -  Equipped\" % label"), "Hangar should still show Equipped only for unlocked selections.")
 
 	Helper.finish(self, _failures, "Sprint 7 hangar UI validation completed successfully.")
+
+func _assert_hangar_layout_fits(hangar: Control) -> void:
+	var panel := hangar.get_node_or_null("Panel") as Control
+	var button_row := hangar.get_node_or_null("Panel/MarginContainer/VBoxContainer/ButtonRow") as Control
+	var stats_card := hangar.get_node_or_null("Panel/MarginContainer/VBoxContainer/VehicleStatsCard") as Control
+	_assert(panel != null, "Hangar should expose the main panel for layout validation.")
+	_assert(button_row != null, "Hangar should expose the action button row for layout validation.")
+	_assert(stats_card != null, "Hangar should expose the stats card for layout validation.")
+	if panel == null:
+		return
+	var panel_rect := panel.get_global_rect().grow(1.0)
+	for control in [button_row, stats_card]:
+		if control == null:
+			continue
+		var checked_control := control as Control
+		var control_rect: Rect2 = checked_control.get_global_rect()
+		_assert(panel_rect.encloses(control_rect), "%s should fit inside the hangar panel at %dx%d." % [checked_control.name, HANGAR_VIEWPORT_SIZE.x, HANGAR_VIEWPORT_SIZE.y])
 
 func _assert(condition: bool, message: String) -> void:
 	Helper.assert_condition(_failures, condition, message)
