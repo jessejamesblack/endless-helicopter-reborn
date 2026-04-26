@@ -745,8 +745,10 @@ func _pick_mission_for_slot(date_key: String, slot_name: String, pool: Array, us
 	return _build_mission_entry(date_key, slot_name, fallback, fallback_vehicle_id)
 
 func _build_mission_entry(date_key: String, slot_name: String, definition: Dictionary, vehicle_id: String = "") -> Dictionary:
-	var title := str(definition.get("title", "Daily Mission"))
-	var description := str(definition.get("description", ""))
+	var title_template := str(definition.get("title", "Daily Mission"))
+	var description_template := str(definition.get("description", ""))
+	var title := title_template
+	var description := description_template
 	if not vehicle_id.is_empty():
 		var vehicle_name := _get_vehicle_display_name(vehicle_id)
 		title = title.replace("{vehicle}", vehicle_name)
@@ -760,6 +762,8 @@ func _build_mission_entry(date_key: String, slot_name: String, definition: Dicti
 		"badge_text": BONUS_BADGE_TEXT if bool(definition.get("bonus", slot_name.begins_with("bonus"))) else "",
 		"title": title,
 		"description": description,
+		"title_template": title_template if not vehicle_id.is_empty() else "",
+		"description_template": description_template if not vehicle_id.is_empty() else "",
 		"target": definition.get("target", 1),
 		"progress": 0.0,
 		"completed": false,
@@ -1022,8 +1026,47 @@ func _sanitize_missions(raw_value, date_key: String) -> Array[Dictionary]:
 		mission["progress_mode"] = str(mission.get("progress_mode", "sum"))
 		mission["reward_text"] = str(mission.get("reward_text", "Core unlock progress"))
 		mission["vehicle_id"] = str(mission.get("vehicle_id", ""))
+		mission = _refresh_vehicle_mission_display_text(mission)
 		sanitized.append(mission)
 	return sanitized
+
+func _refresh_vehicle_mission_display_text(mission: Dictionary) -> Dictionary:
+	var vehicle_id := str(mission.get("vehicle_id", "")).strip_edges()
+	if vehicle_id.is_empty():
+		return mission
+
+	var definition := _get_mission_definition_for_type(str(mission.get("type", "")))
+	var title_template := str(mission.get("title_template", "")).strip_edges()
+	var description_template := str(mission.get("description_template", "")).strip_edges()
+	if title_template.is_empty() and not definition.is_empty():
+		title_template = str(definition.get("title", ""))
+	if description_template.is_empty() and not definition.is_empty():
+		description_template = str(definition.get("description", ""))
+	if title_template.is_empty() and description_template.is_empty():
+		return mission
+
+	var vehicle_name := _get_vehicle_display_name(vehicle_id)
+	if not title_template.is_empty():
+		mission["title"] = title_template.replace("{vehicle}", vehicle_name)
+		mission["title_template"] = title_template
+	if not description_template.is_empty():
+		mission["description"] = description_template.replace("{vehicle}", vehicle_name)
+		mission["description_template"] = description_template
+	return mission
+
+func _get_mission_definition_for_type(mission_type: String) -> Dictionary:
+	for pool in [
+		CORE_EASY_MISSIONS,
+		CORE_COMBAT_MISSIONS,
+		CORE_SKILL_MISSIONS,
+		BONUS_VEHICLE_OR_STRETCH_MISSIONS,
+		BONUS_PRESTIGE_MISSIONS,
+	]:
+		for definition_variant in pool:
+			var definition := definition_variant as Dictionary
+			if str(definition.get("type", "")) == mission_type:
+				return definition.duplicate(true)
+	return {}
 
 func _queue_daily_sync() -> void:
 	if validation_mode_enabled:
