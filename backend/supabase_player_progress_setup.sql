@@ -86,6 +86,92 @@ on public.family_run_history (family_id, score desc, created_at desc);
 create index if not exists family_daily_dispatch_log_date_idx
 on public.family_daily_dispatch_log (family_id, mission_date, created_at desc);
 
+update public.family_player_profiles
+set
+	name = left(btrim(name), 12),
+	updated_at = now()
+where name is not null
+  and name is distinct from left(btrim(name), 12);
+
+update public.family_run_history
+set name = left(btrim(name), 12)
+where name is not null
+  and name is distinct from left(btrim(name), 12);
+
+update public.family_player_profiles as profile
+set
+	name = left(btrim(leaderboard.name), 12),
+	updated_at = now()
+from public.family_leaderboard as leaderboard
+where profile.family_id = leaderboard.family_id
+  and profile.player_id = leaderboard.player_id
+  and (profile.name is null or btrim(profile.name) = '')
+  and btrim(leaderboard.name) <> '';
+
+update public.family_run_history as history
+set name = left(btrim(leaderboard.name), 12)
+from public.family_leaderboard as leaderboard
+where history.family_id = leaderboard.family_id
+  and history.player_id = leaderboard.player_id
+  and (history.name is null or btrim(history.name) = '')
+  and btrim(leaderboard.name) <> '';
+
+with missing_profiles as (
+	select
+		id,
+		'Pilot' || right(md5(player_id || ':' || id::text), 6) as generated_name
+	from public.family_player_profiles
+	where name is null or btrim(name) = ''
+)
+update public.family_player_profiles as profile
+set
+	name = missing_profiles.generated_name,
+	updated_at = now()
+from missing_profiles
+where profile.id = missing_profiles.id;
+
+with missing_history as (
+	select
+		id,
+		'Pilot' || right(md5(player_id || ':' || id::text), 6) as generated_name
+	from public.family_run_history
+	where name is null or btrim(name) = ''
+)
+update public.family_run_history as history
+set name = missing_history.generated_name
+from missing_history
+where history.id = missing_history.id;
+
+do $$
+begin
+	if exists (
+		select 1
+		from public.family_player_profiles
+		where name is not null
+		  and btrim(name) <> ''
+		group by family_id, public.normalize_leaderboard_name(name)
+		having count(*) > 1
+	) then
+		raise exception 'Duplicate family player profile names remain; resolve before enforcing name uniqueness.';
+	end if;
+end $$;
+
+alter table public.family_player_profiles
+drop constraint if exists family_player_profiles_name_required;
+
+alter table public.family_player_profiles
+add constraint family_player_profiles_name_required
+check (char_length(btrim(name)) between 1 and 12);
+
+alter table public.family_player_profiles
+alter column name set not null;
+
+create unique index if not exists family_player_profiles_family_normalized_name_uidx
+on public.family_player_profiles (
+	family_id,
+	public.normalize_leaderboard_name(name)
+);
+
 alter table public.family_player_profiles enable row level security;
 alter table public.family_daily_mission_progress enable row level security;
 alter table public.family_run_history enable row level security;
@@ -308,6 +394,11 @@ begin
 		raise exception 'Player id is required.';
 	end if;
 
+	p_name := trim(coalesce(p_name, ''));
+	if char_length(p_name) < 1 or char_length(p_name) > 12 then
+		raise exception 'Player name must be between 1 and 12 characters.';
+	end if;
+
 	insert into public.family_player_profiles (
 		family_id,
 		player_id,
@@ -323,7 +414,7 @@ begin
 	values (
 		p_family_id,
 		p_player_id,
-		nullif(trim(coalesce(p_name, '')), ''),
+		p_name,
 		coalesce(nullif(p_equipped_skin_id, ''), 'default_scout'),
 		coalesce(p_unlocked_skins, '["default_scout"]'::jsonb),
 		greatest(coalesce(p_total_daily_missions_completed, 0), 0),
@@ -334,7 +425,7 @@ begin
 	)
 	on conflict (family_id, player_id)
 	do update set
-		name = coalesce(excluded.name, public.family_player_profiles.name),
+		name = excluded.name,
 		equipped_skin_id = excluded.equipped_skin_id,
 		unlocked_skins = excluded.unlocked_skins,
 		total_daily_missions_completed = greatest(
@@ -357,6 +448,7 @@ begin
 
 	return jsonb_build_object(
 		'player_id', profile_row.player_id,
+		'name', profile_row.name,
 		'equipped_skin_id', profile_row.equipped_skin_id,
 		'unlocked_skins', profile_row.unlocked_skins,
 		'total_daily_missions_completed', profile_row.total_daily_missions_completed,
@@ -466,6 +558,7 @@ begin
 
 	return jsonb_build_object(
 		'player_id', profile_row.player_id,
+		'name', profile_row.name,
 		'equipped_skin_id', profile_row.equipped_skin_id,
 		'unlocked_skins', profile_row.unlocked_skins,
 		'total_daily_missions_completed', profile_row.total_daily_missions_completed,

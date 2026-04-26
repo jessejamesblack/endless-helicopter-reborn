@@ -22,6 +22,13 @@ type SyncPlayerProfilePayload = {
   p_profile_summary?: Record<string, unknown>;
 };
 
+function cleanPlayerName(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 12);
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
@@ -44,10 +51,18 @@ Deno.serve(async (request: Request) => {
     return versionGateResponse(releaseConfig);
   }
 
+  const cleanName = cleanPlayerName(payload.p_name);
+  if (cleanName.length < 1) {
+    return jsonResponse(
+      { error: "Choose a player name before syncing your cloud profile." },
+      422,
+    );
+  }
+
   const response = await supabase.rpc("sync_player_profile", {
     p_family_id: payload.p_family_id,
     p_player_id: payload.p_player_id,
-    p_name: payload.p_name ?? null,
+    p_name: cleanName,
     p_equipped_skin_id: payload.p_equipped_skin_id,
     p_unlocked_skins: payload.p_unlocked_skins,
     p_total_daily_missions_completed: payload.p_total_daily_missions_completed,

@@ -45,27 +45,5 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: response.error.message }, 500);
   }
 
-  const profile =
-    response.data && typeof response.data === "object" && !Array.isArray(response.data)
-      ? { ...(response.data as Record<string, unknown>) }
-      : {};
-
-  if (
-    payload.p_family_id &&
-    payload.p_player_id &&
-    (typeof profile.name !== "string" || profile.name.trim().length === 0)
-  ) {
-    const nameResult = await supabase
-      .from("family_player_profiles")
-      .select("name")
-      .eq("family_id", payload.p_family_id)
-      .eq("player_id", payload.p_player_id)
-      .maybeSingle();
-
-    if (!nameResult.error && typeof nameResult.data?.name === "string" && nameResult.data.name.trim().length > 0) {
-      profile.name = nameResult.data.name.trim();
-    }
-  }
-
-  return jsonResponse(profile);
+  return jsonResponse(response.data ?? {});
 });

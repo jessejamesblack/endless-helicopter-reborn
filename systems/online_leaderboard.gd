@@ -250,11 +250,13 @@ static func save_cached_name(name: String) -> void:
 	var file := FileAccess.open(NAME_CACHE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(str(validation.get("name", "")))
+		file.close()
 
 static func mark_cloud_profile_present() -> void:
 	var file := FileAccess.open(CLOUD_PROFILE_CACHE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string("1")
+		file.close()
 
 static func clear_cloud_profile_presence() -> void:
 	if FileAccess.file_exists(CLOUD_PROFILE_CACHE_PATH):
@@ -267,6 +269,7 @@ static func save_manual_player_id_override(player_id: String) -> void:
 	var file := FileAccess.open(PLAYER_ID_OVERRIDE_CACHE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(str(validation.get("player_id", "")))
+		file.close()
 
 static func clear_manual_player_id_override() -> void:
 	if FileAccess.file_exists(PLAYER_ID_OVERRIDE_CACHE_PATH):
@@ -288,6 +291,9 @@ static func clear_cached_name() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(NAME_CACHE_PATH))
 
 static func load_cached_name() -> String:
+	return get_valid_cached_name()
+
+static func get_valid_cached_name() -> String:
 	if not FileAccess.file_exists(NAME_CACHE_PATH):
 		return ""
 
@@ -295,14 +301,16 @@ static func load_cached_name() -> String:
 	if file == null:
 		return ""
 
-	var cached_name := sanitize_name(file.get_as_text())
-	if cached_name.is_empty() or _is_blocked_player_name(cached_name):
+	var cached_text := str(file.get_as_text()).strip_edges()
+	file.close()
+	var validation := validate_player_name(cached_text)
+	if not bool(validation.get("ok", false)):
 		clear_cached_name()
 		return ""
-	return cached_name
+	return str(validation.get("name", ""))
 
 static func has_saved_player_name() -> bool:
-	return not load_cached_name().is_empty()
+	return not get_valid_cached_name().is_empty()
 
 static func has_cloud_profile() -> bool:
 	if has_saved_player_name():
@@ -486,7 +494,7 @@ static func make_sync_player_profile_body(profile_summary: Dictionary) -> String
 		"release_channel": str(BuildInfoScript.RELEASE_CHANNEL),
 		"p_family_id": FAMILY_ID,
 		"p_player_id": load_or_create_player_id(),
-		"p_name": load_cached_name(),
+		"p_name": get_valid_cached_name(),
 		"p_equipped_skin_id": str(profile_summary.get("equipped_vehicle_id", profile_summary.get("equipped_skin_id", "default_scout"))),
 		"p_unlocked_skins": profile_summary.get("unlocked_vehicles", profile_summary.get("unlocked_skins", ["default_scout"])),
 		"p_total_daily_missions_completed": int(profile_summary.get("total_daily_missions_completed", 0)),

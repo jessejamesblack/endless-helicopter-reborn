@@ -158,7 +158,7 @@ insert into public.family_player_profiles (
 values (
     '$familyId',
     '$oldPlayerId',
-    null,
+    '$oldPlayerName',
     'bubble_chopper',
     '["default_scout","bubble_chopper"]'::jsonb,
     'bubble_chopper',
@@ -203,7 +203,7 @@ insert into public.family_player_profiles (
 values (
     '$familyId',
     '$newPlayerId',
-    null,
+    '$newPlayerName',
     'default_scout',
     '["default_scout"]'::jsonb,
     'default_scout',
