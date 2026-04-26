@@ -2,6 +2,40 @@
 
 `Endless Helicopter Reborn` is a Godot 4.6 mobile arcade game. You pilot a vehicle through an endless obstacle field, collect ammo and temporary powerups, pick run-only upgrades, complete short objectives, lean into vehicle passives, survive stronger enemy pressure, complete daily missions, unlock vehicles and per-vehicle finishes, compete on a shared online leaderboard, and tune controls, haptics, and frame rate from the settings menu.
 
+## Download Latest APK
+
+- Latest versioned release: [GitHub Releases Latest](https://github.com/jessejamesblack/endless-helicopter-reborn/releases/latest)
+- Rolling Android alias: [Endless-Helicopter-Reborn Latest APK](https://github.com/jessejamesblack/endless-helicopter-reborn/releases/tag/android-latest)
+- Direct stable APK links usually appear on those release pages as `Endless-Helicopter-Reborn-release.apk` or `Endless-Helicopter-Reborn-debug.apk`, depending on the build track.
+
+For normal device testing, prefer the latest versioned release. Same-device update and restore testing is only meaningful when the APKs are signed with the same stable key track.
+
+## Gameplay Preview
+
+| Title | Run |
+| --- | --- |
+| ![Title screen](docs/media/readme-title.png) | ![Gameplay run](docs/media/readme-run.png) |
+
+| Hangar | Missions |
+| --- | --- |
+| ![Vehicle hangar](docs/media/readme-hangar.png) | ![Daily missions](docs/media/readme-missions.png) |
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| Tap, click, or Space | Flap / gain lift |
+| Fire button | Launch a missile when ammo is available |
+| Pause button | Pause the run, open missions, settings, or quit |
+| Settings | Change fire-button side, mirrored HUD layout, haptics, volume, and frame-rate cap |
+
+## At A Glance
+
+- Current roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Architecture notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Development and validation: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Android continuity runbook: [docs/ANDROID_CONTINUITY_CUTOVER.md](docs/ANDROID_CONTINUITY_CUTOVER.md)
+
 ## Features
 
 - Endless survival-style arcade gameplay
@@ -92,6 +126,12 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C
 ```
 
 The full validator includes script parsing plus focused checks for depth retention, enemy pressure, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, and Android continuity-adjacent systems.
+
+README media can be refreshed from the current scenes with:
+
+```powershell
+Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_readme_media.gd
+```
 
 ## Shared Leaderboard
 

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Download the latest APK
+    url: https://github.com/jessejamesblack/endless-helicopter-reborn/releases/latest
+    about: Use the latest versioned release for normal Android installs.
+  - name: Rolling Android APK alias
+    url: https://github.com/jessejamesblack/endless-helicopter-reborn/releases/tag/android-latest
+    about: Use this when you specifically want the rolling latest APK release alias.
+  - name: Android continuity runbook
+    url: https://github.com/jessejamesblack/endless-helicopter-reborn/blob/main/docs/ANDROID_CONTINUITY_CUTOVER.md
+    about: Read this before reporting reinstall or restore behavior from non-stable signing tracks.
