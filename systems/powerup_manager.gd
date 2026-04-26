@@ -107,6 +107,9 @@ func activate_powerup(powerup_id: String) -> bool:
 	_used_counts[powerup_id] = int(_used_counts.get(powerup_id, 0)) + 1
 	if powerup_id == "emp_burst":
 		_emp_activations += 1
+		_record_live_mission_progress("emp_activations", 1.0)
+	_record_live_mission_progress("powerups_collected", 1.0)
+	_record_live_mission_progress("powerups_used", 1.0)
 
 	_active_effects[powerup_id] = {
 		"id": powerup_id,
@@ -209,3 +212,8 @@ func get_unlocked_powerup_ids() -> Array[String]:
 		if not ids.is_empty():
 			return ids
 	return DEFAULT_UNLOCKED_POWERUPS.duplicate()
+
+func _record_live_mission_progress(mission_type: String, amount: float) -> void:
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	if mission_manager != null and mission_manager.has_method("record_live_mission_progress"):
+		mission_manager.record_live_mission_progress(mission_type, amount)

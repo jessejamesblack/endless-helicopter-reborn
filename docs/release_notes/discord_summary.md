@@ -1,5 +1,5 @@
-- Stable Android release 1.6.8 (162).
+- Stable Android release 1.6.12 (166).
 - Adds run upgrades, temporary powerups, short objectives, and clearer vehicle passives.
 - Enemies now apply more pressure with variants, faster firing, entry shots, and stronger early pacing.
 - Fixes boundary abuse, pause spam, long-run background continuity, and responsive spawn lanes.
-- Adds pause-menu missions, new depth-system daily missions, clearer score feedback, and UI polish for new depth displays.
+- Adds pause-menu missions, live in-run mission progress, mid-run restore protection, monotonic daily mission cloud sync, local queued-payload merge protection, mission mutation refresh guards, new depth-system daily missions, broader mission progress validation, stronger combo scoring, clearer score feedback, safer app-update push copy, and UI polish for new depth displays.

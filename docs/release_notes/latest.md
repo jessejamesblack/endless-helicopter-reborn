@@ -1,6 +1,6 @@
-# Endless Helicopter Reborn 1.6.8
+# Endless Helicopter Reborn 1.6.12
 
-Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
+Version 1.6.12 is the depth and feedback sprint plus a stronger daily mission sync repair. It adds run-to-run choices, temporary powerups, stronger vehicle identities, short objective events, tougher enemy pressure, and several fairness fixes that make longer runs feel cleaner.
 
 ## Highlights
 
@@ -16,8 +16,15 @@ Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Fixed pause spam so rapid pause/resume cannot create a slow-motion advantage.
 - Restored long-run background continuity so existing biome visuals stay coherent until the next biome transition.
 - Improved responsive spawn lanes for tall and tablet layouts.
-- Made kill-score popups more visible and extended the combo window slightly.
+- Made kill-score popups more visible, extended the combo window slightly, and let combo scoring climb a bit higher.
 - Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
+- Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
+- Daily mission cloud sync now preserves the highest per-mission progress and completion state, so a stale cloud row cannot roll a completed mission back to `4/5`.
+- Live mission completions now survive a stale cloud restore that finishes mid-run, keeping the end-screen completion text, local mission list, profile credit, and sync payload aligned.
+- Mission state now blocks disk reloads while live progress is being applied, preventing profile-change UI refreshes from rolling the mission list back before it is saved.
+- Pending daily mission sync jobs now merge upward locally, so a stale queued payload cannot replace a newer completed mission payload before the queue flushes.
+- Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
+- Fixed app-update push notifications so they cannot appear as incorrect score-beaten `0/0` notifications.
 - Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
 
 ## Progression And Data Notes
@@ -25,6 +32,8 @@ Version 1.6.8 is the depth and feedback sprint. It adds run-to-run choices, temp
 - Added unlock-pool meta progression for upgrades, powerups, and objective possibilities without adding a shop, paid upgrades, or a currency economy.
 - Expanded run stats for upgrades, powerups, objectives, elite/special kills, shield absorbs, effect seconds, ammo refunds, and boundary crash reasons.
 - Kept profile sync within the existing JSON summary path; no Supabase schema migration is required for this release.
+- Live mission progress is reconciled against the final run summary so the same pickup or effect cannot count twice.
+- Startup cloud restore keeps local daily mission progress when the local device is ahead, then queues a repair sync back to Supabase.
 - Added repo-local `SKILL.md` guidance for future agent-assisted work.
 
 ## Safety Notes

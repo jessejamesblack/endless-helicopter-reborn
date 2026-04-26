@@ -338,7 +338,12 @@ func _validate_supabase_assets() -> void:
 	_assert(FileAccess.file_exists("res://backend/supabase_sprint7_security_setup.sql"), "Sprint 7 security setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase_daily_mission_push_setup.sql"), "Daily mission push setup SQL should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase/functions/send-daily-mission-push/index.ts"), "Daily mission push function should exist.")
+	_assert(FileAccess.file_exists("res://backend/supabase/functions/sync-daily-mission-progress/index.ts"), "Daily mission progress sync function should exist.")
 	_assert(FileAccess.file_exists("res://backend/supabase/functions/_shared/version_gate.ts"), "Version gate helper should exist.")
+	var daily_sync_edge_text := FileAccess.get_file_as_string("res://backend/supabase/functions/sync-daily-mission-progress/index.ts")
+	_assert(daily_sync_edge_text.contains("mergeDailyMissions"), "Daily mission sync Edge Function should merge progress instead of overwriting mission rows.")
+	_assert(daily_sync_edge_text.contains("get_daily_mission_progress"), "Daily mission sync Edge Function should read existing progress before writing.")
+	_assert(daily_sync_edge_text.contains("countCompletedMissions"), "Daily mission sync Edge Function should derive completed_count from merged mission rows.")
 
 	var sql_text := FileAccess.get_file_as_string("res://backend/supabase_player_progress_setup.sql")
 	_assert(sql_text.contains("family_player_profiles"), "Supabase player progress SQL should include family_player_profiles.")

@@ -22,6 +22,7 @@ description: Use when editing Godot scenes or scripts under scenes/, including m
 ## Gameplay Changes
 
 - Run depth systems should flow through managers in `systems/` and shared modifier queries, not UI-specific hard-coding.
+- Gameplay pickups/effects that map to visible daily missions should notify `MissionManager` live through the shared systems path instead of waiting only for the post-run summary.
 - Spawner y positions must be viewport/playfield responsive. Avoid fixed lane literals such as `160`, `300`, or `440`.
 - Keep early-game encounters readable. Add pressure through timing, roles, and composition before raw HP inflation.
 - Fairness fixes should update run stats when they introduce a new death/crash reason.

@@ -8,6 +8,19 @@
 powershell -ExecutionPolicy Bypass -File .\tools\validate_godot.ps1 -GodotBin "C:\Path\To\Godot_v4.6.2-stable_win64_console.exe"
 ```
 
+This full validator parses the main scripts and runs the focused gameplay checks added for the depth/feedback work, including depth retention, feedback fairness, enemy threat, spawn responsiveness, daily mission expansion, pause-menu missions, UI naming, score/combo feedback, release notes, and feature discovery.
+
+For narrow iteration on recent run-depth changes, useful focused scripts include:
+
+- `res://tools/validate_depth_retention.gd`
+- `res://tools/validate_feedback_sprint.gd`
+- `res://tools/validate_enemy_threat_pass.gd`
+- `res://tools/validate_spawn_layout_responsiveness.gd`
+- `res://tools/validate_daily_mission_expansion.gd`
+- `res://tools/validate_pause_menu_missions.gd`
+- `res://tools/validate_ui_naming_consistency.gd`
+- `res://tools/validate_score_feedback_and_combo.gd`
+
 ### Validate live reinstall and restore migration
 
 ```powershell
@@ -51,6 +64,17 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_android_plugin.ps1 -Varia
 - `project.godot` main scene and icon paths
 - docs that reference moved files
 - `.import` files if the source asset path changed
+
+## What To Update When Changing Run Depth
+
+- Update [README.md](../README.md) when player-facing run systems, mission behavior, or Android testing expectations change.
+- Update [ARCHITECTURE.md](ARCHITECTURE.md) when autoload ownership, gameplay flow, mission progress timing, or sync assumptions change.
+- Update folder `SKILL.md` files when an implementation rule should guide future agent work.
+- Keep mission progress live when it is visible mid-run from the pause menu; use `MissionManager.record_live_mission_progress()` for immediate pickup/effect events and preserve the end-of-run summary path for final totals.
+- Keep daily mission sync monotonic. Startup restore should preserve local progress when it is ahead of Supabase, queued local daily mission sync payloads should merge upward, and `sync-daily-mission-progress` should merge per-mission progress instead of overwriting rows with stale payloads.
+- Do not call `refresh_daily_missions()` from a path that can interrupt live mission mutation unless the mutation guard is active; profile-change UI refreshes must not reload stale mission state before live progress is saved.
+- Cover delayed cloud restore cases when changing missions: a live completion must remain complete even if remote mission/profile state is restored before the run reaches the results screen.
+- When preparing a device-test or release candidate, keep `export_presets.cfg`, `systems/build_info.gd`, [docs/release_notes/latest.md](release_notes/latest.md), and [docs/release_notes/discord_summary.md](release_notes/discord_summary.md) in agreement.
 
 ## CI
 

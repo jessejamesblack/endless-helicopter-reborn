@@ -191,8 +191,9 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		return outcome
 	outcome["ok"] = true
 
+	var mission_manager := get_node_or_null("/root/MissionManager")
 	var profile_body := OnlineLeaderboardScript.make_get_player_profile_body()
-	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(Time.get_date_string_from_system(true))
+	var mission_body := OnlineLeaderboardScript.make_get_daily_mission_progress_body(_get_current_mission_date_key(mission_manager))
 	var request_failures: Array[String] = []
 
 	var profile_response := await _request_json(
@@ -234,15 +235,28 @@ func _pull_remote_state(replace_existing_state: bool = false) -> Dictionary:
 		return outcome
 	if _is_success_response(mission_response):
 		var remote_progress := OnlineLeaderboardScript.parse_daily_mission_sync_result(mission_response.body)
-		var mission_manager := get_node_or_null("/root/MissionManager")
 		outcome["mission_restored"] = not remote_progress.is_empty()
+		var local_progress_exists := mission_manager != null \
+			and mission_manager.has_method("has_local_daily_progress") \
+			and bool(mission_manager.has_local_daily_progress())
+		var local_ahead_of_remote := mission_manager != null \
+			and mission_manager.has_method("has_daily_progress_ahead_of_remote") \
+			and bool(mission_manager.has_daily_progress_ahead_of_remote(remote_progress))
 		if replace_existing_state:
-			if outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
+			if outcome["mission_restored"] and local_ahead_of_remote and mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
+				mission_manager.merge_remote_daily_progress(remote_progress)
+				if mission_manager.has_method("get_daily_sync_summary"):
+					enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
+			elif outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("replace_remote_daily_progress"):
 				mission_manager.replace_remote_daily_progress(remote_progress)
-			elif not outcome["mission_restored"] and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
+			elif not outcome["mission_restored"] and local_progress_exists and mission_manager != null and mission_manager.has_method("get_daily_sync_summary"):
+				enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
+			elif not outcome["mission_restored"] and not local_progress_exists and mission_manager != null and mission_manager.has_method("reset_current_daily_progress"):
 				mission_manager.reset_current_daily_progress()
 		elif mission_manager != null and mission_manager.has_method("merge_remote_daily_progress"):
 			mission_manager.merge_remote_daily_progress(remote_progress)
+			if local_ahead_of_remote and mission_manager.has_method("get_daily_sync_summary"):
+				enqueue_sync_daily_mission_progress(mission_manager.get_daily_sync_summary())
 	else:
 		request_failures.append(_response_error_text(mission_response))
 
@@ -569,7 +583,11 @@ func _replace_or_append_job(job_type: String, payload: Dictionary, mission_date:
 		if str(existing_job.get("type", "")) != job_type:
 			continue
 		if mission_date.is_empty() or str((existing_job.get("payload", {}) as Dictionary).get("mission_date", "")) == mission_date:
-			_jobs[index] = {"type": job_type, "payload": payload}
+			var existing_payload := existing_job.get("payload", {}) as Dictionary
+			var resolved_payload := payload
+			if job_type == JOB_SYNC_DAILY_MISSION_PROGRESS:
+				resolved_payload = _merge_daily_sync_payload(existing_payload, payload)
+			_jobs[index] = {"type": job_type, "payload": resolved_payload}
 			_save_queue()
 			_emit_queue_changed()
 			return
@@ -591,6 +609,102 @@ func _trim_queue() -> void:
 
 func _emit_queue_changed() -> void:
 	queue_changed.emit(get_pending_count())
+
+func _merge_daily_sync_payload(existing_payload: Dictionary, incoming_payload: Dictionary) -> Dictionary:
+	var merged := existing_payload.duplicate(true)
+	for key in incoming_payload.keys():
+		if str(key) == "missions":
+			continue
+		merged[key] = incoming_payload[key]
+
+	var merged_missions := _merge_daily_sync_missions(
+		_to_daily_mission_array(existing_payload.get("missions", [])),
+		_to_daily_mission_array(incoming_payload.get("missions", []))
+	)
+	merged["missions"] = merged_missions
+	merged["completed_count"] = maxi(
+		maxi(int(existing_payload.get("completed_count", 0)), int(incoming_payload.get("completed_count", 0))),
+		_count_completed_daily_sync_missions(merged_missions)
+	)
+	merged["total_count"] = maxi(
+		maxi(int(existing_payload.get("total_count", 0)), int(incoming_payload.get("total_count", 0))),
+		merged_missions.size()
+	)
+	return merged
+
+func _merge_daily_sync_missions(existing_missions: Array[Dictionary], incoming_missions: Array[Dictionary]) -> Array[Dictionary]:
+	var merged_by_key: Dictionary = {}
+	var ordered_keys: Array[String] = []
+	for index in range(existing_missions.size()):
+		var mission := existing_missions[index]
+		var mission_key := _daily_sync_mission_key(mission)
+		if mission_key.is_empty():
+			mission_key = "__existing_%d" % index
+		if not merged_by_key.has(mission_key):
+			ordered_keys.append(mission_key)
+		merged_by_key[mission_key] = _normalize_daily_sync_mission(mission)
+
+	for index in range(incoming_missions.size()):
+		var incoming_mission := incoming_missions[index]
+		var mission_key := _daily_sync_mission_key(incoming_mission)
+		if mission_key.is_empty():
+			mission_key = "__incoming_%d" % index
+		if merged_by_key.has(mission_key):
+			merged_by_key[mission_key] = _merge_daily_sync_mission_rows(merged_by_key[mission_key], incoming_mission)
+		else:
+			ordered_keys.append(mission_key)
+			merged_by_key[mission_key] = _normalize_daily_sync_mission(incoming_mission)
+
+	var merged_missions: Array[Dictionary] = []
+	for mission_key in ordered_keys:
+		merged_missions.append(merged_by_key.get(mission_key, {}) as Dictionary)
+	return merged_missions
+
+func _merge_daily_sync_mission_rows(existing_mission: Dictionary, incoming_mission: Dictionary) -> Dictionary:
+	var merged := existing_mission.duplicate(true)
+	for key in incoming_mission.keys():
+		if str(key) == "progress" or str(key) == "completed":
+			continue
+		merged[key] = incoming_mission[key]
+	var progress := maxf(float(existing_mission.get("progress", 0.0)), float(incoming_mission.get("progress", 0.0)))
+	var target := maxf(float(merged.get("target", 1.0)), 1.0)
+	merged["progress"] = progress
+	merged["completed"] = bool(existing_mission.get("completed", false)) or bool(incoming_mission.get("completed", false)) or progress >= target
+	return merged
+
+func _normalize_daily_sync_mission(mission: Dictionary) -> Dictionary:
+	var normalized := mission.duplicate(true)
+	var progress := float(normalized.get("progress", 0.0))
+	var target := maxf(float(normalized.get("target", 1.0)), 1.0)
+	normalized["progress"] = progress
+	normalized["completed"] = bool(normalized.get("completed", false)) or progress >= target
+	return normalized
+
+func _to_daily_mission_array(value) -> Array[Dictionary]:
+	var missions: Array[Dictionary] = []
+	if value is not Array:
+		return missions
+	for mission_variant in value:
+		if mission_variant is Dictionary:
+			missions.append((mission_variant as Dictionary).duplicate(true))
+	return missions
+
+func _daily_sync_mission_key(mission: Dictionary) -> String:
+	var mission_id := str(mission.get("id", "")).strip_edges()
+	if not mission_id.is_empty():
+		return mission_id
+	var slot := str(mission.get("slot", "")).strip_edges()
+	var mission_type := str(mission.get("type", "")).strip_edges()
+	if slot.is_empty() and mission_type.is_empty():
+		return ""
+	return "%s:%s" % [slot, mission_type]
+
+func _count_completed_daily_sync_missions(missions: Array[Dictionary]) -> int:
+	var completed_count := 0
+	for mission in missions:
+		if bool(mission.get("completed", false)):
+			completed_count += 1
+	return completed_count
 
 func _is_success_response(response: Dictionary) -> bool:
 	return int(response.get("result", HTTPRequest.RESULT_CANT_CONNECT)) == HTTPRequest.RESULT_SUCCESS \
@@ -645,6 +759,11 @@ func _drop_all_jobs_for_upgrade_required() -> void:
 
 func _should_replace_local_state_on_startup() -> bool:
 	return not OnlineLeaderboardScript.has_cloud_profile()
+
+func _get_current_mission_date_key(mission_manager: Node) -> String:
+	if mission_manager != null and mission_manager.has_method("get_today_key"):
+		return str(mission_manager.get_today_key())
+	return Time.get_date_string_from_system(true)
 
 func _get_identity_snapshot() -> String:
 	var player_info := AndroidIdentityScript.get_player_identity_info()
