@@ -341,6 +341,9 @@ func _format_modifier_summary(modifiers: Dictionary) -> String:
 	var choice_weight_bonus := float(modifiers.get("choice_weight_bonus", 0.0))
 	if choice_weight_bonus > 0.0:
 		parts.append("upgrade choice bias")
+	var first_choice_offer_bonus := int(modifiers.get("first_choice_offer_bonus", 0))
+	if first_choice_offer_bonus > 0:
+		parts.append("+%d first choice card" % first_choice_offer_bonus)
 	if parts.is_empty():
 		return "No passive modifier."
 	return ", ".join(parts)
@@ -350,7 +353,7 @@ func _get_vehicle_passive_data(vehicle_id: String) -> Dictionary:
 	if run_upgrade_manager != null and run_upgrade_manager.has_method("get_vehicle_passive_data"):
 		return run_upgrade_manager.get_vehicle_passive_data(vehicle_id)
 	var helicopter_skins := _get_helicopter_skins()
-	var passive_id := "flexible_baseline"
+	var passive_id := "reliable_frame"
 	if helicopter_skins != null and helicopter_skins.has_method("get_vehicle_profile"):
 		passive_id = str(helicopter_skins.get_vehicle_profile(vehicle_id).get("passive_id", passive_id))
 	return {

@@ -6,6 +6,8 @@ signal upgrade_chosen(upgrade_id: String, summary: Dictionary)
 const CHOICE_TIMES_SECONDS: Array[float] = [35.0, 75.0, 120.0, 170.0]
 const MAX_CHOICES_PER_RUN := 4
 const MIN_SECONDS_BETWEEN_CHOICES := 20.0
+const DEFAULT_OFFER_COUNT := 3
+const SCOUT_FIRST_OFFER_COUNT := 4
 
 const UPGRADE_CATALOG := {
 	"twin_missiles": {
@@ -137,9 +139,9 @@ const DEFAULT_UNLOCKED_UPGRADES := [
 
 const VEHICLE_PASSIVES := {
 	"default_scout": {
-		"passive_id": "flexible_baseline",
-		"name": "Flexible Baseline",
-		"modifiers": {"choice_weight_bonus": 0.05},
+		"passive_id": "reliable_frame",
+		"name": "Reliable Frame",
+		"modifiers": {"first_choice_offer_bonus": 1},
 	},
 	"bubble_chopper": {
 		"passive_id": "near_miss_specialist",
@@ -223,7 +225,7 @@ func request_choice(reason: String = "reward") -> bool:
 	if reason != "milestone" and (_elapsed_seconds - _last_choice_time) < MIN_SECONDS_BETWEEN_CHOICES:
 		return false
 
-	var offers := _build_offer_set()
+	var offers := _build_offer_set(_get_offer_count_for_next_choice())
 	if offers.is_empty():
 		return false
 
@@ -306,11 +308,11 @@ func get_run_power_score() -> float:
 
 func get_vehicle_passive_id() -> String:
 	var passive: Dictionary = VEHICLE_PASSIVES.get(_vehicle_id, VEHICLE_PASSIVES["default_scout"])
-	return str(passive.get("passive_id", "flexible_baseline"))
+	return str(passive.get("passive_id", "reliable_frame"))
 
 func get_vehicle_passive_name() -> String:
 	var passive: Dictionary = VEHICLE_PASSIVES.get(_vehicle_id, VEHICLE_PASSIVES["default_scout"])
-	return str(passive.get("name", "Flexible Baseline"))
+	return str(passive.get("name", "Reliable Frame"))
 
 func get_vehicle_passive_data(vehicle_id: String) -> Dictionary:
 	var passive: Dictionary = VEHICLE_PASSIVES.get(vehicle_id, VEHICLE_PASSIVES["default_scout"])
@@ -346,7 +348,7 @@ func get_unlocked_upgrade_ids() -> Array[String]:
 			return ids
 	return DEFAULT_UNLOCKED_UPGRADES.duplicate()
 
-func _build_offer_set() -> Array[Dictionary]:
+func _build_offer_set(offer_count: int = DEFAULT_OFFER_COUNT) -> Array[Dictionary]:
 	var available: Array[String] = []
 	for upgrade_id in get_unlocked_upgrade_ids():
 		var data: Dictionary = UPGRADE_CATALOG.get(upgrade_id, {})
@@ -369,18 +371,24 @@ func _build_offer_set() -> Array[Dictionary]:
 			continue
 		offers.append(_build_offer(upgrade_id, data))
 		chosen_categories[category] = true
-		if offers.size() >= 3:
+		if offers.size() >= offer_count:
 			break
 
-	if offers.size() < 3:
+	if offers.size() < offer_count:
 		for upgrade_id in available:
 			if _offers_include(offers, upgrade_id):
 				continue
 			offers.append(_build_offer(upgrade_id, UPGRADE_CATALOG[upgrade_id]))
-			if offers.size() >= 3:
+			if offers.size() >= offer_count:
 				break
 
 	return offers
+
+func _get_offer_count_for_next_choice() -> int:
+	if _vehicle_id != "default_scout" or _choices_made > 0:
+		return DEFAULT_OFFER_COUNT
+	var bonus := int(_get_vehicle_passive_modifiers().get("first_choice_offer_bonus", 0))
+	return clampi(DEFAULT_OFFER_COUNT + bonus, DEFAULT_OFFER_COUNT, SCOUT_FIRST_OFFER_COUNT)
 
 func _build_offer(upgrade_id: String, data: Dictionary) -> Dictionary:
 	var next_level := get_upgrade_level(upgrade_id) + 1

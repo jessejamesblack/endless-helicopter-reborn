@@ -54,7 +54,7 @@ func _validate_run_stats_expansion() -> void:
 		"upgrades_chosen": 2,
 		"powerups_collected": 1,
 		"objective_events_completed": 1,
-		"vehicle_passive_id": "flexible_baseline",
+		"vehicle_passive_id": "reliable_frame",
 	})
 	for key in [
 		"shield_hits_absorbed",

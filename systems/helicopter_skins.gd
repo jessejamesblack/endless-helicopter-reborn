@@ -140,7 +140,7 @@ const VEHICLES := {
 			Vector2(-50, -2),
 		],
 		"profile": {
-			"passive_id": "flexible_baseline",
+			"passive_id": "reliable_frame",
 			"jump_velocity": -400.0,
 			"gravity_scale": 1.0,
 			"tilt_speed": 5.0,

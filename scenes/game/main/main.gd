@@ -285,6 +285,10 @@ func record_player_missile_hit(_target: Node, world_position: Vector2, base_scor
         var objective_manager := _get_run_objective_manager()
         if objective_manager != null and objective_manager.has_method("record_objective_action"):
             objective_manager.record_objective_action("reactor_chain_kill")
+            if "objective_destroy_action" in _target:
+                var objective_destroy_action := str(_target.get("objective_destroy_action"))
+                if not objective_destroy_action.is_empty():
+                    objective_manager.record_objective_action(objective_destroy_action)
 
     if missile_hit_streak % MISSILE_STREAK_BONUS_THRESHOLD == 0:
         award_skill_score(MISSILE_STREAK_BONUS, "HIT STREAK", world_position + Vector2(0, -28), true)
@@ -320,15 +324,29 @@ func record_projectile_intercept(world_position: Vector2, base_score: int) -> vo
     var run_stats := _get_run_stats()
     if run_stats != null and run_stats.has_method("record_projectile_intercept"):
         run_stats.record_projectile_intercept()
+    var objective_manager := _get_run_objective_manager()
+    if objective_manager != null and objective_manager.has_method("record_objective_action"):
+        objective_manager.record_objective_action("projectile_intercept")
 
     _play_haptic("projectile_intercept")
     record_player_missile_hit(null, world_position, base_score + PROJECTILE_INTERCEPT_BONUS + _get_numeric_run_modifier("interceptor_bonus"))
     _show_floating_text(world_position + Vector2(0, -24), "INTERCEPT", false)
 
+func record_player_missile_fired() -> void:
+    if is_crashed or is_transitioning_to_game_over:
+        return
+
+    var objective_manager := _get_run_objective_manager()
+    if objective_manager != null and objective_manager.has_method("record_objective_action"):
+        objective_manager.record_objective_action("missile_fired")
+
 func record_boundary_recovery_feedback(world_position: Vector2) -> void:
     if is_crashed or is_transitioning_to_game_over:
         return
 
+    var objective_manager := _get_run_objective_manager()
+    if objective_manager != null and objective_manager.has_method("record_objective_action"):
+        objective_manager.record_objective_action("boundary_recovery")
     reset_combo()
     _show_floating_text(world_position, "RECOVERED", false)
 
@@ -561,6 +579,7 @@ func _on_powerup_activated(powerup_id: String, _data: Dictionary) -> void:
 
 func _on_objective_started(objective: Dictionary) -> void:
     _update_objective_ui(objective)
+    _spawn_objective_start_event(objective)
     _spawn_objective_pickup_if_needed(objective)
     _play_haptic("combo_up")
 
@@ -571,15 +590,7 @@ func _on_objective_progressed(objective: Dictionary) -> void:
 func _on_objective_completed(objective: Dictionary) -> void:
     _update_objective_ui({})
     award_skill_score(int(objective.get("reward_score", 150)), "OBJECTIVE", get_viewport_rect().size * 0.5, true)
-    var reward := str(objective.get("reward", "powerup"))
-    if reward == "upgrade":
-        var run_upgrade_manager := _get_run_upgrade_manager()
-        if run_upgrade_manager != null and run_upgrade_manager.has_method("request_choice"):
-            run_upgrade_manager.request_choice("objective")
-    else:
-        var powerup_manager := _get_powerup_manager()
-        if powerup_manager != null and powerup_manager.has_method("activate_powerup") and powerup_manager.has_method("get_random_powerup_id"):
-            powerup_manager.activate_powerup(str(powerup_manager.get_random_powerup_id()))
+    _apply_objective_reward(objective)
     _play_haptic("mission_complete")
 
 func _on_objective_failed(_objective: Dictionary) -> void:
@@ -595,7 +606,61 @@ func _spawn_objective_pickup_if_needed(objective: Dictionary) -> void:
         return
     var spawner := get_node_or_null("Spawner")
     if spawner != null and spawner.has_method("spawn_objective_pickup"):
-        spawner.spawn_objective_pickup(str(objective.get("action", "rescue_pickup")))
+        spawner.spawn_objective_pickup(str(objective.get("action", "rescue_pickup")), _get_objective_pickup_y_mode(objective))
+
+func _spawn_objective_start_event(objective: Dictionary) -> void:
+    var start_event := str(objective.get("start_event", ""))
+    if start_event.is_empty():
+        return
+    var spawner := get_node_or_null("Spawner")
+    if spawner != null and spawner.has_method("spawn_objective_start_event"):
+        spawner.spawn_objective_start_event(start_event)
+
+func _get_objective_pickup_y_mode(objective: Dictionary) -> String:
+    var y_modes: Array = objective.get("spawn_y_modes", [])
+    if y_modes.is_empty():
+        return "random_mid"
+    var progress_index := clampi(int(objective.get("progress", 0)), 0, y_modes.size() - 1)
+    return str(y_modes[progress_index % y_modes.size()])
+
+func _apply_objective_reward(objective: Dictionary) -> void:
+    var reward := str(objective.get("reward", "powerup"))
+    match reward:
+        "upgrade":
+            var run_upgrade_manager := _get_run_upgrade_manager()
+            if run_upgrade_manager != null and run_upgrade_manager.has_method("request_choice"):
+                run_upgrade_manager.request_choice("objective")
+        "score_rush":
+            var score_rush_manager := _get_powerup_manager()
+            if score_rush_manager != null and score_rush_manager.has_method("activate_powerup"):
+                score_rush_manager.activate_powerup("score_rush")
+        "ammo_refill":
+            _apply_objective_ammo_refill()
+        "combo_boost":
+            _apply_objective_combo_boost()
+        _:
+            var random_powerup_manager := _get_powerup_manager()
+            if random_powerup_manager != null and random_powerup_manager.has_method("activate_powerup") and random_powerup_manager.has_method("get_random_powerup_id"):
+                random_powerup_manager.activate_powerup(str(random_powerup_manager.get_random_powerup_id()))
+
+func _apply_objective_ammo_refill() -> void:
+    var player := get_node_or_null("Player")
+    if player != null and player.has_method("add_ammo"):
+        var refill_amount := 2
+        if "max_ammo" in player:
+            refill_amount = int(player.get("max_ammo"))
+        player.add_ammo(refill_amount)
+    _show_floating_text(get_viewport_rect().size * 0.5 + Vector2(0, -34), "REFILL", false)
+
+func _apply_objective_combo_boost() -> void:
+    combo_events = maxi(combo_events, COMBO_EVENTS_PER_STEP)
+    combo_multiplier = _calculate_combo_multiplier(combo_events)
+    combo_timer = maxf(combo_timer, COMBO_TIMEOUT_SECONDS + _get_combo_timeout_bonus() + 2.0)
+    var run_stats := _get_run_stats()
+    if run_stats != null and run_stats.has_method("record_combo_state"):
+        run_stats.record_combo_state(combo_events, combo_multiplier)
+    _update_combo_ui()
+    _show_floating_text(get_viewport_rect().size * 0.5 + Vector2(0, -34), "COMBO BOOST", false)
 
 func _ensure_upgrade_choice_overlay() -> void:
     if _upgrade_choice_overlay != null and is_instance_valid(_upgrade_choice_overlay):

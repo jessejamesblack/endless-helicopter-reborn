@@ -49,7 +49,8 @@ func _run_validation() -> void:
 	if stats_label != null:
 		var default_stats := str(hangar.call("get_vehicle_stats_text"))
 		_assert(default_stats.contains("AMMO 2"), "Scout stats should show the baseline ammo capacity.")
-		_assert(default_stats.contains("PASSIVE Flexible Baseline"), "Scout stats should show the passive name.")
+		_assert(default_stats.contains("PASSIVE Reliable Frame"), "Scout stats should show the Reliable Frame passive name.")
+		_assert(default_stats.contains("+1 first choice card"), "Scout stats should explain the visible first-choice card bonus.")
 		var huey_stats := str(hangar.call("_build_vehicle_stats_text", "huey_runner", helicopter_skins.get_vehicle_data("huey_runner")))
 		_assert(huey_stats.contains("AMMO 3"), "Huey Runner stats should include the ammo utility passive capacity.")
 		_assert(huey_stats.contains("refund chance"), "Huey Runner stats should show the ammo refund passive.")

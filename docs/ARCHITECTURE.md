@@ -51,10 +51,10 @@
 
 ## Run Depth Systems
 
-- Run upgrades are run-only and reset on each new run. Milestone choices happen at 35, 75, 120, and 170 seconds, capped at four choices per run.
+- Run upgrades are run-only and reset on each new run. Milestone choices happen at 35, 75, 120, and 170 seconds, capped at four choices per run. Scout's Reliable Frame passive makes the first choice show 4 cards; normal choices show 3.
 - Upgrade effects are exposed as shared run modifiers so player handling, missiles, scoring, and vehicle passives can compose without UI-specific hard-coding.
 - Powerups activate temporary effects such as shields, score rush, missile overdrive, ammo magnet, EMP, and afterburner. Their active timers feed the HUD and run summary.
-- Run objectives are lightweight events. The first set includes `rescue_pickup`, `reactor_chain`, `black_box_recovery`, and `signal_gates`; objectives reward score plus either a powerup or an upgrade-choice trigger.
+- Run objectives are lightweight events that can start around 42 seconds, are spaced by at least 32 seconds, and are capped at three per run. The v1.7 deck includes `rescue_pickup`, `reactor_chain`, `black_box_recovery`, `signal_gates`, `no_fire_signal`, `barrage_intercept`, `bounty_drone`, and `clean_flight`; objectives reward score plus powerups, Score Rush, ammo refill, combo boost, or upgrade-choice triggers.
 - Player profile depth progression stores unlocked upgrade, powerup, and objective ids in the existing profile summary shape. It unlocks possibilities, not paid power or currency upgrades.
 
 ## Daily Mission Runtime

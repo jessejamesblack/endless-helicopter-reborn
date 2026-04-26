@@ -41,7 +41,7 @@ For normal device testing, prefer the latest versioned release. Same-device upda
 - Endless survival-style arcade gameplay
 - Mobile-friendly tap/click/space controls
 - Missiles, ammo pickups, glowing-rock clears, and varied enemy roles
-- Periodic 1-of-3 run upgrades, temporary powerups, and short objective events
+- Periodic run upgrades, temporary powerups, and short objective events
 - Distinct vehicle identities with passive run modifiers and Hangar stat readouts
 - Enemy variants and stronger mid/late-run projectile pressure
 - Boundary and pause-spam fairness protections
@@ -58,9 +58,9 @@ For normal device testing, prefer the latest versioned release. Same-device upda
 
 Runs now combine execution, choices, pickups, objectives, and progression:
 
-- Upgrade choices appear at milestone times around 35, 75, 120, and 170 seconds, capped at four picks per run.
+- Upgrade choices appear at milestone times around 35, 75, 120, and 170 seconds, capped at four picks per run. Scout starts with a Reliable Frame passive that offers 4 cards on the first choice; other choices offer 3.
 - Powerups include Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
-- Objectives currently include rescue pickups and reactor chains, with score plus powerup or upgrade-choice rewards.
+- Objectives can start around 42 seconds, can appear up to three times per run, and include Rescue Pickup, Reactor Chain, Black Box Recovery, Signal Gates, No-Fire Signal, Barrage Intercept, Bounty Drone, and Clean Flight.
 - Vehicles use canonical names such as Scout, Bubble Chopper, Huey Runner, Blackhawk Shadow, Apache Strike, Chinook Lift, Crazy Taxi, and Pottercar, each with a clearer passive identity.
 - The Hangar shows selected-vehicle stats for ammo capacity, lift, handling, gravity, recovery, and passive perks.
 - Daily mission progress updates live for in-run pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs, so the pause-menu mission view reflects the current run.

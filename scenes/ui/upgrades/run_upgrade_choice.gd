@@ -3,6 +3,7 @@ extends Control
 signal upgrade_selected(upgrade_id: String)
 
 const PANEL_DESIRED_SIZE := Vector2(680.0, 340.0)
+const FOUR_CARD_PANEL_DESIRED_SIZE := Vector2(820.0, 340.0)
 const PANEL_MARGIN := 24.0
 
 @onready var panel: Panel = $Overlay/Panel
@@ -35,13 +36,15 @@ func _render_cards() -> void:
 	for child in card_row.get_children():
 		child.queue_free()
 
+	var compact_cards := _offers.size() >= 4
+	card_row.add_theme_constant_override("separation", 8 if compact_cards else 12)
 	for offer in _offers:
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(184, 170)
+		button.custom_minimum_size = Vector2(150 if compact_cards else 184, 170)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.text = _format_offer_text(offer)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.add_theme_font_size_override("font_size", 16)
+		button.add_theme_font_size_override("font_size", 14 if compact_cards else 16)
 		button.add_theme_color_override("font_color", Color(0.952941, 0.835294, 0.564706, 1))
 		button.add_theme_color_override("font_focus_color", Color(1, 0.92549, 0.705882, 1))
 		button.add_theme_color_override("font_hover_color", Color(1, 0.92549, 0.705882, 1))
@@ -78,9 +81,10 @@ func _fit_panel_to_viewport() -> void:
 		max(280.0, viewport_size.x - PANEL_MARGIN * 2.0),
 		max(260.0, viewport_size.y - PANEL_MARGIN * 2.0)
 	)
+	var desired_size := FOUR_CARD_PANEL_DESIRED_SIZE if _offers.size() >= 4 else PANEL_DESIRED_SIZE
 	var target_size := Vector2(
-		min(PANEL_DESIRED_SIZE.x, max_size.x),
-		min(PANEL_DESIRED_SIZE.y, max_size.y)
+		min(desired_size.x, max_size.x),
+		min(desired_size.y, max_size.y)
 	)
 	panel.offset_left = -target_size.x * 0.5
 	panel.offset_top = -target_size.y * 0.5
