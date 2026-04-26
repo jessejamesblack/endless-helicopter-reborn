@@ -16,6 +16,7 @@ const FIRE_BUTTON_LEFT_RECT := Rect2(32, -140, 188, 120)
 const NEAR_MISS_HOSTILE_SCORE := 15
 const NEAR_MISS_PROJECTILE_SCORE := 25
 const PROJECTILE_INTERCEPT_BONUS := 25
+const FULL_AMMO_PICKUP_SCORE := 50
 const MISSILE_STREAK_BONUS_THRESHOLD := 3
 const MISSILE_STREAK_BONUS := 75
 const COMBO_TIMEOUT_SECONDS := 4.25
@@ -191,6 +192,9 @@ func update_ammo_ui(ammo: int) -> void:
 func _update_score_ui() -> void:
     if has_node("UI/ScorePanel/ScoreLabel"):
         $UI/ScorePanel/ScoreLabel.text = "SCORE %d" % int(score)
+
+func record_full_ammo_pickup(world_position: Vector2) -> void:
+    award_skill_score(FULL_AMMO_PICKUP_SCORE, "FULL AMMO", world_position, true)
 
 func award_skill_score(base_points: int, reason: String, world_position: Vector2 = Vector2.ZERO, builds_combo: bool = true) -> int:
     if is_crashed or is_transitioning_to_game_over or get_tree().paused:

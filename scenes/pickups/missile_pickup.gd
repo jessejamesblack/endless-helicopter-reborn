@@ -35,8 +35,15 @@ func _apply_ammo_magnet(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
     if body.name == "Player":
+        var was_full_ammo := false
+        if "ammo" in body and "max_ammo" in body:
+            was_full_ammo = int(body.ammo) >= int(body.max_ammo)
         if body.has_method("add_ammo"):
             body.add_ammo(2)
+        if was_full_ammo:
+            var main := get_tree().current_scene
+            if main != null and main.has_method("record_full_ammo_pickup"):
+                main.record_full_ammo_pickup(global_position)
         var run_stats := get_node_or_null("/root/RunStats")
         if run_stats != null and run_stats.has_method("record_pickup_collected"):
             run_stats.record_pickup_collected()
