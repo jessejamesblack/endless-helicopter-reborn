@@ -40,6 +40,7 @@ This repository is set up for AI-assisted development. Keep this file short and 
 - Use the scripts in `tools/` before inventing new ad-hoc commands.
 - Do work on branches and land changes through pull requests into `main`.
 - Bump the Android app version in `export_presets.cfg` for every release candidate before building or publishing.
+- When a PR includes user-facing gameplay, Android, backend, release, or documentation changes, include a version bump and matching release-note updates unless the human explicitly says not to.
 - Treat Android reinstall/restore testing as invalid unless the APK is continuity-safe:
   - use the canonical local export path in `tools/export_android.ps1` or CI
   - use `SigningMode` `release_stable` or `debug_stable`
