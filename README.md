@@ -234,7 +234,7 @@ This repository includes `.github/workflows/android-apk.yml`.
 
 - Every candidate release should increment `export_presets.cfg` `version/code` and `version/name` before building or publishing.
 - On pull requests to `main`, it validates the project and exports an Android APK artifact.
-- On pushes to `main`, it validates the project, exports an Android APK, publishes a versioned GitHub release, and refreshes the rolling `android-latest` prerelease alias.
+- On pushes to `main`, it validates the project, exports an Android APK, publishes a versioned GitHub release, refreshes the rolling `android-latest` prerelease alias, and removes stale APK assets from those releases before uploading the current APK.
 - Manual workflow runs only publish a release when they are run from `main`; branch and PR builds stay artifact-only.
 - The workflow also builds the Android FCM plugin AAR before the APK export.
 - The APK is uploaded as a workflow artifact.
@@ -264,7 +264,7 @@ This repo intentionally follows a lightweight harness-engineering approach:
 - docs as the source of truth
 - deterministic validation/export scripts
 - generated README media from current Godot scenes via `tools/capture_readme_media.gd`
-- release-hygiene checks that keep version metadata, release notes, and public docs aligned
+- release-hygiene checks that keep version metadata, release notes, public docs, GitHub latest releases, and the rolling Android alias aligned
 - profile/name-gate and daily-mission sync validators for the online progression paths touched by recent releases
 - CI as a feedback loop
 
