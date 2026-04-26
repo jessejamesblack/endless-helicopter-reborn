@@ -37,7 +37,7 @@ const ALL_DEPTH_UPGRADES: Array[String] = [
 	"precision_payoff",
 ]
 const ALL_DEPTH_POWERUPS: Array[String] = ["shield_bubble", "score_rush", "missile_overdrive", "ammo_magnet", "emp_burst", "afterburner_burst"]
-const ALL_DEPTH_OBJECTIVES: Array[String] = ["rescue_pickup", "reactor_chain"]
+const ALL_DEPTH_OBJECTIVES: Array[String] = ["rescue_pickup", "reactor_chain", "black_box_recovery", "signal_gates"]
 
 var validation_mode_enabled: bool = false
 
@@ -199,6 +199,10 @@ func apply_depth_run_progress(summary: Dictionary) -> Array[Dictionary]:
 		_add_depth_unlock(_unlocked_powerup_ids, "afterburner_burst", "powerup", unlocks)
 	if int(_depth_unlock_progress.get("objectives_completed", 0)) >= 1:
 		_add_depth_unlock(_unlocked_objective_ids, "reactor_chain", "objective", unlocks)
+	if int(_depth_unlock_progress.get("objectives_completed", 0)) >= 2:
+		_add_depth_unlock(_unlocked_objective_ids, "black_box_recovery", "objective", unlocks)
+	if int(_depth_unlock_progress.get("objectives_completed", 0)) >= 4:
+		_add_depth_unlock(_unlocked_objective_ids, "signal_gates", "objective", unlocks)
 	if int(_depth_unlock_progress.get("elite_kills", 0)) >= 1:
 		_add_depth_unlock(_unlocked_upgrade_ids, "bigger_blast", "upgrade", unlocks)
 		_add_depth_unlock(_unlocked_upgrade_ids, "stronger_recovery", "upgrade", unlocks)

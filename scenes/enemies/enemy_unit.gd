@@ -51,6 +51,32 @@ var ENEMY_DATA := {
 		"bob_speed": 3.9,
 		"score": 90,
 	},
+	"mine_layer": {
+		"region": Rect2(1623, 1192, 206, 180),
+		"scale": Vector2(0.48, 0.48),
+		"speed": 196.0,
+		"collision_offset": Vector2(0, 1.5),
+		"collision_polygon": PackedVector2Array([
+			Vector2(-36, -6),
+			Vector2(-28, -20),
+			Vector2(-8, -27),
+			Vector2(16, -25),
+			Vector2(34, -14),
+			Vector2(40, 0),
+			Vector2(34, 14),
+			Vector2(18, 24),
+			Vector2(-10, 27),
+			Vector2(-28, 18),
+			Vector2(-36, 6),
+		]),
+		"fire_interval": 1.8,
+		"projectile_kind": "ion_mine",
+		"projectile_speed": 215.0,
+		"fire_offset": Vector2(-30, 8),
+		"bob_amplitude": 12.0,
+		"bob_speed": 2.6,
+		"score": 105,
+	},
 	"glowing_rock": {
 		"region": Rect2(2393, 1123, 351, 277),
 		"scale": Vector2(0.39, 0.39),
@@ -77,7 +103,7 @@ var ENEMY_DATA := {
 	},
 }
 
-@export_enum("stationary_turret", "alien_drone", "glowing_rock", "rock_core") var enemy_kind: String = "stationary_turret"
+@export_enum("stationary_turret", "alien_drone", "mine_layer", "glowing_rock", "rock_core") var enemy_kind: String = "stationary_turret"
 @export var enemy_modifier: String = ""
 
 @onready var sprite: Sprite2D = $Sprite2D

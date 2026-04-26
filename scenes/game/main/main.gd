@@ -561,14 +561,12 @@ func _on_powerup_activated(powerup_id: String, _data: Dictionary) -> void:
 
 func _on_objective_started(objective: Dictionary) -> void:
     _update_objective_ui(objective)
-    if str(objective.get("id", "")) == "rescue_pickup":
-        var spawner := get_node_or_null("Spawner")
-        if spawner != null and spawner.has_method("spawn_objective_pickup"):
-            spawner.spawn_objective_pickup("rescue_pickup")
+    _spawn_objective_pickup_if_needed(objective)
     _play_haptic("combo_up")
 
 func _on_objective_progressed(objective: Dictionary) -> void:
     _update_objective_ui(objective)
+    _spawn_objective_pickup_if_needed(objective)
 
 func _on_objective_completed(objective: Dictionary) -> void:
     _update_objective_ui({})
@@ -586,6 +584,18 @@ func _on_objective_completed(objective: Dictionary) -> void:
 
 func _on_objective_failed(_objective: Dictionary) -> void:
     _update_objective_ui({})
+
+func _spawn_objective_pickup_if_needed(objective: Dictionary) -> void:
+    if objective.is_empty():
+        return
+    var should_spawn := str(objective.get("id", "")) == "rescue_pickup" or bool(objective.get("spawn_pickup", false))
+    if not should_spawn:
+        return
+    if int(objective.get("progress", 0)) >= int(objective.get("target", 1)):
+        return
+    var spawner := get_node_or_null("Spawner")
+    if spawner != null and spawner.has_method("spawn_objective_pickup"):
+        spawner.spawn_objective_pickup(str(objective.get("action", "rescue_pickup")))
 
 func _ensure_upgrade_choice_overlay() -> void:
     if _upgrade_choice_overlay != null and is_instance_valid(_upgrade_choice_overlay):

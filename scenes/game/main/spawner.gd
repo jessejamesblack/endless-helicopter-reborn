@@ -17,6 +17,7 @@ const EncounterCatalog = preload("res://scenes/game/main/encounter_catalog.gd")
 const ENEMY_VARIANTS := [
 	{"kind": "large_spiky_rock", "weight": 0.58},
 	{"kind": "alien_drone", "weight": 0.24},
+	{"kind": "mine_layer", "weight": 0.06},
 	{"kind": "stationary_turret", "weight": 0.12},
 	{"kind": "glowing_rock", "weight": 0.06},
 ]
