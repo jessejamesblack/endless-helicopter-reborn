@@ -319,8 +319,7 @@ const VEHICLES := {
 		"original_icon_offset": Vector2(0.0, -2.9),
 	},
 	"apache_strike": {
-		"display_name": "Apache Strike",
-		"flavor_name": "Hind Strike",
+		"display_name": "Hind Strike",
 		"vehicle_class": "Armored Striker",
 		"role": "Punchy forward attacker",
 		"description": "Complete 12 daily missions.",

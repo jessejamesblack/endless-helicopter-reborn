@@ -32,6 +32,11 @@ func _validate_score_feedback() -> void:
 	_assert(main_text.contains("OBJECTIVE"), "Objective reward score feedback should be visible.")
 	_assert(main_text.contains("ELITE HIT"), "Elite kill score feedback should be visibly distinct.")
 	_assert(main_text.contains("ARMOR"), "Partial armored hits should have distinct feedback.")
+	_assert(main_text.contains("FULL_AMMO_PICKUP_SCORE"), "Full-ammo pickup scoring should have a named score value.")
+	_assert(main_text.contains('award_skill_score(FULL_AMMO_PICKUP_SCORE, "FULL AMMO"'), "Full-ammo pickups should use the normal score award path for floating feedback.")
+	var pickup_text := Helper.read_text("res://scenes/pickups/missile_pickup.gd")
+	_assert(pickup_text.contains("was_full_ammo"), "Ammo pickups should detect whether the player was already full.")
+	_assert(pickup_text.contains("record_full_ammo_pickup(global_position)"), "Full-ammo pickups should ask Main to show the score notifier at the pickup position.")
 
 func _assert(condition: bool, message: String) -> void:
 	Helper.assert_condition(_failures, condition, message)

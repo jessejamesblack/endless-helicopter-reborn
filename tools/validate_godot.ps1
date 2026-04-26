@@ -264,6 +264,12 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Godot Sprint 7 security validation failed'
 }
 
+Write-Host 'Validating profile name gate'
+& $GodotBin --headless --path $projectRoot --script res://tools/validate_profile_name_gate.gd
+if ($LASTEXITCODE -ne 0) {
+    throw 'Godot profile name gate validation failed'
+}
+
 Write-Host 'Validating daily mission expansion'
 & $GodotBin --headless --path $projectRoot --script res://tools/validate_daily_mission_expansion.gd
 if ($LASTEXITCODE -ne 0) {

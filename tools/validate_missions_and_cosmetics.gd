@@ -315,7 +315,7 @@ func _validate_mission_generation_and_progress() -> void:
 	_assert((result.get("core_missions_completed_this_run", []) as Array).size() == 3, "Core mission tracking should stay separate from bonus missions.")
 	_assert((result.get("bonus_missions_completed_this_run", []) as Array).size() == 2, "Bonus mission tracking should stay separate from core missions.")
 	_assert(player_profile.get_total_daily_missions_completed() == 3, "Mission completion should increment total daily missions completed.")
-	_assert(player_profile.is_vehicle_unlocked("bubble_chopper"), "Little Bird should unlock after the first completed daily mission.")
+	_assert(player_profile.is_vehicle_unlocked("bubble_chopper"), "Bubble Chopper should unlock after the first completed daily mission.")
 	_assert(player_profile.is_vehicle_unlocked("huey_runner"), "Huey Runner should unlock after three completed daily missions.")
 	var summary: Dictionary = mission_manager.get_daily_progress_summary()
 	_assert(int(summary.get("core_completed", 0)) == 3, "Daily mission summary should report completed core missions.")

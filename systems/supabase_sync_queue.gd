@@ -58,6 +58,8 @@ func enqueue_submit_score_v2(name: String, score: int, run_summary: Dictionary, 
 	_emit_queue_changed()
 
 func enqueue_sync_player_profile(profile_summary: Dictionary) -> void:
+	if OnlineLeaderboardScript.get_valid_cached_name().is_empty():
+		return
 	_replace_or_append_job(JOB_SYNC_PLAYER_PROFILE, profile_summary.duplicate(true))
 
 func enqueue_sync_daily_mission_progress(mission_summary: Dictionary) -> void:
@@ -517,6 +519,8 @@ func _process_submit_score_job(job: Dictionary) -> String:
 	return "retry" if _is_retryable_response(response) else "drop"
 
 func _process_profile_sync_job(job: Dictionary) -> String:
+	if OnlineLeaderboardScript.get_valid_cached_name().is_empty():
+		return "drop"
 	var payload := job.get("payload", {}) as Dictionary
 	var response := await _request_json(
 		_flush_request,

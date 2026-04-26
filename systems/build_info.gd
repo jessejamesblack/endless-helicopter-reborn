@@ -1,10 +1,10 @@
 extends RefCounted
 class_name BuildInfo
 
-const VERSION_CODE := 168
-const VERSION_NAME := "1.7.0"
+const VERSION_CODE := 174
+const VERSION_NAME := "1.7.6"
 const BUILD_SHA := "dev"
-const BUILD_DATE := "2026-04-26T02:18:47Z"
+const BUILD_DATE := "2026-04-26T03:21:59Z"
 const RELEASE_CHANNEL := "dev"
 const APP_PACKAGE_NAME := "com.jessejamesblack.endlesshelicopterreborn"
 const SIGNING_MODE := "local_unspecified"

@@ -248,6 +248,11 @@ begin
 		raise exception 'Player id is required.';
 	end if;
 
+	p_name := trim(coalesce(p_name, ''));
+	if char_length(p_name) < 1 or char_length(p_name) > 12 then
+		raise exception 'Player name must be between 1 and 12 characters.';
+	end if;
+
 	insert into public.family_player_profiles (
 		family_id,
 		player_id,
@@ -273,7 +278,7 @@ begin
 	values (
 		p_family_id,
 		p_player_id,
-		nullif(trim(coalesce(p_name, '')), ''),
+		p_name,
 		coalesce(nullif(p_equipped_skin_id, ''), 'default_scout'),
 		coalesce(p_unlocked_skins, '["default_scout"]'::jsonb),
 		resolved_equipped_vehicle_id,
@@ -294,7 +299,7 @@ begin
 	)
 	on conflict (family_id, player_id)
 	do update set
-		name = coalesce(excluded.name, public.family_player_profiles.name),
+		name = excluded.name,
 		equipped_skin_id = excluded.equipped_skin_id,
 		unlocked_skins = excluded.unlocked_skins,
 		equipped_vehicle_id = excluded.equipped_vehicle_id,
@@ -327,6 +332,7 @@ begin
 
 	return jsonb_build_object(
 		'player_id', profile_row.player_id,
+		'name', profile_row.name,
 		'equipped_skin_id', profile_row.equipped_skin_id,
 		'unlocked_skins', profile_row.unlocked_skins,
 		'equipped_vehicle_id', profile_row.equipped_vehicle_id,
