@@ -1,6 +1,5 @@
-- Stable Android release 1.6.13 (167).
-- Adds Black Box Recovery and Signal Gates objectives, plus Mine Layer enemies, ion mines, and new storm/minefield encounter chunks.
-- Adds release hygiene validation so export metadata, build info, release notes, Discord summary, and GitHub releases stay aligned.
-- Refreshes the public README with latest APK links, gameplay media, controls, roadmap links, clearer Android install guidance, and issue templates.
-- Keeps the depth sprint foundation: run upgrades, temporary powerups, clearer vehicle passives, Hangar stats, enemy variants, faster firing, and entry shots.
-- Keeps the recent fairness/sync fixes for boundary abuse, pause spam, background continuity, responsive spawns, live missions, app-update push copy, and mission cloud sync.
+- Stable Android release 1.7.0 (168).
+- Objectives now start earlier, can appear up to three times per run, and avoid repeats before the deck is exhausted.
+- Adds No-Fire Signal, Barrage Intercept, Bounty Drone, and Clean Flight objectives while polishing Black Box Recovery and Signal Gates.
+- Reworks Scout with Reliable Frame: the first upgrade choice offers four cards instead of three.
+- Adds validation for objective cadence, timer/fail objectives, bounty/intercept completion, lane pickups, and the four-card upgrade overlay.

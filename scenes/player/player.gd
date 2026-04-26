@@ -110,6 +110,8 @@ func fire_missile() -> void:
     var run_stats := get_node_or_null("/root/RunStats")
     if run_stats != null and run_stats.has_method("record_missile_fired"):
         run_stats.record_missile_fired()
+    if main != null and main.has_method("record_player_missile_fired"):
+        main.record_player_missile_fired()
     var haptics_manager = get_node_or_null("/root/HapticsManager")
     if haptics_manager != null and haptics_manager.has_method("play"):
         haptics_manager.play("missile_fire")

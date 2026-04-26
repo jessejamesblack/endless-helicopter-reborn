@@ -3,6 +3,7 @@ extends SceneTree
 const Helper = preload("res://tools/validate_sprint6_helpers.gd")
 const MAIN_SCENE := preload("res://scenes/game/main/main.tscn")
 const POWERUP_PICKUP_SCENE := preload("res://scenes/pickups/powerup_pickup.tscn")
+const UPGRADE_CHOICE_SCENE := preload("res://scenes/ui/upgrades/run_upgrade_choice.tscn")
 
 var _failures: Array[String] = []
 
@@ -16,6 +17,7 @@ func _run_validation() -> void:
 	_validate_objective_manager()
 	await _validate_powerup_pickup_visuals_runtime()
 	await _validate_main_upgrade_overlay_runtime()
+	await _validate_four_card_upgrade_overlay_layout()
 	await _validate_score_rush_skill_window_runtime()
 	Helper.finish(self, _failures, "Depth retention validation completed successfully.")
 
@@ -60,6 +62,17 @@ func _validate_upgrade_manager() -> void:
 		_assert(int(manager.call("get_upgrade_level", first_id)) == 1, "Chosen upgrade level should increment.")
 	_assert(float(manager.call("get_run_power_score")) > 0.0, "Chosen upgrades should contribute to run power.")
 	_assert(not (manager.call("get_run_modifiers") as Dictionary).is_empty(), "Run modifiers should include vehicle passive data.")
+
+	manager.call("start_run", "default_scout")
+	_assert(bool(manager.call("request_choice", "milestone")), "Scout should allow a first milestone choice request.")
+	var scout_first_offers: Array = manager.call("get_pending_offers")
+	_assert(scout_first_offers.size() == 4, "Scout Reliable Frame should offer 4 cards on the first choice.")
+	if not scout_first_offers.is_empty():
+		var scout_first_id := str((scout_first_offers[0] as Dictionary).get("id", ""))
+		_assert(bool(manager.call("choose_upgrade", scout_first_id)), "Scout should be able to choose one of the 4 first offers.")
+	_assert(bool(manager.call("request_choice", "milestone")), "Scout should allow a later milestone choice request.")
+	var scout_second_offers: Array = manager.call("get_pending_offers")
+	_assert(scout_second_offers.size() == 3, "Scout should return to 3 cards after the first choice.")
 
 func _validate_powerup_manager() -> void:
 	var manager := get_root().get_node_or_null("PowerupManager")
@@ -152,6 +165,43 @@ func _validate_main_upgrade_overlay_runtime() -> void:
 
 	await _destroy_node(main)
 	paused = false
+
+func _validate_four_card_upgrade_overlay_layout() -> void:
+	var root_window := get_root()
+	root_window.size = Vector2i(820, 460)
+	await process_frame
+
+	var canvas := CanvasLayer.new()
+	root_window.add_child(canvas)
+	var overlay := UPGRADE_CHOICE_SCENE.instantiate() as Control
+	canvas.add_child(overlay)
+	overlay.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	overlay.offset_left = 0.0
+	overlay.offset_top = 0.0
+	overlay.offset_right = float(root_window.size.x)
+	overlay.offset_bottom = float(root_window.size.y)
+	await process_frame
+	var offers: Array[Dictionary] = []
+	for index in range(4):
+		offers.append({
+			"id": "test_%d" % index,
+			"name": "Upgrade %d" % (index + 1),
+			"description": "Compact card layout check.",
+			"level": 1,
+			"max_level": 1,
+		})
+	overlay.call("open_choice", offers, "milestone")
+	await process_frame
+	var panel := overlay.get_node_or_null("Overlay/Panel") as Control
+	var card_row := overlay.get_node_or_null("Overlay/Panel/MarginContainer/VBoxContainer/CardRow") as HBoxContainer
+	_assert(panel != null, "Upgrade choice overlay should expose a panel.")
+	_assert(card_row != null, "Upgrade choice overlay should expose a card row.")
+	if panel != null:
+		_assert(Rect2(Vector2.ZERO, Vector2(root_window.size)).encloses(panel.get_global_rect()), "Four-card upgrade overlay should fit inside a phone/tablet viewport.")
+	if card_row != null:
+		_assert(card_row.get_child_count() == 4, "Four-card upgrade overlay should render all 4 Scout offers.")
+	canvas.free()
+	await process_frame
 
 func _validate_score_rush_skill_window_runtime() -> void:
 	var root_window := get_root()

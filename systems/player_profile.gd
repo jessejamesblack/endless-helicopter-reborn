@@ -19,7 +19,16 @@ const DEFAULT_UNLOCKED_UPGRADES: Array[String] = [
 	"interceptor_bonus",
 ]
 const DEFAULT_UNLOCKED_POWERUPS: Array[String] = ["shield_bubble", "score_rush", "ammo_magnet"]
-const DEFAULT_UNLOCKED_OBJECTIVES: Array[String] = ["rescue_pickup"]
+const DEFAULT_UNLOCKED_OBJECTIVES: Array[String] = [
+	"rescue_pickup",
+	"reactor_chain",
+	"black_box_recovery",
+	"signal_gates",
+	"no_fire_signal",
+	"barrage_intercept",
+	"bounty_drone",
+	"clean_flight",
+]
 const ALL_DEPTH_UPGRADES: Array[String] = [
 	"twin_missiles",
 	"homing_missiles",
@@ -37,7 +46,16 @@ const ALL_DEPTH_UPGRADES: Array[String] = [
 	"precision_payoff",
 ]
 const ALL_DEPTH_POWERUPS: Array[String] = ["shield_bubble", "score_rush", "missile_overdrive", "ammo_magnet", "emp_burst", "afterburner_burst"]
-const ALL_DEPTH_OBJECTIVES: Array[String] = ["rescue_pickup", "reactor_chain", "black_box_recovery", "signal_gates"]
+const ALL_DEPTH_OBJECTIVES: Array[String] = [
+	"rescue_pickup",
+	"reactor_chain",
+	"black_box_recovery",
+	"signal_gates",
+	"no_fire_signal",
+	"barrage_intercept",
+	"bounty_drone",
+	"clean_flight",
+]
 
 var validation_mode_enabled: bool = false
 

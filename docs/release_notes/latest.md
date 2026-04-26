@@ -1,52 +1,37 @@
-# Endless Helicopter Reborn 1.6.13
+# Endless Helicopter Reborn 1.7.0
 
-Version 1.6.13 is a release-trust, public polish, and gameplay-content update. It keeps the 1.6.12 depth sprint intact while adding clearer install/repo surfaces, stricter release metadata validation, more run objective variety, and a new mid/late-run enemy pressure role.
+Version 1.7.0 is a run-variety and skill-expression update. It builds on the 1.6 depth sprint by making objectives appear earlier, adding more ways to succeed or fail inside a run, and giving Scout a visible upgrade-choice identity.
 
 ## Highlights
 
-- Added Black Box Recovery and Signal Gates as new short objective events.
-- Added Mine Layer enemies that drop slow ion mines, creating extra navigation pressure and missile-intercept opportunities.
-- Added storm-pocket and minefield encounter chunks for more mid/late-run variety.
-- Added release hygiene validation so Android export metadata, checked-in build info, release notes, Discord summary, and public GitHub release metadata stay aligned.
-- Improved the public README with latest APK links, current gameplay media, controls, roadmap links, and clearer Android install guidance.
-- Added a public roadmap and GitHub issue templates for bugs, gameplay tuning, Android installs, and backend/sync issues.
-- Added periodic 1-of-3 run upgrades at milestone moments so each run can build in a different direction.
-- Added temporary powerup pickups: Shield Bubble, Score Rush, Missile Overdrive, Ammo Magnet, EMP Burst, and Afterburner Burst.
-- Added short objective events, including rescue pickups, reactor chains, black box recovery, and signal gates, with score and reward hooks.
-- Strengthened vehicle identities with handling differences and run passives for near misses, ammo economy, shields, missiles, combo stability, and scoring.
-- Added Hangar vehicle stat readouts for ammo capacity, lift, handling, gravity, recovery, and passive perks.
-- Expanded enemy pressure with armored, shielded, and elite variants, Mine Layers, faster turret/drone firing, immediate entry shots, and more responsive early pacing.
+- Objectives can now begin around 42 seconds, are spaced at least 32 seconds apart, and can appear up to three times per run.
+- Expanded the objective deck to eight events: Rescue Pickup, Reactor Chain, Black Box Recovery, Signal Gates, No-Fire Signal, Barrage Intercept, Bounty Drone, and Clean Flight.
+- No-Fire Signal rewards restraint by failing if the player successfully fires a missile before the timer ends.
+- Clean Flight rewards control by failing if the player uses boundary recovery before the timer ends.
+- Barrage Intercept spawns a small drone pressure setup and rewards projectile interception with an ammo refill.
+- Bounty Drone spawns a marked elite drone after the run has reached the later objective window and rewards the kill with an upgrade choice.
+- Black Box Recovery now uses two alternating-lane boxes, and Signal Gates reward Score Rush for precision flight.
+- Objective selection avoids repeating the same event in one run until the available deck is exhausted.
 
-## Player-Facing Fixes And Polish
+## Vehicle And UI Changes
 
-- Fixed boundary recovery abuse with stall and chain protections.
-- Fixed pause spam so rapid pause/resume cannot create a slow-motion advantage.
-- Restored long-run background continuity so existing biome visuals stay coherent until the next biome transition.
-- Improved responsive spawn lanes for tall and tablet layouts.
-- Made kill-score popups more visible, extended the combo window slightly, and let combo scoring climb a bit higher.
-- Added daily mission access from the pause menu and new mission types for upgrades, powerups, objectives, elites, and special enemies.
-- Daily mission progress now updates live during runs for immediate pickup/effect events such as ammo pickups, powerup collection/use, EMP activations, and shield absorbs.
-- Daily mission cloud sync now preserves the highest per-mission progress and completion state, so a stale cloud row cannot roll a completed mission back to `4/5`.
-- Live mission completions now survive a stale cloud restore that finishes mid-run, keeping the end-screen completion text, local mission list, profile credit, and sync payload aligned.
-- Mission state now blocks disk reloads while live progress is being applied, preventing profile-change UI refreshes from rolling the mission list back before it is saved.
-- Pending daily mission sync jobs now merge upward locally, so a stale queued payload cannot replace a newer completed mission payload before the queue flushes.
-- Added broader daily mission validation so progress is checked across in-run views, end-of-run results, and the main-screen mission summary.
-- Fixed app-update push notifications so they cannot appear as incorrect score-beaten `0/0` notifications.
-- Updated the new upgrade, powerup, objective, and run-summary UI to better match the existing game HUD style.
-- Added fresh README media capture tooling and validation for public polish docs/templates/media.
+- Scout now uses the Reliable Frame passive.
+- Reliable Frame makes Scout's first upgrade choice offer four cards instead of three, giving the starter vehicle a clearer identity.
+- Later Scout choices and all other vehicle choices continue to use the normal three-card upgrade flow.
+- The upgrade choice overlay now supports the four-card Scout layout on supported phone and tablet widths.
+- The Hangar stat readout now describes Scout's first-choice card bonus.
 
-## Progression And Data Notes
+## Technical Notes
 
-- Added unlock-pool meta progression for upgrades, powerups, and objective possibilities without adding a shop, paid upgrades, or a currency economy.
-- Expanded objective unlock pools to include the new Black Box Recovery and Signal Gates possibilities.
-- Expanded run stats for upgrades, powerups, objectives, elite/special kills, shield absorbs, effect seconds, ammo refunds, and boundary crash reasons.
-- Kept profile sync within the existing JSON summary path; no Supabase schema migration is required for this release.
-- Live mission progress is reconciled against the final run summary so the same pickup or effect cannot count twice.
-- Startup cloud restore keeps local daily mission progress when the local device is ahead, then queues a repair sync back to Supabase.
-- Added repo-local `SKILL.md` guidance for future agent-assisted work.
+- Objective data now supports timer completion, fail actions, elapsed gating, start events, lane-mode pickup spawning, and reward-specific handling.
+- Main gameplay now records objective actions for successful missile fire, projectile intercepts, boundary recovery, reactor kills, and bounty kills.
+- The spawner can launch objective-specific events for Barrage Intercept and Bounty Drone and can place objective pickups in requested lanes.
+- Marked bounty enemies use existing elite behavior plus objective-destroy action plumbing.
+- Default objective availability now includes the full v1.7 objective deck, while existing profile objective fields remain backward-compatible.
+- No Supabase schema migration or backend update is required.
 
-## Safety Notes
+## Validation
 
-- Same-device reinstall stability still depends on reinstalling builds signed with the same stable release key.
-- Public Android release publishing still requires `release_stable` on `main`; testing-only `debug_stable` builds stay non-public.
-- Release and reporting paths remain best-effort and do not block gameplay if an external service is unavailable.
+- Added behavior validation for objective cadence, the eight-objective catalog, no-repeat objective selection, elapsed gating, timer completion, fail actions, projectile-intercept completion, bounty completion, lane pickup support, and Scout's four-card first choice.
+- Updated depth-retention, gameplay-content, hangar-polish, and feedback validators for the new release behavior.
+- Full Godot validation passes for this release candidate.

@@ -125,6 +125,7 @@ var _fire_timer: float = 0.0
 var _time_alive: float = 0.0
 var _hits_remaining: int = 1
 var _has_fired_entry_shot: bool = false
+var objective_destroy_action: String = ""
 
 func _ready() -> void:
 	add_to_group("hostile_units")
@@ -139,13 +140,18 @@ func configure(kind: String, modifier: String = "") -> void:
 		_base_y = position.y
 		apply_enemy_config()
 
+func configure_objective_destroy_action(action: String) -> void:
+	objective_destroy_action = action.strip_edges()
+	if is_inside_tree():
+		apply_enemy_config()
+
 func apply_enemy_config() -> void:
 	enemy_kind = _resolve_enemy_kind(enemy_kind)
 	var data: Dictionary = ENEMY_DATA.get(enemy_kind, ENEMY_DATA["stationary_turret"])
 	sprite.region_rect = data["region"]
 	sprite.scale = data["scale"]
 	sprite.rotation = 0.0
-	sprite.modulate = _get_modifier_color()
+	sprite.modulate = _get_display_color()
 
 	collision_polygon.polygon = data["collision_polygon"]
 	collision_polygon.position = data.get("collision_offset", Vector2.ZERO)
@@ -356,6 +362,12 @@ func _get_modifier_color() -> Color:
 		"elite":
 			return Color(1.0, 0.72, 0.34, 1.0)
 	return Color.WHITE
+
+func _get_display_color() -> Color:
+	var color := _get_modifier_color()
+	if not objective_destroy_action.is_empty():
+		color = color.lerp(Color(1.0, 0.86, 0.28, 1.0), 0.45)
+	return color
 
 func _get_effective_fire_interval(data: Dictionary) -> float:
 	var base_interval := float(data.get("fire_interval", 999.0))

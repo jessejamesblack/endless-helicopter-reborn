@@ -11,7 +11,8 @@ This roadmap keeps the project pointed at small, testable milestones. It is not 
 
 ## 1.7 gameplay content
 
-- Add more short run objectives that teach the depth systems without turning runs into chores.
+- Ship a broader short-objective deck that teaches movement, restraint, projectile intercepts, clean flying, and elite-target combat without turning runs into chores.
+- Bias future objective/event content around vehicle identity now that Scout has a visible first-choice upgrade passive.
 - Add biome events such as storm pockets, low-visibility sections, gravity pulses, or temporary hazard waves.
 - Expand enemy roles with a small number of readable threats, such as mine layers, shield projectors, carrier drones, or warning-based turrets.
 - Add vehicle-specific challenges that help players understand each passive identity.

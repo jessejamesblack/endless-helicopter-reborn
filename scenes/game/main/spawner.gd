@@ -184,7 +184,7 @@ func spawn_scene_at_y(scene_to_spawn: PackedScene, y: float) -> void:
 	item.position = Vector2(0.0, clampf(y, bounds.x, bounds.y))
 	add_child(item)
 
-func spawn_enemy_variant_at_y(kind: String, y: float, modifier: String = "") -> void:
+func spawn_enemy_variant_at_y(kind: String, y: float, modifier: String = "", objective_destroy_action: String = "") -> void:
 	if enemy_scene == null:
 		push_error("Enemy scene is not assigned in the Spawner!")
 		return
@@ -197,6 +197,8 @@ func spawn_enemy_variant_at_y(kind: String, y: float, modifier: String = "") -> 
 
 	if enemy.has_method("configure"):
 		enemy.configure(kind, modifier if not modifier.is_empty() else _choose_enemy_modifier(kind))
+	if not objective_destroy_action.is_empty() and enemy.has_method("configure_objective_destroy_action"):
+		enemy.configure_objective_destroy_action(objective_destroy_action)
 
 	add_child(enemy)
 
@@ -210,14 +212,24 @@ func spawn_powerup_at_y(powerup_id: String, y: float) -> void:
 		item.configure(powerup_id)
 	add_child(item)
 
-func spawn_objective_pickup(action: String = "rescue_pickup") -> void:
+func spawn_objective_pickup(action: String = "rescue_pickup", y_mode: String = "random_mid") -> void:
 	if objective_pickup_scene == null:
 		return
 	var item := objective_pickup_scene.instantiate()
-	item.position = Vector2(0.0, _resolve_spawn_y({"y_mode": "random_mid"}))
+	item.position = Vector2(0.0, _resolve_spawn_y({"y_mode": y_mode}))
 	if item.has_method("configure"):
 		item.configure(action)
 	add_child(item)
+
+func spawn_objective_start_event(event_id: String) -> void:
+	match event_id:
+		"barrage_intercept_wave":
+			_spawn_objective_enemy("alien_drone", "lane_top")
+			_spawn_objective_enemy("alien_drone", "lane_bottom")
+		"bounty_drone":
+			_spawn_objective_enemy("alien_drone", "random_mid", "elite", "bounty_drone_kill")
+		_:
+			push_warning("Unknown objective start event: %s" % event_id)
 
 func spawn_scene(scene_to_spawn: PackedScene) -> void:
 	spawn_scene_at_y(scene_to_spawn, _resolve_spawn_y({"y_mode": "random_any"}))
@@ -396,7 +408,7 @@ func _spawn_director_request(request: Dictionary) -> void:
 			if kind == "large_spiky_rock":
 				spawn_scene_at_y(obstacle_scene, y)
 			else:
-				spawn_enemy_variant_at_y(kind, y, str(request.get("modifier", "")))
+				spawn_enemy_variant_at_y(kind, y, str(request.get("modifier", "")), str(request.get("objective_destroy_action", "")))
 				if kind == "glowing_rock":
 					_last_glowing_elapsed = _elapsed
 		_:
@@ -480,6 +492,17 @@ func _can_spawn_request(request: Dictionary) -> bool:
 			return false
 
 	return true
+
+func _spawn_objective_enemy(kind: String, y_mode: String, modifier: String = "", objective_destroy_action: String = "") -> void:
+	var request := {
+		"type": "enemy",
+		"kind": kind,
+		"y_mode": y_mode,
+		"modifier": modifier,
+		"objective_destroy_action": objective_destroy_action,
+	}
+	if not objective_destroy_action.is_empty() or _can_spawn_request(request):
+		_spawn_director_request(request)
 
 func _encounter_contains_kind(encounter: Dictionary, kind: String) -> bool:
 	var spawns: Array = encounter.get("spawns", [])
